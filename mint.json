@@ -1,0 +1,221 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "ALX Protocol",
+  "colors": {
+    "primary": "#1a3f6f",
+    "light": "#4a7cc7",
+    "dark": "#0f2647"
+  },
+  "modeToggle": {
+    "default": "light"
+  },
+  "topbarLinks": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com/xandrlabs/alx-protocol"
+    }
+  ],
+  "topbarCta": {
+    "name": "Get Started",
+    "url": "docs/integrators/quickstart"
+  },
+  "tabs": [
+    {
+      "name": "Integrators",
+      "url": "docs/integrators/quickstart"
+    },
+    {
+      "name": "Protocol",
+      "url": "docs/architecture"
+    },
+    {
+      "name": "Implementers",
+      "url": "docs/implementers/independent-implementation"
+    },
+    {
+      "name": "Governance",
+      "url": "docs/governance/governance"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "Whitepaper",
+      "icon": "book-open",
+      "url": "docs/whitepaper"
+    },
+    {
+      "name": "Changelog",
+      "icon": "list-check",
+      "url": "https://github.com/xandrlabs/alx-protocol/blob/main/CHANGELOG.md"
+    },
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/xandrlabs/alx-protocol"
+    }
+  ],
+  "navigation": [
+    {
+      "tab": "Integrators",
+      "groups": [
+        {
+          "group": "Get Started",
+          "pages": [
+            "docs/integrators/quickstart",
+            "docs/integrators/api-reference",
+            "docs/integrators/faq",
+            "docs/integrators/troubleshooting"
+          ]
+        },
+        {
+          "group": "AI and Agents",
+          "pages": [
+            "docs/integrators/agent-integration",
+            "docs/integrators/agent-frameworks",
+            "docs/integrators/ai-conventions",
+            "docs/integrators/attributed-outputs"
+          ]
+        },
+        {
+          "group": "Storage and Extensions",
+          "pages": [
+            "docs/integrators/storage",
+            "docs/integrators/extensions",
+            "docs/integrators/adapters",
+            "docs/integrators/artifact-package-manifest",
+            "docs/integrators/on-chain-base",
+            "docs/integrators/index-blocks",
+            "docs/integrators/registry-blocks"
+          ]
+        },
+        {
+          "group": "Production",
+          "pages": [
+            "docs/integrators/deployment-checklist",
+            "docs/integrators/performance",
+            "docs/integrators/database-guide",
+            "docs/integrators/workflows"
+          ]
+        },
+        {
+          "group": "Reference",
+          "pages": [
+            "docs/integrators/glossary",
+            "docs/integrators/comparison",
+            "docs/integrators/providers",
+            "docs/integrators/settlement"
+          ]
+        }
+      ]
+    },
+    {
+      "tab": "Protocol",
+      "groups": [
+        {
+          "group": "Overview",
+          "pages": [
+            "docs/architecture",
+            "docs/trust-model",
+            "docs/data-model",
+            "docs/operations",
+            "docs/verification-receipts"
+          ]
+        },
+        {
+          "group": "Specification",
+          "pages": [
+            "protocol/BLOCK",
+            "protocol/spec"
+          ]
+        },
+        {
+          "group": "Deep Dives",
+          "pages": [
+            "docs/deep-dives/canonical-envelope",
+            "docs/deep-dives/lineage",
+            "docs/deep-dives/invariants",
+            "docs/deep-dives/core-contract"
+          ]
+        }
+      ]
+    },
+    {
+      "tab": "Implementers",
+      "groups": [
+        {
+          "group": "Build",
+          "pages": [
+            "docs/implementers/independent-implementation",
+            "docs/implementers/implementer-guide"
+          ]
+        },
+        {
+          "group": "Conformance",
+          "pages": [
+            "docs/implementers/conformance",
+            "docs/implementers/compatibility",
+            "docs/implementers/errors"
+          ]
+        },
+        {
+          "group": "Performance",
+          "pages": [
+            "docs/benchmarks"
+          ]
+        }
+      ]
+    },
+    {
+      "tab": "Governance",
+      "groups": [
+        {
+          "group": "Process",
+          "pages": [
+            "docs/governance/governance",
+            "docs/governance/versioning",
+            "docs/governance/stability",
+            "docs/governance/migration",
+            "docs/governance/security"
+          ]
+        },
+        {
+          "group": "Evolution",
+          "pages": [
+            "docs/governance/evolution-and-graph-completeness",
+            "docs/governance/adr-001-graph-validation-model"
+          ]
+        },
+        {
+          "group": "Design Decisions",
+          "pages": [
+            "docs/decisions/001-keccak-256",
+            "docs/decisions/002-content-opacity",
+            "docs/decisions/003-no-consensus",
+            "docs/decisions/004-attestation-orthogonality",
+            "docs/decisions/005-incremental-validation",
+            "docs/decisions/006-algorithm-agnostic-signing",
+            "docs/decisions/007-threat-model-depth"
+          ]
+        },
+        {
+          "group": "Community",
+          "pages": [
+            "docs/community/repository-surfaces"
+          ]
+        }
+      ]
+    }
+  ],
+  "feedback": {
+    "thumbsRating": true,
+    "suggestEdit": true,
+    "raiseIssue": true
+  },
+  "search": {
+    "prompt": "Search ALX Protocol..."
+  },
+  "footerSocials": {
+    "github": "https://github.com/xandrlabs/alx-protocol",
+    "website": "https://xandrlabs.ai"
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "$schema": "../schemas/test-vector.schema.json",
+  "suite": "lineage-negative",
+  "description": "Lineage inputs that MUST be detected as invalid. Tests cycle detection, self-reference, and structural violations.",
+  "vectors": [
+    {
+      "id": "LN1",
+      "description": "self-referencing block MUST be detected",
+      "input": {
+        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
+        "parentHashes": ["0x0000000000000000000000000000000000000000000000000000000000000001"]
+      },
+      "expected": {
+        "selfRef": true,
+        "ok": false
+      }
+    },
+    {
+      "id": "LN2",
+      "description": "two-node cycle MUST be detected",
+      "graph": {
+        "0x0000000000000000000000000000000000000000000000000000000000000001": ["0x0000000000000000000000000000000000000000000000000000000000000002"],
+        "0x0000000000000000000000000000000000000000000000000000000000000002": ["0x0000000000000000000000000000000000000000000000000000000000000001"]
+      },
+      "expected": {
+        "ok": false,
+        "hasCycle": true
+      }
+    },
+    {
+      "id": "LN3",
+      "description": "three-node cycle MUST be detected",
+      "graph": {
+        "0x0000000000000000000000000000000000000000000000000000000000000001": ["0x0000000000000000000000000000000000000000000000000000000000000002"],
+        "0x0000000000000000000000000000000000000000000000000000000000000002": ["0x0000000000000000000000000000000000000000000000000000000000000003"],
+        "0x0000000000000000000000000000000000000000000000000000000000000003": ["0x0000000000000000000000000000000000000000000000000000000000000001"]
+      },
+      "expected": {
+        "ok": false,
+        "hasCycle": true
+      }
+    },
+    {
+      "id": "LN4",
+      "description": "duplicate parents MUST be detected before normalization",
+      "input": {
+        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
+        "parentHashes": [
+          "0x0000000000000000000000000000000000000000000000000000000000000002",
+          "0x0000000000000000000000000000000000000000000000000000000000000002"
+        ]
+      },
+      "expected": {
+        "duplicates": ["0x0000000000000000000000000000000000000000000000000000000000000002"]
+      }
+    },
+    {
+      "id": "LN5",
+      "description": "invalid hash format MUST be dropped during normalization",
+      "input": {
+        "parentHashes": ["not-a-hash", "0xTOOSHORT", "0x0000000000000000000000000000000000000000000000000000000000000001"]
+      },
+      "expected": {
+        "normalized": ["0x0000000000000000000000000000000000000000000000000000000000000001"]
+      }
+    },
+    {
+      "id": "LN6",
+      "description": "uppercase hashes MUST be normalized to lowercase",
+      "input": {
+        "parentHashes": ["0x000000000000000000000000000000000000000000000000000000000000000A"]
+      },
+      "expected": {
+        "normalized": ["0x000000000000000000000000000000000000000000000000000000000000000a"]
+      }
+    }
+  ]
+}

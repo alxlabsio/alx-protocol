@@ -1,0 +1,14 @@
+{
+  "protocolVersion": "1",
+  "validationMode": "open-world",
+  "graphRoot": "0x51cae12579b1f3894dd5762cd8198010d7f26a3b74b6dc27ffafd66123509130",
+  "externalParents": [
+    {
+      "hash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "reason": "private-boundary",
+      "declaredBy": "verification-context",
+      "requiredForFullValidation": true
+    }
+  ],
+  "extensions": []
+}

@@ -1,0 +1,23 @@
+{
+  "root": "0xd203f5b464cf38ef7555c6afe7c5c685e4c3d640565170605fcc25832c36b4d8",
+  "validationMode": "closed-world",
+  "complete": true,
+  "nodes": [
+    {
+      "hash": "0xd203f5b464cf38ef7555c6afe7c5c685e4c3d640565170605fcc25832c36b4d8",
+      "minDepth": 0,
+      "maxDepth": 0,
+      "pathCount": 1,
+      "parentCount": 0,
+      "childCount": 0
+    }
+  ],
+  "edges": [],
+  "leaves": [
+    "0xd203f5b464cf38ef7555c6afe7c5c685e4c3d640565170605fcc25832c36b4d8"
+  ],
+  "missingParents": [],
+  "externalParents": [],
+  "maxDepth": 0,
+  "cycle": false
+}

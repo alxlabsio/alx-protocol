@@ -1,0 +1,78 @@
+{
+  "blockHash": "0x3fee2e462dc1ace27f3ce1a67eef02a80d860b7e299154981bbc2e4ef8d9e3ac",
+  "contentHash": "0x164c80360c75d8e0145f7c774f41c67e40c2d9f299a85aadabf5ba33a47ec1d9",
+  "parentHashes": [],
+  "content": {
+    "definitionLevel": "indexed",
+    "contentType": "operations.decision",
+    "schemaVersion": "1.0",
+    "index": {
+      "title": "Initial rollout recommendation",
+      "domain": "operations",
+      "contentType": "operations.decision",
+      "concepts": [
+        "decision-evolution",
+        "rollout",
+        "risk"
+      ],
+      "entities": [
+        "customer-support-automation"
+      ],
+      "status": "approved-with-guardrails"
+    },
+    "data": {
+      "decisionId": "ops-rollout-2026-001",
+      "artifactRole": "initial-rollout-decision",
+      "summary": "Initial recommendation approves a limited rollout of support automation with guardrails.",
+      "subject": {
+        "system": "customer-support-automation",
+        "scope": "10% of low-risk tickets"
+      },
+      "decision": {
+        "outcome": "approve-limited-rollout",
+        "status": "approved-with-guardrails",
+        "decisionOwner": "operations-lead",
+        "effectiveDate": "2026-04-01"
+      },
+      "rationale": {
+        "summary": "Pilot metrics are acceptable for a limited release.",
+        "basis": []
+      },
+      "findings": [
+        {
+          "id": "finding-001",
+          "finding": "Pilot escalation rate remains below 2%.",
+          "status": "supported"
+        }
+      ],
+      "conditions": [
+        {
+          "id": "condition-001",
+          "requirement": "Escalate all billing disputes to humans.",
+          "status": "required-during-rollout",
+          "owner": "support-operations",
+          "evidenceRequired": "routing configuration export"
+        }
+      ],
+      "risks": [
+        {
+          "id": "risk-001",
+          "risk": "Automation may mishandle edge-case tickets.",
+          "severity": "medium",
+          "status": "accepted-with-monitoring",
+          "mitigation": "Limit rollout scope and monitor escalations."
+        }
+      ],
+      "actions": [
+        {
+          "id": "action-001",
+          "type": "start-rollout",
+          "description": "Begin 10% low-risk ticket rollout.",
+          "owner": "support-operations",
+          "requiredBefore": "rollout-start",
+          "status": "completed"
+        }
+      ]
+    }
+  }
+}

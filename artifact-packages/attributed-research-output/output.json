@@ -1,0 +1,31 @@
+{
+  "blockHash": "0xfdc8c173fac36faa9879565e8204ec8579220ed3f355f7a384a78dd6c214a8cc",
+  "contentHash": "0xaa1aa5f9222d4dcb49bc76b24cef86cb9f593b834f135f5561818c7439b4b92a",
+  "parentHashes": [
+    "0x412b51d26432a34a4b13ba788d33fba948e863bdf8ed79c7a831a58dbcd272cf",
+    "0x75d9475f9612278a7f0fe95aece91883172a16fa98759588df243b06a10878fc",
+    "0x817d491f0e5349af9ba2cf968fa45a348081194db3caabaa533fb0902755f993"
+  ],
+  "content": {
+    "type": "agent.decision",
+    "id": "security_review_decision",
+    "domain": "agent",
+    "source": "xandr",
+    "summary": "Final security review decision for blk_auth_session_model_v1, grounded in agent.security_review acceptance criteria and rubric-evaluated findings.",
+    "decision": "approved-with-findings",
+    "subject": "blk_auth_session_model_v1",
+    "qualityScore": 98,
+    "rationale": "The security findings artifact satisfies agent.security_review AC-001 (all blocks assessed), AC-002 (findings reference block evidence), and AC-004 (threat surface derived from failureModes). AC-003 is partially met: all findings are grounded in block evidence, but automated test coverage for cross-tenant session leakage is absent. The evaluation agent scored the findings artifact 98/100. One repair target is required before the next release.",
+    "groundedIn": [
+      "agent.security_review AC-001: all security-domain blocks assessed",
+      "agent.security_review AC-002: findings reference specific block invariants and failureModes",
+      "agent.security_review AC-003: partially met — grounding confirmed, test coverage gap identified",
+      "agent.security_review AC-004: threat surface derived from blk_auth_session_model_v1 failureModes"
+    ],
+    "repairTargets": [
+      "FINDING-001"
+    ],
+    "repairDeadline": "before-next-release",
+    "approvedBy": "agent.security_review + agent.evaluate_artifact pipeline"
+  }
+}

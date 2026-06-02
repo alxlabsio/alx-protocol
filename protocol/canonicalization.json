@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/canonicalization.v1.json",
+  "id": "canonicalization",
+  "protocolVersion": "1",
+  "documentVersion": "1.0.0",
+  "algorithm": "recursive-json-sort-v1",
+  "encoding": "utf-8",
+  "objectKeyOrder": "utf-16-code-unit-lexicographic",
+  "arrayOrder": "preserved",
+  "rejectDuplicateObjectKeys": {
+    "required": true,
+    "phase": "before ordinary JSON parsing",
+    "note": "Parsers that silently collapse duplicate keys are insufficient for direct raw JSON verification."
+  },
+  "whitespace": "none",
+  "unicodeNormalization": "none",
+  "numbers": {
+    "integers": {
+      "allowed": true,
+      "safeRangeRequired": true,
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "floats": {
+      "allowed": true,
+      "nonFiniteAllowed": false,
+      "representation": "canonical vectors define the required serialization"
+    },
+    "negativeZero": "serializes-as-zero"
+  },
+  "nullHandling": {
+    "null": "preserved",
+    "undefinedAtProtocolBoundary": "canonicalizes-to-null",
+    "undefinedObjectProperties": "omitted"
+  },
+  "limits": {
+    "maxDepth": {
+      "value": 128,
+      "limitId": "LIMIT-002",
+      "authorityRef": "./limits.json"
+    },
+    "maxSerializedBytes": {
+      "scope": "implementation-policy",
+      "value": 16777216,
+      "limitId": "LIMIT-101",
+      "authorityRef": "./limits.json"
+    }
+  },
+  "canonicalByteOutput": {
+    "encoding": "utf-8",
+    "whitespace": "none",
+    "unicodeNormalization": "none"
+  },
+  "steps": [
+    { "id": "CANON-001", "requirementLevel": "MUST", "name": "Reject duplicate JSON object keys", "rule": "Duplicate object keys MUST be rejected before ordinary JSON parsing can collapse them." },
+    { "id": "CANON-002", "requirementLevel": "MUST", "name": "Canonicalize null and undefined as null", "rule": "null and undefined values canonicalize to the JSON token null." },
+    { "id": "CANON-003", "requirementLevel": "MUST", "name": "Reject unsupported primitive types", "rule": "BigInt and Symbol values are rejected." },
+    { "id": "CANON-004", "requirementLevel": "MUST", "name": "Reject non-finite numbers", "rule": "NaN, Infinity, and -Infinity are rejected." },
+    { "id": "CANON-005", "requirementLevel": "MUST", "name": "Reject unsafe integers", "rule": "Integers outside the IEEE-754 safe integer range are rejected." },
+    { "id": "CANON-006", "requirementLevel": "MUST", "name": "Normalize negative zero", "rule": "-0 serializes as 0." },
+    { "id": "CANON-007", "requirementLevel": "MUST", "name": "Serialize finite floats deterministically", "rule": "Finite non-integer numbers serialize according to the canonical vectors." },
+    { "id": "CANON-008", "requirementLevel": "MUST", "name": "Sort object keys", "rule": "Object keys are sorted lexicographically by UTF-16 code-unit comparison." },
+    { "id": "CANON-009", "requirementLevel": "MUST", "name": "Exclude undefined object values", "rule": "Object properties whose value is undefined are omitted." },
+    { "id": "CANON-010", "requirementLevel": "MUST", "name": "Preserve array order", "rule": "Array element order is preserved exactly." },
+    { "id": "CANON-011", "requirementLevel": "MUST", "name": "Serialize without insignificant whitespace", "rule": "Canonical JSON contains no insignificant whitespace." },
+    { "id": "CANON-012", "requirementLevel": "MUST", "name": "Preserve Unicode code points", "rule": "No Unicode normalization is applied during canonicalization." },
+    { "id": "CANON-013", "requirementLevel": "MUST", "name": "Reject cycles", "rule": "Cyclic object graphs are rejected." },
+    { "id": "CANON-014", "requirementLevel": "MUST", "name": "Enforce canonicalization depth", "rule": "Nesting depth greater than 128 is rejected." }
+  ],
+  "vectorSuites": [
+    "./test-vectors/canonicalization.json",
+    "./test-vectors/canonicalization-negative.json",
+    "./test-vectors/canonicalization-depth.json"
+  ]
+}

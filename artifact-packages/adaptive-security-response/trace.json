@@ -1,0 +1,74 @@
+{
+  "root": "0x1b84f6055c9cfafe67278ed1d3a182a26609bc1937b780fa6e3954ac585aa6e7",
+  "validationMode": "closed-world",
+  "complete": true,
+  "nodes": [
+    {
+      "hash": "0x1b84f6055c9cfafe67278ed1d3a182a26609bc1937b780fa6e3954ac585aa6e7",
+      "minDepth": 0,
+      "maxDepth": 0,
+      "pathCount": 1,
+      "parentCount": 2,
+      "childCount": 0
+    },
+    {
+      "hash": "0x1f176c1c3569b659bef877b38ce79297c7858180990fcabb9cc28b6979fa9521",
+      "minDepth": 1,
+      "maxDepth": 1,
+      "pathCount": 1,
+      "parentCount": 2,
+      "childCount": 1
+    },
+    {
+      "hash": "0x6607ad22c81a1253089c2e4dee9f6f5812af893e67a993fdcdb68760699d6082",
+      "minDepth": 1,
+      "maxDepth": 1,
+      "pathCount": 1,
+      "parentCount": 0,
+      "childCount": 1
+    },
+    {
+      "hash": "0xca3e2261d9687080224e05dc58722bfb33232bbc73b3fbe134590f9fc5d32401",
+      "minDepth": 2,
+      "maxDepth": 2,
+      "pathCount": 1,
+      "parentCount": 0,
+      "childCount": 1
+    },
+    {
+      "hash": "0xe44e2a93c8156eedab2a116594c30d51662b68a9d1649e071bc7210026dea119",
+      "minDepth": 2,
+      "maxDepth": 2,
+      "pathCount": 1,
+      "parentCount": 0,
+      "childCount": 1
+    }
+  ],
+  "edges": [
+    {
+      "from": "0x1b84f6055c9cfafe67278ed1d3a182a26609bc1937b780fa6e3954ac585aa6e7",
+      "to": "0x1f176c1c3569b659bef877b38ce79297c7858180990fcabb9cc28b6979fa9521"
+    },
+    {
+      "from": "0x1b84f6055c9cfafe67278ed1d3a182a26609bc1937b780fa6e3954ac585aa6e7",
+      "to": "0x6607ad22c81a1253089c2e4dee9f6f5812af893e67a993fdcdb68760699d6082"
+    },
+    {
+      "from": "0x1f176c1c3569b659bef877b38ce79297c7858180990fcabb9cc28b6979fa9521",
+      "to": "0xca3e2261d9687080224e05dc58722bfb33232bbc73b3fbe134590f9fc5d32401"
+    },
+    {
+      "from": "0x1f176c1c3569b659bef877b38ce79297c7858180990fcabb9cc28b6979fa9521",
+      "to": "0xe44e2a93c8156eedab2a116594c30d51662b68a9d1649e071bc7210026dea119"
+    }
+  ],
+  "leaves": [
+    "0x6607ad22c81a1253089c2e4dee9f6f5812af893e67a993fdcdb68760699d6082",
+    "0xca3e2261d9687080224e05dc58722bfb33232bbc73b3fbe134590f9fc5d32401",
+    "0xe44e2a93c8156eedab2a116594c30d51662b68a9d1649e071bc7210026dea119"
+  ],
+  "missingParents": [],
+  "externalParents": [],
+  "maxDepth": 2,
+  "cycle": false
+}

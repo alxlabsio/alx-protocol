@@ -1,0 +1,62 @@
+{
+  "root": "0x5afb65c5c0b20086456fafd6baa7d5e1f9aaa4441e22d31fc6a75765ea05243c",
+  "validationMode": "closed-world",
+  "complete": true,
+  "nodes": [
+    {
+      "hash": "0x5afb65c5c0b20086456fafd6baa7d5e1f9aaa4441e22d31fc6a75765ea05243c",
+      "minDepth": 0,
+      "maxDepth": 0,
+      "pathCount": 1,
+      "parentCount": 3,
+      "childCount": 0
+    },
+    {
+      "hash": "0x6607ad22c81a1253089c2e4dee9f6f5812af893e67a993fdcdb68760699d6082",
+      "minDepth": 1,
+      "maxDepth": 1,
+      "pathCount": 1,
+      "parentCount": 0,
+      "childCount": 1
+    },
+    {
+      "hash": "0x8651596b396d7e2e8ec56e260d503b8b9359bd402cd4e8bfa2da4633bae92333",
+      "minDepth": 1,
+      "maxDepth": 1,
+      "pathCount": 1,
+      "parentCount": 0,
+      "childCount": 1
+    },
+    {
+      "hash": "0xd203f5b464cf38ef7555c6afe7c5c685e4c3d640565170605fcc25832c36b4d8",
+      "minDepth": 1,
+      "maxDepth": 1,
+      "pathCount": 1,
+      "parentCount": 0,
+      "childCount": 1
+    }
+  ],
+  "edges": [
+    {
+      "from": "0x5afb65c5c0b20086456fafd6baa7d5e1f9aaa4441e22d31fc6a75765ea05243c",
+      "to": "0x6607ad22c81a1253089c2e4dee9f6f5812af893e67a993fdcdb68760699d6082"
+    },
+    {
+      "from": "0x5afb65c5c0b20086456fafd6baa7d5e1f9aaa4441e22d31fc6a75765ea05243c",
+      "to": "0x8651596b396d7e2e8ec56e260d503b8b9359bd402cd4e8bfa2da4633bae92333"
+    },
+    {
+      "from": "0x5afb65c5c0b20086456fafd6baa7d5e1f9aaa4441e22d31fc6a75765ea05243c",
+      "to": "0xd203f5b464cf38ef7555c6afe7c5c685e4c3d640565170605fcc25832c36b4d8"
+    }
+  ],
+  "leaves": [
+    "0x6607ad22c81a1253089c2e4dee9f6f5812af893e67a993fdcdb68760699d6082",
+    "0x8651596b396d7e2e8ec56e260d503b8b9359bd402cd4e8bfa2da4633bae92333",
+    "0xd203f5b464cf38ef7555c6afe7c5c685e4c3d640565170605fcc25832c36b4d8"
+  ],
+  "missingParents": [],
+  "externalParents": [],
+  "maxDepth": 1,
+  "cycle": false
+}

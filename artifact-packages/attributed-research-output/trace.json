@@ -1,0 +1,95 @@
+{
+  "root": "0xfdc8c173fac36faa9879565e8204ec8579220ed3f355f7a384a78dd6c214a8cc",
+  "validationMode": "closed-world",
+  "complete": true,
+  "nodes": [
+    {
+      "hash": "0xfdc8c173fac36faa9879565e8204ec8579220ed3f355f7a384a78dd6c214a8cc",
+      "minDepth": 0,
+      "maxDepth": 0,
+      "pathCount": 1,
+      "parentCount": 3,
+      "childCount": 0
+    },
+    {
+      "hash": "0x412b51d26432a34a4b13ba788d33fba948e863bdf8ed79c7a831a58dbcd272cf",
+      "minDepth": 1,
+      "maxDepth": 1,
+      "pathCount": 1,
+      "parentCount": 2,
+      "childCount": 1
+    },
+    {
+      "hash": "0x75d9475f9612278a7f0fe95aece91883172a16fa98759588df243b06a10878fc",
+      "minDepth": 1,
+      "maxDepth": 3,
+      "pathCount": 3,
+      "parentCount": 0,
+      "childCount": 2
+    },
+    {
+      "hash": "0x817d491f0e5349af9ba2cf968fa45a348081194db3caabaa533fb0902755f993",
+      "minDepth": 1,
+      "maxDepth": 2,
+      "pathCount": 2,
+      "parentCount": 2,
+      "childCount": 2
+    },
+    {
+      "hash": "0x4efb89c445dc8facddb04454ed18dbfbbc571f5f36b83d3362821f733c4446e9",
+      "minDepth": 2,
+      "maxDepth": 2,
+      "pathCount": 1,
+      "parentCount": 0,
+      "childCount": 1
+    },
+    {
+      "hash": "0xb9c8be502ea54378e312a4ec03d537829ce8c27c53c58d42009dc5c4f99aff94",
+      "minDepth": 2,
+      "maxDepth": 3,
+      "pathCount": 2,
+      "parentCount": 0,
+      "childCount": 1
+    }
+  ],
+  "edges": [
+    {
+      "from": "0x412b51d26432a34a4b13ba788d33fba948e863bdf8ed79c7a831a58dbcd272cf",
+      "to": "0x4efb89c445dc8facddb04454ed18dbfbbc571f5f36b83d3362821f733c4446e9"
+    },
+    {
+      "from": "0x412b51d26432a34a4b13ba788d33fba948e863bdf8ed79c7a831a58dbcd272cf",
+      "to": "0x817d491f0e5349af9ba2cf968fa45a348081194db3caabaa533fb0902755f993"
+    },
+    {
+      "from": "0x817d491f0e5349af9ba2cf968fa45a348081194db3caabaa533fb0902755f993",
+      "to": "0x75d9475f9612278a7f0fe95aece91883172a16fa98759588df243b06a10878fc"
+    },
+    {
+      "from": "0x817d491f0e5349af9ba2cf968fa45a348081194db3caabaa533fb0902755f993",
+      "to": "0xb9c8be502ea54378e312a4ec03d537829ce8c27c53c58d42009dc5c4f99aff94"
+    },
+    {
+      "from": "0xfdc8c173fac36faa9879565e8204ec8579220ed3f355f7a384a78dd6c214a8cc",
+      "to": "0x412b51d26432a34a4b13ba788d33fba948e863bdf8ed79c7a831a58dbcd272cf"
+    },
+    {
+      "from": "0xfdc8c173fac36faa9879565e8204ec8579220ed3f355f7a384a78dd6c214a8cc",
+      "to": "0x75d9475f9612278a7f0fe95aece91883172a16fa98759588df243b06a10878fc"
+    },
+    {
+      "from": "0xfdc8c173fac36faa9879565e8204ec8579220ed3f355f7a384a78dd6c214a8cc",
+      "to": "0x817d491f0e5349af9ba2cf968fa45a348081194db3caabaa533fb0902755f993"
+    }
+  ],
+  "leaves": [
+    "0x4efb89c445dc8facddb04454ed18dbfbbc571f5f36b83d3362821f733c4446e9",
+    "0x75d9475f9612278a7f0fe95aece91883172a16fa98759588df243b06a10878fc",
+    "0xb9c8be502ea54378e312a4ec03d537829ce8c27c53c58d42009dc5c4f99aff94"
+  ],
+  "missingParents": [],
+  "externalParents": [],
+  "maxDepth": 3,
+  "cycle": false,
+  "precisionLoss": false
+}

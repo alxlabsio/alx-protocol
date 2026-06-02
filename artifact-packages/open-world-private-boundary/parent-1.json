@@ -1,0 +1,46 @@
+{
+  "blockHash": "0x8c2733e732c2641cb82a467ae1b2c3f889a14de14414c8132611a5349b96bcd2",
+  "contentHash": "0x02e4d83c88e9dd2e4736d7a3210b91120e176cf144aa556458fa5640157fd56d",
+  "parentHashes": [],
+  "content": {
+    "definitionLevel": "indexed",
+    "contentType": "privacy.internal-assessment",
+    "schemaVersion": "1.0",
+    "index": {
+      "title": "Internal data minimization assessment",
+      "domain": "privacy",
+      "contentType": "privacy.internal-assessment",
+      "concepts": [
+        "data-minimization",
+        "retention",
+        "cross-border-transfer"
+      ],
+      "entities": [
+        "partner analytics exchange"
+      ],
+      "status": "approved"
+    },
+    "data": {
+      "artifactRole": "internal-data-minimization-assessment",
+      "summary": "Internal review approves only aggregated metrics for the partner analytics exchange.",
+      "subject": {
+        "system": "partner analytics exchange"
+      },
+      "findings": [
+        {
+          "id": "finding-001",
+          "finding": "Aggregated metrics are sufficient for the approved use case.",
+          "status": "accepted"
+        },
+        {
+          "id": "finding-002",
+          "finding": "Raw support transcripts are not necessary for the approved use case.",
+          "status": "rejected"
+        }
+      ],
+      "conditions": [],
+      "risks": [],
+      "actions": []
+    }
+  }
+}

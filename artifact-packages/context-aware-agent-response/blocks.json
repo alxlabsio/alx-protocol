@@ -1,0 +1,298 @@
+[
+  {
+    "blockHash": "0x6607ad22c81a1253089c2e4dee9f6f5812af893e67a993fdcdb68760699d6082",
+    "contentHash": "0xd1f2111c76a64133749821c0d580ef4b634f21540087acf8fa00113eba0ad1aa",
+    "parentHashes": [],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "agent.context.user-preferences",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "User communication preference profile",
+        "domain": "agent-context",
+        "contentType": "agent.context.user-preferences",
+        "concepts": [
+          "preferences",
+          "formatting",
+          "accessibility",
+          "tone"
+        ],
+        "entities": [
+          "user-profile-alex"
+        ],
+        "status": "active"
+      },
+      "data": {
+        "artifactRole": "user-preference-profile",
+        "summary": "Durable communication preferences for agent-generated responses.",
+        "subject": {
+          "profileId": "user-profile-alex",
+          "appliesTo": "assistant-responses"
+        },
+        "preferences": [
+          {
+            "id": "pref-001",
+            "category": "tone",
+            "value": "direct-but-warm",
+            "status": "active"
+          },
+          {
+            "id": "pref-002",
+            "category": "verbosity",
+            "value": "concise-by-default",
+            "status": "active"
+          },
+          {
+            "id": "pref-003",
+            "category": "format",
+            "value": "use-bullets-for-action-items",
+            "status": "active"
+          },
+          {
+            "id": "pref-004",
+            "category": "accessibility",
+            "value": "avoid-unexplained-acronyms",
+            "status": "active"
+          }
+        ],
+        "actions": [],
+        "risks": []
+      }
+    }
+  },
+  {
+    "blockHash": "0xd203f5b464cf38ef7555c6afe7c5c685e4c3d640565170605fcc25832c36b4d8",
+    "contentHash": "0x36d0a6540c6e2b2ebf8bd5c36546f153fecd6ac17d7224b9c24d34d5006f6d09",
+    "parentHashes": [],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "agent.context.brand-voice",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "Xandr Labs brand voice profile",
+        "domain": "agent-context",
+        "contentType": "agent.context.brand-voice",
+        "concepts": [
+          "brand-voice",
+          "terminology",
+          "banned-words"
+        ],
+        "entities": [
+          "Xandr Labs"
+        ],
+        "status": "active"
+      },
+      "data": {
+        "artifactRole": "brand-voice-profile",
+        "summary": "Portable brand behavior constraints for generated communications.",
+        "subject": {
+          "brand": "Xandr Labs",
+          "profileVersion": "2026.1"
+        },
+        "approvedTerms": [
+          {
+            "id": "term-001",
+            "term": "verified lineage",
+            "status": "preferred"
+          },
+          {
+            "id": "term-002",
+            "term": "portable verification receipt",
+            "status": "preferred"
+          }
+        ],
+        "restrictedTerms": [
+          {
+            "id": "term-003",
+            "term": "trustless AI",
+            "status": "banned",
+            "reason": "overclaim"
+          },
+          {
+            "id": "term-004",
+            "term": "revolutionary",
+            "status": "banned",
+            "reason": "marketing inflation"
+          }
+        ],
+        "voiceRules": [
+          {
+            "id": "voice-001",
+            "rule": "Use precise language before advocacy.",
+            "status": "active"
+          },
+          {
+            "id": "voice-002",
+            "rule": "Explain boundaries explicitly when discussing optional integrations.",
+            "status": "active"
+          }
+        ],
+        "actions": [],
+        "risks": []
+      }
+    }
+  },
+  {
+    "blockHash": "0x8651596b396d7e2e8ec56e260d503b8b9359bd402cd4e8bfa2da4633bae92333",
+    "contentHash": "0xa467af3a247671a2f39b4c506b5ddbfafb27a7920feca898045f709b157b898d",
+    "parentHashes": [],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "agent.task.request",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "Draft launch update request",
+        "domain": "agent-context",
+        "contentType": "agent.task.request",
+        "concepts": [
+          "task-request",
+          "newsletter",
+          "launch-update"
+        ],
+        "entities": [
+          "product-marketing"
+        ],
+        "status": "ready"
+      },
+      "data": {
+        "artifactRole": "task-request",
+        "summary": "Request a short launch update for external reviewers.",
+        "subject": {
+          "task": "draft launch update",
+          "audience": "external reviewers"
+        },
+        "instructions": [
+          {
+            "id": "instruction-001",
+            "instruction": "Explain what shipped this week.",
+            "status": "active"
+          },
+          {
+            "id": "instruction-002",
+            "instruction": "Mention IPFS as optional storage integration only.",
+            "status": "active"
+          }
+        ],
+        "actions": [],
+        "risks": []
+      }
+    }
+  },
+  {
+    "blockHash": "0x5afb65c5c0b20086456fafd6baa7d5e1f9aaa4441e22d31fc6a75765ea05243c",
+    "contentHash": "0xf9bad1428b78e2ef53e0ccd5996cea8d500f953a22d1f59fa312fb487f0370a5",
+    "parentHashes": [
+      "0x6607ad22c81a1253089c2e4dee9f6f5812af893e67a993fdcdb68760699d6082",
+      "0x8651596b396d7e2e8ec56e260d503b8b9359bd402cd4e8bfa2da4633bae92333",
+      "0xd203f5b464cf38ef7555c6afe7c5c685e4c3d640565170605fcc25832c36b4d8"
+    ],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "agent.response.draft",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "Context-aware launch update draft",
+        "domain": "agent-context",
+        "contentType": "agent.response.draft",
+        "concepts": [
+          "generated-response",
+          "preference-application",
+          "brand-compliance"
+        ],
+        "entities": [
+          "Xandr Labs"
+        ],
+        "status": "ready-for-human-review"
+      },
+      "data": {
+        "artifactRole": "context-aware-agent-response",
+        "summary": "Draft response generated from explicit user-preference, brand-voice, and task-request context.",
+        "subject": {
+          "artifact": "launch update draft",
+          "audience": "external reviewers"
+        },
+        "decision": {
+          "outcome": "draft-ready-for-human-review",
+          "status": "ready-for-human-review",
+          "decisionOwner": "communications-agent"
+        },
+        "rationale": {
+          "summary": "The draft applies concise structure, preferred terminology, and explicit integration boundaries from its parent context Blocks.",
+          "basis": [
+            {
+              "artifactRole": "user-preference-profile",
+              "usedFor": [
+                "tone",
+                "verbosity",
+                "formatting"
+              ]
+            },
+            {
+              "artifactRole": "brand-voice-profile",
+              "usedFor": [
+                "preferred terminology",
+                "restricted terminology",
+                "boundary framing"
+              ]
+            },
+            {
+              "artifactRole": "task-request",
+              "usedFor": [
+                "audience",
+                "required message points"
+              ]
+            }
+          ]
+        },
+        "findings": [
+          {
+            "id": "finding-001",
+            "finding": "Draft uses preferred phrase \"verified lineage\".",
+            "status": "supported"
+          },
+          {
+            "id": "finding-002",
+            "finding": "Draft avoids banned phrase \"trustless AI\".",
+            "status": "supported"
+          }
+        ],
+        "conditions": [
+          {
+            "id": "condition-001",
+            "requirement": "Human reviewer must approve before publication.",
+            "status": "required-before-publication",
+            "owner": "communications-lead",
+            "evidenceRequired": "approval receipt"
+          }
+        ],
+        "risks": [
+          {
+            "id": "risk-001",
+            "risk": "Brand or preference profiles may become stale over time.",
+            "severity": "medium",
+            "status": "monitor",
+            "mitigation": "Require profile review on scheduled updates."
+          }
+        ],
+        "actions": [
+          {
+            "id": "action-001",
+            "type": "request-human-review",
+            "description": "Route draft to communications lead for approval.",
+            "owner": "communications-agent",
+            "requiredBefore": "publication",
+            "status": "open"
+          }
+        ],
+        "renderedOutput": {
+          "headline": "This week: clearer verification, stronger portability",
+          "body": [
+            "We hardened ALX trace completeness so verifiers can distinguish complete lineage from declared external boundaries.",
+            "We added portable verification receipts and artifact packages that preserve verified lineage across systems.",
+            "IPFS remains an optional storage integration around the Block, not a requirement for Block validity."
+          ]
+        }
+      }
+    }
+  }
+]

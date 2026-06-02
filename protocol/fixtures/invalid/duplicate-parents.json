@@ -1,0 +1,10 @@
+{
+  "$comment": "Invalid: parentHashes contains duplicates (uniqueItems constraint)",
+  "blockHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "contentHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "parentHashes": [
+    "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  ],
+  "content": "test"
+}

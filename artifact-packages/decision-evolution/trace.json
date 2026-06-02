@@ -1,0 +1,68 @@
+{
+  "root": "0x33a7705a294c632d2fe4160f04dbada5794b5a259a04bd78ca0fcdc4c6c6e682",
+  "validationMode": "closed-world",
+  "complete": true,
+  "nodes": [
+    {
+      "hash": "0x33a7705a294c632d2fe4160f04dbada5794b5a259a04bd78ca0fcdc4c6c6e682",
+      "minDepth": 0,
+      "maxDepth": 0,
+      "pathCount": 1,
+      "parentCount": 3,
+      "childCount": 0
+    },
+    {
+      "hash": "0x3fee2e462dc1ace27f3ce1a67eef02a80d860b7e299154981bbc2e4ef8d9e3ac",
+      "minDepth": 1,
+      "maxDepth": 3,
+      "pathCount": 3,
+      "parentCount": 0,
+      "childCount": 2
+    },
+    {
+      "hash": "0x63180c8def14207daa46aad2aceacccfeeb28cad5511825a6c9fc794d2a04037",
+      "minDepth": 1,
+      "maxDepth": 1,
+      "pathCount": 1,
+      "parentCount": 1,
+      "childCount": 1
+    },
+    {
+      "hash": "0xb0ad6329495e37df24895045ca86272cabf9298c57cd59b68794b1402d2da978",
+      "minDepth": 1,
+      "maxDepth": 2,
+      "pathCount": 2,
+      "parentCount": 1,
+      "childCount": 2
+    }
+  ],
+  "edges": [
+    {
+      "from": "0x33a7705a294c632d2fe4160f04dbada5794b5a259a04bd78ca0fcdc4c6c6e682",
+      "to": "0x3fee2e462dc1ace27f3ce1a67eef02a80d860b7e299154981bbc2e4ef8d9e3ac"
+    },
+    {
+      "from": "0x33a7705a294c632d2fe4160f04dbada5794b5a259a04bd78ca0fcdc4c6c6e682",
+      "to": "0x63180c8def14207daa46aad2aceacccfeeb28cad5511825a6c9fc794d2a04037"
+    },
+    {
+      "from": "0x33a7705a294c632d2fe4160f04dbada5794b5a259a04bd78ca0fcdc4c6c6e682",
+      "to": "0xb0ad6329495e37df24895045ca86272cabf9298c57cd59b68794b1402d2da978"
+    },
+    {
+      "from": "0x63180c8def14207daa46aad2aceacccfeeb28cad5511825a6c9fc794d2a04037",
+      "to": "0xb0ad6329495e37df24895045ca86272cabf9298c57cd59b68794b1402d2da978"
+    },
+    {
+      "from": "0xb0ad6329495e37df24895045ca86272cabf9298c57cd59b68794b1402d2da978",
+      "to": "0x3fee2e462dc1ace27f3ce1a67eef02a80d860b7e299154981bbc2e4ef8d9e3ac"
+    }
+  ],
+  "leaves": [
+    "0x3fee2e462dc1ace27f3ce1a67eef02a80d860b7e299154981bbc2e4ef8d9e3ac"
+  ],
+  "missingParents": [],
+  "externalParents": [],
+  "maxDepth": 3,
+  "cycle": false
+}

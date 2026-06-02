@@ -1,0 +1,48 @@
+{
+  "name": "@alx-protocol/cli",
+  "version": "1.0.0",
+  "description": "ALX Protocol CLI — create, validate, inspect, and trace blocks from the command line",
+  "type": "module",
+  "bin": {
+    "alx": "./bin/alx.js"
+  },
+  "scripts": {
+    "test": "node --test __tests__/*.test.js"
+  },
+  "dependencies": {
+    "@alx-protocol/sdk": "workspace:*"
+  },
+  "optionalDependencies": {
+    "ethers": "^6.13.4"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "server",
+    "openapi.yaml",
+    "Dockerfile",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20 <23"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xandrlabs/alx-protocol",
+    "directory": "cli"
+  },
+  "keywords": [
+    "alx",
+    "protocol",
+    "cli",
+    "verification",
+    "ai",
+    "blocks",
+    "attribution",
+    "deterministic"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "merkle-verifier",
+  "extensionVersion": "1.0.0",
+  "steps": [
+    {
+      "id": "MERKLE-001",
+      "name": "Validate proof shape",
+      "schema": "./schemas/merkle-proof.schema.json",
+      "onFailure": "reject"
+    },
+    {
+      "id": "MERKLE-002",
+      "name": "Verify proof",
+      "rule": "Recompute sorted-pair Keccak-256 path from leaf and proof; result MUST equal root.",
+      "onFailure": "reject"
+    }
+  ]
+}

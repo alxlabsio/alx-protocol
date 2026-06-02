@@ -1,0 +1,192 @@
+{
+  "definitionLevel": "indexed",
+  "contentType": "agent.interface.adaptive-state",
+  "schemaVersion": "1.0",
+  "index": {
+    "title": "Adaptive security review workspace state",
+    "domain": "agent-interface",
+    "contentType": "agent.interface.adaptive-state",
+    "concepts": [
+      "adaptive-interface",
+      "verified-context",
+      "workflow-prioritization",
+      "policy-aware-ui"
+    ],
+    "entities": [
+      "user-profile-alex",
+      "Northlake Analytics",
+      "Xandr Labs"
+    ],
+    "status": "ready-to-render"
+  },
+  "data": {
+    "artifactRole": "adaptive-interface-state",
+    "summary": "Workspace state generated from verified user preferences, brand guidance, language policy, and current workflow state.",
+    "subject": {
+      "interfaceId": "security-review-workspace-home",
+      "audienceProfile": "user-profile-alex",
+      "workflowId": "workspace-sec-review-2026-001"
+    },
+    "rationale": {
+      "summary": "The interface prioritizes unresolved release blockers, uses the user's preferred presentation style, and applies public-language constraints before rendering guidance.",
+      "basis": [
+        {
+          "artifactRole": "user-preference-profile",
+          "usedFor": [
+            "tone",
+            "verbosity",
+            "action-item formatting",
+            "language clarity"
+          ]
+        },
+        {
+          "artifactRole": "brand-voice-profile",
+          "usedFor": [
+            "preferred terminology",
+            "voice rules"
+          ]
+        },
+        {
+          "artifactRole": "restricted-language-policy",
+          "usedFor": [
+            "banned terms",
+            "claim boundaries"
+          ]
+        },
+        {
+          "artifactRole": "workflow-state",
+          "usedFor": [
+            "open actions",
+            "priority ordering",
+            "next milestone"
+          ]
+        }
+      ]
+    },
+    "appliedContext": [
+      {
+        "id": "context-001",
+        "sourceRole": "user-preference-profile",
+        "appliedValues": [
+          "direct-but-warm",
+          "concise-by-default",
+          "use-bullets-for-action-items",
+          "avoid-unexplained-acronyms"
+        ]
+      },
+      {
+        "id": "context-002",
+        "sourceRole": "brand-voice-profile",
+        "appliedValues": [
+          "verified lineage",
+          "clear claim boundaries"
+        ]
+      },
+      {
+        "id": "context-003",
+        "sourceRole": "restricted-language-policy",
+        "appliedValues": [
+          "avoid trustless AI",
+          "avoid revolutionary",
+          "qualify autonomy claims"
+        ]
+      },
+      {
+        "id": "context-004",
+        "sourceRole": "workflow-state",
+        "appliedValues": [
+          "surface high-priority blockers first",
+          "keep release milestone visible"
+        ]
+      }
+    ],
+    "interfaceState": {
+      "headline": "Three security actions remain before production review.",
+      "layout": "action-first-summary",
+      "defaultView": "open-actions",
+      "collapsedSections": [
+        "background",
+        "resolved-controls"
+      ],
+      "visibleSections": [
+        "release-blockers",
+        "next-actions",
+        "verification-status"
+      ],
+      "verificationBadge": "verified-context",
+      "primaryAction": {
+        "id": "ui-action-001",
+        "label": "Review release blockers",
+        "target": "release-blockers"
+      },
+      "cards": [
+        {
+          "id": "card-001",
+          "type": "release-blocker",
+          "title": "Retention evidence required",
+          "priority": "high",
+          "sourceActionId": "action-001"
+        },
+        {
+          "id": "card-002",
+          "type": "release-blocker",
+          "title": "Administrator MFA verification required",
+          "priority": "high",
+          "sourceActionId": "action-002"
+        },
+        {
+          "id": "card-003",
+          "type": "release-blocker",
+          "title": "Permission review still open",
+          "priority": "medium",
+          "sourceActionId": "action-003"
+        }
+      ]
+    },
+    "findings": [
+      {
+        "id": "finding-001",
+        "finding": "High-priority blockers are shown before lower-priority work.",
+        "status": "supported"
+      },
+      {
+        "id": "finding-002",
+        "finding": "The rendered language avoids restricted public claims.",
+        "status": "supported"
+      },
+      {
+        "id": "finding-003",
+        "finding": "The layout matches the user's concise, action-oriented preferences.",
+        "status": "supported"
+      }
+    ],
+    "conditions": [
+      {
+        "id": "condition-001",
+        "requirement": "Do not hide unresolved release blockers while workflow state remains action-required.",
+        "status": "required-while-open",
+        "owner": "workspace-renderer",
+        "evidenceRequired": "current workflow-state Block"
+      }
+    ],
+    "risks": [
+      {
+        "id": "risk-001",
+        "risk": "A stale workflow-state Block could render outdated next actions.",
+        "severity": "medium",
+        "status": "monitor",
+        "mitigation": "Bind each rendered interface state to the workflow-state Block used at generation time."
+      }
+    ],
+    "actions": [
+      {
+        "id": "action-001",
+        "type": "render-interface",
+        "description": "Render the action-first workspace view using the verified interface state.",
+        "owner": "workspace-renderer",
+        "requiredBefore": "user-session-display",
+        "status": "ready"
+      }
+    ]
+  }
+}

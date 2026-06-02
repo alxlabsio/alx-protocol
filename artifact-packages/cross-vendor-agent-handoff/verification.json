@@ -1,0 +1,19 @@
+{
+  "receiptVersion": "1",
+  "protocolVersion": "1",
+  "verifiedAt": 1779062400,
+  "verifier": {
+    "name": "alx-reference-sample-generator",
+    "version": "1.0.0"
+  },
+  "root": "0x49ed90723df6b2efea65c3435616aff8094394308fb3eb536281105ce4700ab4",
+  "validationMode": "closed-world",
+  "ok": true,
+  "complete": true,
+  "blockCount": 3,
+  "edgeCount": 3,
+  "externalParents": [],
+  "missingParents": [],
+  "errors": [],
+  "warnings": []
+}

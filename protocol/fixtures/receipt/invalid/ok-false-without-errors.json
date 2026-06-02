@@ -1,0 +1,16 @@
+{
+  "receiptVersion": "1",
+  "protocolVersion": "1",
+  "verifiedAt": 1710000000,
+  "verifier": { "name": "alx", "version": "1.0.0" },
+  "root": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "validationMode": "closed-world",
+  "ok": false,
+  "complete": false,
+  "blockCount": 1,
+  "edgeCount": 0,
+  "externalParents": [],
+  "missingParents": [],
+  "errors": [],
+  "warnings": []
+}

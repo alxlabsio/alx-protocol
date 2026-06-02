@@ -1,0 +1,28 @@
+{
+  "root": "0x3333333333333333333333333333333333333333333333333333333333333333",
+  "validationMode": "open-world",
+  "complete": true,
+  "nodes": [
+    {
+      "hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "minDepth": 0,
+      "maxDepth": 0,
+      "pathCount": 1,
+      "parentCount": 1,
+      "childCount": 0
+    }
+  ],
+  "edges": [
+    {
+      "from": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "to": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "leaves": [],
+  "missingParents": [],
+  "externalParents": [
+    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  ],
+  "maxDepth": 0,
+  "cycle": false
+}

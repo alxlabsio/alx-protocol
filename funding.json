@@ -1,0 +1,99 @@
+{
+  "$schema": "https://fundingjson.org/schema/v1.1.0.json",
+  "version": "v1.1.0",
+  "entity": {
+    "type": "organisation",
+    "role": "owner",
+    "name": "Xandr Labs",
+    "email": "opensource@xandrlabs.ai",
+    "description": "Developer of ALX Protocol – open infrastructure for verifiable artifact identity and lineage.",
+    "webpageUrl": {
+      "url": "https://xandrlabs.ai",
+      "wellKnown": "https://raw.githubusercontent.com/xandrlabs/alx-protocol/main/.well-known/funding-manifest-urls"
+    }
+  },
+  "projects": [
+    {
+      "guid": "alx-protocol",
+      "name": "ALX Protocol",
+      "description": "Deterministic Block identity, parent-bound lineage, and local verification. Includes spec, test vectors, and implementations in TypeScript, Python, and Rust.",
+      "webpageUrl": {
+        "url": "https://github.com/xandrlabs/alx-protocol"
+      },
+      "repositoryUrl": {
+        "url": "https://github.com/xandrlabs/alx-protocol",
+        "wellKnown": "https://raw.githubusercontent.com/xandrlabs/alx-protocol/main/.well-known/funding-manifest-urls"
+      },
+      "licenses": ["spdx:MIT"],
+      "tags": ["protocol", "artifact-identity", "lineage", "verification", "ai-infrastructure"]
+    }
+  ],
+  "funding": {
+    "channels": [
+      {
+        "guid": "github-sponsors",
+        "type": "payment-provider",
+        "address": "https://github.com/sponsors/xandrlabs",
+        "description": "Monthly or one-time donations"
+      },
+      {
+        "guid": "direct-contact",
+        "type": "other",
+        "address": "opensource@xandrlabs.ai",
+        "description": "Grants and institutional sponsorships"
+      }
+    ],
+    "plans": [
+      {
+        "guid": "protocol-maintenance",
+        "status": "active",
+        "name": "Core maintenance",
+        "description": "Conformance suite, CI, cross-language parity",
+        "amount": 2000,
+        "currency": "USD",
+        "frequency": "monthly",
+        "channels": ["github-sponsors", "direct-contact"]
+      },
+      {
+        "guid": "infrastructure-indexing",
+        "status": "active",
+        "name": "Tooling & integrations",
+        "description": "Conformance runner, reference implementations, examples",
+        "amount": 5000,
+        "currency": "USD",
+        "frequency": "monthly",
+        "channels": ["github-sponsors", "direct-contact"]
+      },
+      {
+        "guid": "sdk-and-docs",
+        "status": "active",
+        "name": "SDK + documentation",
+        "description": "API docs, integrator guides, and documentation hub",
+        "amount": 10000,
+        "currency": "USD",
+        "frequency": "one-time",
+        "channels": ["github-sponsors", "direct-contact"]
+      },
+      {
+        "guid": "research-grant",
+        "status": "active",
+        "name": "Spec & audit",
+        "description": "Formal verification, security audit, academic paper",
+        "amount": 25000,
+        "currency": "USD",
+        "frequency": "one-time",
+        "channels": ["direct-contact"]
+      },
+      {
+        "guid": "open-contribution",
+        "status": "active",
+        "name": "Open contribution",
+        "description": "Any amount, any purpose",
+        "amount": 0,
+        "currency": "USD",
+        "frequency": "one-time",
+        "channels": ["github-sponsors", "direct-contact"]
+      }
+    ]
+  }
+}

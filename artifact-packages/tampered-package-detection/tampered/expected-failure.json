@@ -1,0 +1,11 @@
+{
+  "scenario": "tampered-primary-content",
+  "expected": {
+    "blockValid": false,
+    "failureReason": "contentHash and blockHash no longer match the modified content",
+    "receiptStillClaimsOriginalRoot": true,
+    "tamperedField": "data.subject.invoiceTotalUsd",
+    "originalValue": 48200,
+    "tamperedValue": 482000
+  }
+}

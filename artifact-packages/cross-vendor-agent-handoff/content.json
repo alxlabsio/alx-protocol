@@ -1,0 +1,87 @@
+{
+  "definitionLevel": "indexed",
+  "contentType": "agent.planning.recommendation",
+  "schemaVersion": "1.0",
+  "index": {
+    "title": "Pricing response recommendation",
+    "domain": "product-strategy",
+    "contentType": "agent.planning.recommendation",
+    "concepts": [
+      "cross-vendor-handoff",
+      "planning",
+      "reuse"
+    ],
+    "entities": [
+      "Vendor-C Planning Agent"
+    ],
+    "status": "ready-for-review"
+  },
+  "data": {
+    "decisionId": "pricing-response-2026-002",
+    "artifactRole": "vendor-c-planning-recommendation",
+    "summary": "Vendor-C planning agent recommends holding list price while introducing a clearer overage policy.",
+    "subject": {
+      "businessArea": "pricing strategy",
+      "consumerSystem": "Vendor-C Planning Agent"
+    },
+    "decision": {
+      "outcome": "recommend-pricing-response",
+      "status": "ready-for-review",
+      "decisionOwner": "product-strategy"
+    },
+    "rationale": {
+      "summary": "The recommendation uses verified research from Vendor-A and an independent review from Vendor-B without depending on either vendor platform at verification time.",
+      "basis": [
+        {
+          "artifactRole": "vendor-a-research-summary",
+          "usedFor": [
+            "market signal",
+            "competitor pricing direction"
+          ]
+        },
+        {
+          "artifactRole": "vendor-b-review-assessment",
+          "usedFor": [
+            "quality-control",
+            "publication caveat"
+          ]
+        }
+      ]
+    },
+    "findings": [
+      {
+        "id": "finding-005",
+        "finding": "Competitive pressure supports policy clarification more than immediate list-price change.",
+        "status": "supported"
+      }
+    ],
+    "conditions": [
+      {
+        "id": "condition-002",
+        "requirement": "Complete freshness check before external publication.",
+        "status": "required-before-publication",
+        "owner": "publishing-workflow",
+        "evidenceRequired": "freshness check receipt"
+      }
+    ],
+    "risks": [
+      {
+        "id": "risk-002",
+        "risk": "Market conditions may change before launch.",
+        "severity": "medium",
+        "status": "monitor",
+        "mitigation": "Require a freshness check before publication."
+      }
+    ],
+    "actions": [
+      {
+        "id": "action-002",
+        "type": "request-human-review",
+        "description": "Route recommendation to product strategy lead for approval.",
+        "owner": "product-strategy",
+        "requiredBefore": "publication",
+        "status": "open"
+      }
+    ]
+  }
+}

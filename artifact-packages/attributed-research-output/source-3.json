@@ -1,0 +1,40 @@
+{
+  "blockHash": "0xb9c8be502ea54378e312a4ec03d537829ce8c27c53c58d42009dc5c4f99aff94",
+  "contentHash": "0xb6d6b82783b129213cc72c6904bd015b5124eb41edebb143d29da0e26817d4c8",
+  "parentHashes": [],
+  "content": {
+    "type": "engineering.pattern",
+    "id": "blk_auth_session_model_v1",
+    "stableId": "auth_session_model",
+    "domain": "engineering.auth",
+    "source": "xandr",
+    "quality": "reviewed",
+    "summary": "Server-managed session model for B2B SaaS with secure cookie storage, refresh token rotation, and tenant-scoped session lifecycle.",
+    "invariants": [
+      "Sessions are always tenant-scoped. A session for workspace A cannot access workspace B.",
+      "Refresh token reuse invalidates the entire session family.",
+      "Revoked sessions return 401 on the next request, with zero delay.",
+      "Session creation requires verified identity (email verification or OAuth callback)."
+    ],
+    "procedures": [
+      "Create session on successful login. Store session ID, user ID, workspace ID, created_at, expires_at, refresh_token_hash.",
+      "On each request, validate session cookie, check expiry, verify workspace scope.",
+      "On refresh, rotate the refresh token. Invalidate the old token. Extend session expiry.",
+      "On logout, delete the session record. Clear the cookie. Log the event.",
+      "On password change, revoke all active sessions for the user."
+    ],
+    "failureModes": [
+      "Session fixation. Mitigate by regenerating session ID after login.",
+      "Refresh token theft. Mitigate by rotating on every use and invalidating reuse.",
+      "Cross-tenant session leakage. Mitigate by binding every session to a workspace ID.",
+      "Session storage failure. Mitigate by failing closed — deny access if session cannot be verified."
+    ],
+    "qualityScores": {
+      "completeness": 95,
+      "clarity": 90,
+      "productionReadiness": 90,
+      "evidenceStrength": 85,
+      "testability": 90
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/extensions/merkle/1/schemas/merkle-proof.schema.json",
+  "title": "ALX Merkle Proof",
+  "description": "Merkle inclusion proof binding a Block hash (leaf) to an off-chain Merkle root. Does not affect Block identity or blockHash computation.",
+  "$comment": "This schema validates proof shape only. It does not verify proof correctness.",
+  "type": "object",
+  "properties": {
+    "root": {
+      "$ref": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/defs.schema.json#/$defs/hash",
+      "description": "Root hash of the Merkle tree."
+    },
+    "leaf": {
+      "$ref": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/defs.schema.json#/$defs/hash",
+      "description": "blockHash of the Block whose inclusion in the tree is being proved."
+    },
+    "proof": {
+      "type": "array",
+      "items": { "$ref": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/defs.schema.json#/$defs/hash" },
+      "maxItems": 512,
+      "description": "Ordered sibling hashes from leaf to root."
+    }
+  },
+  "required": ["root", "leaf", "proof"],
+  "additionalProperties": false
+}

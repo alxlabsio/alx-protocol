@@ -1,0 +1,26 @@
+{
+  "receiptVersion": "1",
+  "protocolVersion": "1",
+  "verifiedAt": 1779062400,
+  "verifier": {
+    "name": "alx-reference-sample-generator",
+    "version": "1.0.0"
+  },
+  "root": "0x51cae12579b1f3894dd5762cd8198010d7f26a3b74b6dc27ffafd66123509130",
+  "validationMode": "open-world",
+  "ok": true,
+  "complete": false,
+  "blockCount": 2,
+  "edgeCount": 2,
+  "externalParents": [
+    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  ],
+  "missingParents": [],
+  "errors": [],
+  "warnings": [
+    {
+      "code": "ALX_PARTIAL_OPEN_WORLD_TRACE",
+      "message": "Open-world verification passed with unresolved declared external parents."
+    }
+  ]
+}

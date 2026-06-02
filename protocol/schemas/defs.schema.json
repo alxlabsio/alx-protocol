@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/defs.schema.json",
+  "title": "ALX Shared Schema Definitions",
+  "$comment": "Shared structural definitions only. These definitions do not verify cryptographic derivation, graph semantics, signature validity, or trace truth.",
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^0x[a-f0-9]{64}$",
+      "description": "Keccak-256 digest of a canonicalized input. 0x-prefixed, 64-character lowercase hex."
+    },
+    "definitionLevel": {
+      "type": "string",
+      "enum": ["opaque", "typed", "indexed", "schema-bound", "conformance-bound"],
+      "description": "Content definition tier for a content envelope, from opaque (no structure) to conformance-bound (schema-validated with a named conformance profile)."
+    },
+    "contentType": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9-]*)+$",
+      "maxLength": 256,
+      "description": "Dot-delimited lower-case content type identifier."
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "description": "Semantic version string."
+    },
+    "parentHashes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/hash"
+      },
+      "uniqueItems": true,
+      "maxItems": 256,
+      "description": "Declared upstream Block identities, bound into blockHash. Must be sorted and deduplicated; ordering is enforced by the protocol implementation."
+    },
+    "attestation": {
+      "type": "object",
+      "description": "Cryptographic claim over a blockHash. Signing is external to Block identity and does not affect blockHash computation.",
+      "properties": {
+        "blockHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "attester": {
+          "type": "string"
+        },
+        "algorithm": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timestamp": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "signature": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "blockHash",
+        "attester",
+        "algorithm",
+        "timestamp",
+        "signature"
+      ],
+      "additionalProperties": false
+    },
+    "error": {
+      "type": "object",
+      "description": "Structured error or warning from a protocol operation, identified by a stable ALX error code.",
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^ALX_[A-Z0-9_]+$"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      },
+      "required": ["code", "message"],
+      "additionalProperties": false
+    }
+  }
+}

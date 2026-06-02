@@ -1,0 +1,15 @@
+{
+  "block": {
+    "blockHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "contentHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "parentHashes": [],
+    "content": "minimal signed block"
+  },
+  "attestation": {
+    "blockHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "attester": "reviewer-001",
+    "algorithm": "ed25519",
+    "timestamp": 1,
+    "signature": "fixture-signature"
+  }
+}

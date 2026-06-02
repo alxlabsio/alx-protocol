@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/extensions/merkle/1/error-codes.json",
+  "id": "merkle-error-codes",
+  "extensionId": "merkle",
+  "extensionVersion": "1.0.0",
+  "documentVersion": "1.0.0",
+  "codes": [
+    {
+      "id": "MERR-001",
+      "code": "ALX_EMPTY_LEAVES",
+      "category": "merkle",
+      "severity": "fatal",
+      "description": "buildMerkleTree requires a non-empty array of leaves."
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "$schema": "../schemas/test-vector.schema.json",
+  "suite": "canonicalization-negative",
+  "description": "Inputs that MUST be rejected by canonicalization. A conforming implementation MUST throw/error for each of these.",
+  "vectors": [
+    {
+      "id": "CN1",
+      "description": "NaN MUST be rejected",
+      "note": "NaN cannot be represented in JSON. Implementations must test this in-language.",
+      "expected": "error"
+    },
+    {
+      "id": "CN2",
+      "description": "Infinity MUST be rejected",
+      "note": "Infinity cannot be represented in JSON. Implementations must test this in-language.",
+      "expected": "error"
+    },
+    {
+      "id": "CN3",
+      "description": "-Infinity MUST be rejected",
+      "note": "-Infinity cannot be represented in JSON. Implementations must test this in-language.",
+      "expected": "error"
+    },
+    {
+      "id": "CN4",
+      "description": "integer above MAX_SAFE_INTEGER MUST be rejected",
+      "input": 9007199254740992,
+      "expected": "error"
+    },
+    {
+      "id": "CN5",
+      "description": "integer below MIN_SAFE_INTEGER MUST be rejected",
+      "input": -9007199254740992,
+      "expected": "error"
+    },
+    {
+      "id": "CN6",
+      "description": "deeply nested object exceeding depth 128 MUST be rejected",
+      "note": "Generate a 129-level nested object programmatically. Cannot represent in JSON vector file.",
+      "expected": "error"
+    },
+    {
+      "id": "CN7",
+      "description": "cyclic object reference MUST be rejected",
+      "note": "A cyclic reference (obj.self = obj) cannot be represented in JSON. Implementations must test this in-language.",
+      "expected": "error"
+    },
+    {
+      "id": "CN8",
+      "description": "BigInt MUST be rejected",
+      "note": "BigInt is a language-native type in JavaScript and cannot be represented in JSON. Implementations must test this in-language. Example: canonicalize(BigInt(1)) must throw.",
+      "expected": "error"
+    },
+    {
+      "id": "CN9",
+      "description": "Symbol MUST be rejected",
+      "note": "Symbol is a language-native type in JavaScript and cannot be represented in JSON. Implementations must test this in-language. Example: canonicalize(Symbol('x')) must throw.",
+      "expected": "error"
+    }
+  ]
+}

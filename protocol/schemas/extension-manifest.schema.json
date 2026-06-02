@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/extension-manifest.schema.json",
+  "title": "ALX Extension Manifest",
+  "description": "Machine-readable lifecycle metadata for an ALX Protocol extension.",
+  "$comment": "This schema validates manifest shape only; compatibility semantics remain defined by the protocol spec and conformance policy.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{2,63}$",
+      "description": "Extension identifier. Lowercase alphanumeric with hyphens, 3–64 characters."
+    },
+    "extensionVersion": {
+      "$ref": "./defs.schema.json#/$defs/semver",
+      "description": "Extension version following semantic versioning."
+    },
+    "lifecycle": {
+      "enum": ["draft", "provisional", "stable", "deprecated", "withdrawn"],
+      "description": "Current lifecycle stage of the extension."
+    },
+    "requiredForCore": {
+      "type": "boolean",
+      "description": "True if this extension is required for core protocol conformance. False for optional extensions."
+    },
+    "compatibleProtocolVersions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[1-9][0-9]*$"
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "ALX Protocol major versions this extension is compatible with."
+    },
+    "deprecated": {
+      "type": "boolean",
+      "description": "True if this extension is deprecated. Use the lifecycle field for the canonical deprecation state."
+    },
+    "supersedes": {
+      "type": ["string", "null"],
+      "description": "Identifier of the extension this extension replaces, or null if it does not supersede another."
+    },
+    "vectors": {
+      "type": "array",
+      "description": "Test vector files associated with this extension.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 128,
+            "pattern": "^[a-z][a-z0-9.-]*[a-z0-9]$"
+          },
+          "path": { "$ref": "#/$defs/relativeSafePath" }
+        },
+        "required": ["id", "path"],
+        "additionalProperties": false
+      }
+    },
+    "runner": {
+      "description": "Test execution strategy for this extension's vectors.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "schema-only" }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "cli" },
+            "command": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9._-]+$"
+            },
+            "args": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[a-zA-Z0-9._-]+$"
+              },
+              "maxItems": 16
+            }
+          },
+          "required": ["type", "command", "args"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "schemas": {
+      "type": "array",
+      "description": "JSON Schema files provided by this extension.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{2,63}$" },
+          "path": { "$ref": "#/$defs/relativeSafePath" }
+        },
+        "required": ["id", "path"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "id",
+    "extensionVersion",
+    "lifecycle",
+    "requiredForCore",
+    "compatibleProtocolVersions",
+    "deprecated",
+    "supersedes",
+    "vectors",
+    "runner"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "relativeSafePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\.\\.)([a-zA-Z0-9._/-]+)$"
+    }
+  }
+}

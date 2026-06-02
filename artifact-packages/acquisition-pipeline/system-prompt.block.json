@@ -1,0 +1,15 @@
+{
+  "blockHash": "0xd71e3fb378abffdfbde0ddea0fce6fb536a19102851da826d91c52e9eceb135b",
+  "contentHash": "0x8b647e207f2c1a3b8b92884a2c189f126901747d3d7fecc3f5c445ffa0b22227",
+  "parentHashes": [],
+  "content": {
+    "type": "ai.system-prompt",
+    "summary": "Senior market analyst persona — institutional acquisition analysis, v1.0",
+    "file": "system-prompt-v1.json",
+    "sha256": "0x7a527c2bbe6eb55502df33998df579c6e074bee2da00aacd5abfd7ffeb3d4f55",
+    "version": "1.0.0",
+    "owner": "investment-committee",
+    "effectiveDate": "2026-01-01T00:00:00.000Z"
+  },
+  "protocolVersion": "1"
+}

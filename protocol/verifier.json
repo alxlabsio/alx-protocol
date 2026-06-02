@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/verifier.v1.json",
+  "id": "verification",
+  "protocolVersion": "1",
+  "documentVersion": "1.0.0",
+  "steps": [
+    { "id": "VAL-001", "requirementLevel": "MUST", "name": "Validate Block schema", "appliesTo": "block", "schema": "./schemas/block.schema.json", "onFailure": "ALX_SCHEMA_INVALID" },
+    { "id": "CANON-001", "requirementLevel": "MUST", "name": "Reject duplicate JSON object keys", "appliesTo": "raw-json", "rule": "Duplicate object keys MUST be rejected before ordinary JSON parsing.", "onFailure": "ALX_DUPLICATE_JSON_KEY" },
+    { "id": "PARENT-001", "requirementLevel": "MUST", "name": "Reject duplicate parent hashes", "appliesTo": "block", "rule": "Serialized parentHashes MUST NOT contain duplicates.", "onFailure": "ALX_DUPLICATE_PARENT" },
+    { "id": "PARENT-002", "requirementLevel": "MUST", "name": "Reject unsorted parent hashes", "appliesTo": "block", "rule": "Serialized parentHashes MUST already equal normalized canonical order.", "onFailure": "ALX_PARENT_HASHES_UNSORTED" },
+    { "id": "PARENT-003", "requirementLevel": "MUST", "name": "Reject self-parent", "appliesTo": "block", "rule": "A Block MUST NOT contain its own blockHash in parentHashes.", "onFailure": "ALX_SELF_PARENT" },
+    { "id": "PARENT-004", "requirementLevel": "MUST", "name": "Enforce parent-count maximum", "appliesTo": "block", "rule": "Normalized parentHashes MUST contain no more than 256 items.", "onFailure": "ALX_TOO_MANY_PARENTS" },
+    { "id": "HASH-001", "requirementLevel": "MUST", "name": "Verify contentHash", "appliesTo": "block", "input": "$.content", "canonicalization": "canonicalization", "hash": "keccak256", "expected": "$.contentHash", "onFailure": "ALX_CONTENT_HASH_MISMATCH" },
+    { "id": "HASH-002", "requirementLevel": "MUST", "name": "Verify blockHash", "appliesTo": "block", "input": { "content": "$.content", "parentHashes": "$.parentHashes" }, "canonicalization": "canonicalization", "hash": "keccak256", "expected": "$.blockHash", "onFailure": "ALX_BLOCK_HASH_MISMATCH" },
+    { "id": "VGRAPH-001", "requirementLevel": "MUST", "name": "Detect cycles", "appliesTo": "graph", "algorithm": "depth-first-search", "rule": "The reachable parent graph MUST be acyclic.", "onFailure": "ALX_GRAPH_CYCLE", "graphVerifierRule": "GRAPH-004" },
+    { "id": "VGRAPH-002", "requirementLevel": "MUST", "name": "Apply closed-world validation by default", "appliesTo": "graph", "rule": "All parent hashes MUST resolve unless explicit open-world validation context is supplied.", "onFailure": "ALX_MISSING_PARENT", "graphVerifierRule": "GRAPH-006" },
+    { "id": "VGRAPH-003", "requirementLevel": "MUST", "name": "Reject undeclared external parents", "appliesTo": "graph", "rule": "A missing parent is valid only when open-world validation is active and the parent is explicitly declared external.", "onFailure": "ALX_EXTERNAL_PARENT_UNDECLARED", "graphVerifierRule": "GRAPH-007" },
+    { "id": "TRACE-001", "requirementLevel": "MUST", "name": "Validate Trace root membership", "appliesTo": "attribution-trace", "rule": "trace.root MUST appear in trace.nodes[*].hash.", "onFailure": "ALX_TRACE_ROOT_MISSING" },
+    { "id": "TRACE-002", "requirementLevel": "MUST", "name": "Validate Trace edge endpoints", "appliesTo": "attribution-trace", "rule": "Every resolved edge endpoint MUST appear in trace.nodes unless the parent endpoint is declared external.", "onFailure": "ALX_TRACE_EDGE_ENDPOINT_MISSING" },
+    { "id": "TRACE-003", "requirementLevel": "MUST", "name": "Validate Trace leaves", "appliesTo": "attribution-trace", "rule": "Trace leaves MUST equal recomputed resolved leaves.", "onFailure": "ALX_TRACE_LEAVES_MISMATCH" },
+    { "id": "TRACE-004", "requirementLevel": "MUST", "name": "Validate Trace max depth", "appliesTo": "attribution-trace", "rule": "Trace maxDepth MUST equal recomputed maxDepth.", "onFailure": "ALX_TRACE_MAX_DEPTH_MISMATCH" },
+    { "id": "TRACE-005", "requirementLevel": "MUST", "name": "Validate Trace cycle status", "appliesTo": "attribution-trace", "rule": "Trace cycle MUST match verifier cycle detection.", "onFailure": "ALX_TRACE_CYCLE_MISMATCH" },
+    { "id": "TRACE-006", "requirementLevel": "MUST", "name": "Validate Trace missing parents", "appliesTo": "attribution-trace", "rule": "Trace missingParents MUST equal unresolved undeclared parents.", "onFailure": "ALX_TRACE_MISSING_PARENTS_MISMATCH" },
+    { "id": "TRACE-007", "requirementLevel": "MUST", "name": "Validate Trace external parents", "appliesTo": "attribution-trace", "rule": "Trace externalParents MUST equal unresolved declared external parents.", "onFailure": "ALX_TRACE_EXTERNAL_PARENTS_MISMATCH" },
+    { "id": "TRACE-008", "requirementLevel": "MUST", "name": "Validate Trace completeness", "appliesTo": "attribution-trace", "rule": "Trace complete MUST match verifier completeness computation.", "onFailure": "ALX_TRACE_COMPLETENESS_MISMATCH" },
+    { "id": "TRACE-009", "requirementLevel": "MUST", "name": "Validate Trace node metrics", "appliesTo": "attribution-trace", "rule": "Trace node metrics MUST match verifier recomputation.", "onFailure": "ALX_TRACE_NODE_METRICS_MISMATCH" }
+  ],
+  "vectorSuites": [
+    "./test-vectors/block-identity.json",
+    "./test-vectors/parent-limits.json",
+    "./test-vectors/lineage-negative.json",
+    "./test-vectors/lineage-boundaries.json",
+    "./test-vectors/semantic-validity.json",
+    "./test-vectors/semantic-integrity.json",
+    "./test-vectors/attribution-trace.json"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "blockHash": "0xc1a02e778dc7a97159e6c2fb9b4cc0a6e7c5d8743d16439977317ffe5e2df2e3",
+  "contentHash": "0xd30b9a741fa5e7bc3bde03c08e44ed6af23b483e070a1313c96623e5d0224823",
+  "parentHashes": [],
+  "content": {
+    "type": "analysis",
+    "title": "Market Report Q4",
+    "metrics": {
+      "score": 0.95,
+      "confidence": "high"
+    }
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "definitionLevel": "indexed",
+  "contentType": "agent.context.restricted-language-policy",
+  "schemaVersion": "1.0",
+  "index": {
+    "title": "Restricted language policy for public responses",
+    "domain": "agent-context",
+    "contentType": "agent.context.restricted-language-policy",
+    "concepts": [
+      "restricted-language",
+      "claim-control",
+      "publication-policy"
+    ],
+    "entities": [
+      "Xandr Labs"
+    ],
+    "status": "active"
+  },
+  "data": {
+    "artifactRole": "restricted-language-policy",
+    "summary": "Explicit language constraints for public-facing agent outputs.",
+    "subject": {
+      "policy": "public-response-language",
+      "profileVersion": "2026.1"
+    },
+    "restrictedTerms": [
+      {
+        "id": "term-001",
+        "term": "trustless AI",
+        "status": "banned",
+        "reason": "overstates the verification guarantee",
+        "replacement": "independently verifiable artifacts"
+      },
+      {
+        "id": "term-002",
+        "term": "revolutionary",
+        "status": "banned",
+        "reason": "adds marketing inflation without product meaning",
+        "replacement": "new"
+      },
+      {
+        "id": "term-003",
+        "term": "fully autonomous",
+        "status": "restricted",
+        "reason": "requires human-oversight qualification",
+        "replacement": "agent-assisted"
+      }
+    ],
+    "claimRules": [
+      {
+        "id": "claim-001",
+        "rule": "State that IPFS is optional storage infrastructure, not a requirement for Block validity.",
+        "status": "active"
+      },
+      {
+        "id": "claim-002",
+        "rule": "Do not claim full verification when declared external parents remain unresolved.",
+        "status": "active"
+      }
+    ],
+    "actions": [],
+    "risks": []
+  }
+}

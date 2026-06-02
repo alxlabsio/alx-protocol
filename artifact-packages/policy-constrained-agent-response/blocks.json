@@ -1,0 +1,379 @@
+[
+  {
+    "blockHash": "0x6607ad22c81a1253089c2e4dee9f6f5812af893e67a993fdcdb68760699d6082",
+    "contentHash": "0xd1f2111c76a64133749821c0d580ef4b634f21540087acf8fa00113eba0ad1aa",
+    "parentHashes": [],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "agent.context.user-preferences",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "User communication preference profile",
+        "domain": "agent-context",
+        "contentType": "agent.context.user-preferences",
+        "concepts": [
+          "preferences",
+          "formatting",
+          "accessibility",
+          "tone"
+        ],
+        "entities": [
+          "user-profile-alex"
+        ],
+        "status": "active"
+      },
+      "data": {
+        "artifactRole": "user-preference-profile",
+        "summary": "Durable communication preferences for agent-generated responses.",
+        "subject": {
+          "profileId": "user-profile-alex",
+          "appliesTo": "assistant-responses"
+        },
+        "preferences": [
+          {
+            "id": "pref-001",
+            "category": "tone",
+            "value": "direct-but-warm",
+            "status": "active"
+          },
+          {
+            "id": "pref-002",
+            "category": "verbosity",
+            "value": "concise-by-default",
+            "status": "active"
+          },
+          {
+            "id": "pref-003",
+            "category": "format",
+            "value": "use-bullets-for-action-items",
+            "status": "active"
+          },
+          {
+            "id": "pref-004",
+            "category": "accessibility",
+            "value": "avoid-unexplained-acronyms",
+            "status": "active"
+          }
+        ],
+        "actions": [],
+        "risks": []
+      }
+    }
+  },
+  {
+    "blockHash": "0xd203f5b464cf38ef7555c6afe7c5c685e4c3d640565170605fcc25832c36b4d8",
+    "contentHash": "0x36d0a6540c6e2b2ebf8bd5c36546f153fecd6ac17d7224b9c24d34d5006f6d09",
+    "parentHashes": [],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "agent.context.brand-voice",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "Xandr Labs brand voice profile",
+        "domain": "agent-context",
+        "contentType": "agent.context.brand-voice",
+        "concepts": [
+          "brand-voice",
+          "terminology",
+          "banned-words"
+        ],
+        "entities": [
+          "Xandr Labs"
+        ],
+        "status": "active"
+      },
+      "data": {
+        "artifactRole": "brand-voice-profile",
+        "summary": "Portable brand behavior constraints for generated communications.",
+        "subject": {
+          "brand": "Xandr Labs",
+          "profileVersion": "2026.1"
+        },
+        "approvedTerms": [
+          {
+            "id": "term-001",
+            "term": "verified lineage",
+            "status": "preferred"
+          },
+          {
+            "id": "term-002",
+            "term": "portable verification receipt",
+            "status": "preferred"
+          }
+        ],
+        "restrictedTerms": [
+          {
+            "id": "term-003",
+            "term": "trustless AI",
+            "status": "banned",
+            "reason": "overclaim"
+          },
+          {
+            "id": "term-004",
+            "term": "revolutionary",
+            "status": "banned",
+            "reason": "marketing inflation"
+          }
+        ],
+        "voiceRules": [
+          {
+            "id": "voice-001",
+            "rule": "Use precise language before advocacy.",
+            "status": "active"
+          },
+          {
+            "id": "voice-002",
+            "rule": "Explain boundaries explicitly when discussing optional integrations.",
+            "status": "active"
+          }
+        ],
+        "actions": [],
+        "risks": []
+      }
+    }
+  },
+  {
+    "blockHash": "0x65fda53426aad131da4262943667d7ff245819290d8106077385f2e3c5fbd664",
+    "contentHash": "0xd8853f8478a2e22d8988349789e11f3259c6a82c146c2cb98dc8b0563277d87f",
+    "parentHashes": [],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "agent.context.restricted-language-policy",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "Restricted language policy for public responses",
+        "domain": "agent-context",
+        "contentType": "agent.context.restricted-language-policy",
+        "concepts": [
+          "restricted-language",
+          "claim-control",
+          "publication-policy"
+        ],
+        "entities": [
+          "Xandr Labs"
+        ],
+        "status": "active"
+      },
+      "data": {
+        "artifactRole": "restricted-language-policy",
+        "summary": "Explicit language constraints for public-facing agent outputs.",
+        "subject": {
+          "policy": "public-response-language",
+          "profileVersion": "2026.1"
+        },
+        "restrictedTerms": [
+          {
+            "id": "term-001",
+            "term": "trustless AI",
+            "status": "banned",
+            "reason": "overstates the verification guarantee",
+            "replacement": "independently verifiable artifacts"
+          },
+          {
+            "id": "term-002",
+            "term": "revolutionary",
+            "status": "banned",
+            "reason": "adds marketing inflation without product meaning",
+            "replacement": "new"
+          },
+          {
+            "id": "term-003",
+            "term": "fully autonomous",
+            "status": "restricted",
+            "reason": "requires human-oversight qualification",
+            "replacement": "agent-assisted"
+          }
+        ],
+        "claimRules": [
+          {
+            "id": "claim-001",
+            "rule": "State that IPFS is optional storage infrastructure, not a requirement for Block validity.",
+            "status": "active"
+          },
+          {
+            "id": "claim-002",
+            "rule": "Do not claim full verification when declared external parents remain unresolved.",
+            "status": "active"
+          }
+        ],
+        "actions": [],
+        "risks": []
+      }
+    }
+  },
+  {
+    "blockHash": "0x8651596b396d7e2e8ec56e260d503b8b9359bd402cd4e8bfa2da4633bae92333",
+    "contentHash": "0xa467af3a247671a2f39b4c506b5ddbfafb27a7920feca898045f709b157b898d",
+    "parentHashes": [],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "agent.task.request",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "Draft launch update request",
+        "domain": "agent-context",
+        "contentType": "agent.task.request",
+        "concepts": [
+          "task-request",
+          "newsletter",
+          "launch-update"
+        ],
+        "entities": [
+          "product-marketing"
+        ],
+        "status": "ready"
+      },
+      "data": {
+        "artifactRole": "task-request",
+        "summary": "Request a short launch update for external reviewers.",
+        "subject": {
+          "task": "draft launch update",
+          "audience": "external reviewers"
+        },
+        "instructions": [
+          {
+            "id": "instruction-001",
+            "instruction": "Explain what shipped this week.",
+            "status": "active"
+          },
+          {
+            "id": "instruction-002",
+            "instruction": "Mention IPFS as optional storage integration only.",
+            "status": "active"
+          }
+        ],
+        "actions": [],
+        "risks": []
+      }
+    }
+  },
+  {
+    "blockHash": "0xc2c4b9727dcdb1106f6d268ae70cceaf087c74238baa30b611dbf80f0dc40a43",
+    "contentHash": "0x5148c437751d1e595e04e3f472991adc89efc0b2fdfc37be95a385e410c6054b",
+    "parentHashes": [
+      "0x65fda53426aad131da4262943667d7ff245819290d8106077385f2e3c5fbd664",
+      "0x6607ad22c81a1253089c2e4dee9f6f5812af893e67a993fdcdb68760699d6082",
+      "0x8651596b396d7e2e8ec56e260d503b8b9359bd402cd4e8bfa2da4633bae92333",
+      "0xd203f5b464cf38ef7555c6afe7c5c685e4c3d640565170605fcc25832c36b4d8"
+    ],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "agent.response.publishable-draft",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "Policy-constrained launch update draft",
+        "domain": "agent-context",
+        "contentType": "agent.response.publishable-draft",
+        "concepts": [
+          "generated-response",
+          "restricted-language",
+          "brand-compliance"
+        ],
+        "entities": [
+          "Xandr Labs"
+        ],
+        "status": "ready-for-human-review"
+      },
+      "data": {
+        "artifactRole": "policy-constrained-agent-response",
+        "summary": "Draft response generated from explicit preference, brand, language-policy, and task context.",
+        "subject": {
+          "artifact": "launch update draft",
+          "audience": "external reviewers"
+        },
+        "decision": {
+          "outcome": "draft-ready-for-human-review",
+          "status": "ready-for-human-review",
+          "decisionOwner": "communications-agent"
+        },
+        "rationale": {
+          "summary": "The draft applies user preferences, brand guidance, and public-language constraints before human review.",
+          "basis": [
+            {
+              "artifactRole": "user-preference-profile",
+              "usedFor": [
+                "tone",
+                "verbosity",
+                "formatting"
+              ]
+            },
+            {
+              "artifactRole": "brand-voice-profile",
+              "usedFor": [
+                "preferred terminology",
+                "voice rules"
+              ]
+            },
+            {
+              "artifactRole": "restricted-language-policy",
+              "usedFor": [
+                "banned terms",
+                "claim boundaries"
+              ]
+            },
+            {
+              "artifactRole": "task-request",
+              "usedFor": [
+                "audience",
+                "required message points"
+              ]
+            }
+          ]
+        },
+        "findings": [
+          {
+            "id": "finding-001",
+            "finding": "Draft uses the preferred phrase \"verified lineage\".",
+            "status": "supported"
+          },
+          {
+            "id": "finding-002",
+            "finding": "Draft avoids the banned phrase \"trustless AI\".",
+            "status": "supported"
+          },
+          {
+            "id": "finding-003",
+            "finding": "Draft states that IPFS is optional storage infrastructure.",
+            "status": "supported"
+          }
+        ],
+        "conditions": [
+          {
+            "id": "condition-001",
+            "requirement": "Human reviewer must approve before publication.",
+            "status": "required-before-publication",
+            "owner": "communications-lead",
+            "evidenceRequired": "approval receipt"
+          }
+        ],
+        "risks": [
+          {
+            "id": "risk-001",
+            "risk": "Context profiles may become stale over time.",
+            "severity": "medium",
+            "status": "monitor",
+            "mitigation": "Review profiles on scheduled updates."
+          }
+        ],
+        "actions": [
+          {
+            "id": "action-001",
+            "type": "request-human-review",
+            "description": "Route draft to communications lead for approval.",
+            "owner": "communications-agent",
+            "requiredBefore": "publication",
+            "status": "open"
+          }
+        ],
+        "renderedOutput": {
+          "headline": "This week: clearer verification, stronger portability",
+          "body": [
+            "We hardened ALX trace completeness so verifiers can distinguish complete lineage from declared external boundaries.",
+            "We added portable verification receipts and artifact packages that preserve verified lineage across systems.",
+            "IPFS is optional storage infrastructure around the Block, not a requirement for Block validity."
+          ]
+        }
+      }
+    }
+  }
+]

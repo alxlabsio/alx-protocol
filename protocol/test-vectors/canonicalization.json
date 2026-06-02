@@ -1,0 +1,178 @@
+{
+  "$schema": "../schemas/test-vector.schema.json",
+  "suite": "canonicalization",
+  "description": "Canonical JSON serialization vectors — recursive-json-sort-v1",
+  "vectors": [
+    {
+      "id": "C1",
+      "description": "null",
+      "input": null,
+      "expected": "null"
+    },
+    {
+      "id": "C2",
+      "description": "empty string",
+      "input": "",
+      "expected": "\"\""
+    },
+    {
+      "id": "C3",
+      "description": "integer zero",
+      "input": 0,
+      "expected": "0"
+    },
+    {
+      "id": "C4",
+      "description": "negative zero (canonicalizes to positive zero)",
+      "input": 0,
+      "note": "Language-level -0 canonicalizes to \"0\". JSON cannot represent -0, so input is 0 here. Implementations MUST test with their native -0.",
+      "expected": "0"
+    },
+    {
+      "id": "C5",
+      "description": "empty object",
+      "input": {},
+      "expected": "{}"
+    },
+    {
+      "id": "C6",
+      "description": "empty array",
+      "input": [],
+      "expected": "[]"
+    },
+    {
+      "id": "C7",
+      "description": "sorted keys",
+      "input": { "z": 1, "a": 2, "m": 3 },
+      "expected": "{\"a\":2,\"m\":3,\"z\":1}"
+    },
+    {
+      "id": "C8",
+      "description": "nested object with sorted keys",
+      "input": { "b": { "d": 1, "c": 2 }, "a": 3 },
+      "expected": "{\"a\":3,\"b\":{\"c\":2,\"d\":1}}"
+    },
+    {
+      "id": "C9",
+      "description": "array order preserved",
+      "input": [3, 1, 2],
+      "expected": "[3,1,2]"
+    },
+    {
+      "id": "C10",
+      "description": "undefined in object excluded",
+      "note": "JSON cannot represent undefined. Implementations MUST test with their native undefined/missing-key equivalent.",
+      "input": { "a": 1, "c": 3 },
+      "expected": "{\"a\":1,\"c\":3}"
+    },
+    {
+      "id": "C11",
+      "description": "null in object included",
+      "input": { "a": null },
+      "expected": "{\"a\":null}"
+    },
+    {
+      "id": "C12",
+      "description": "boolean values",
+      "input": { "f": false, "t": true },
+      "expected": "{\"f\":false,\"t\":true}"
+    },
+    {
+      "id": "C13",
+      "description": "string with special characters",
+      "input": "hello \"world\"",
+      "expected": "\"hello \\\"world\\\"\""
+    },
+    {
+      "id": "C14",
+      "description": "float — shortest decimal representation",
+      "input": 0.5,
+      "expected": "0.5"
+    },
+    {
+      "id": "C15",
+      "description": "float — common decimal",
+      "input": 3.14,
+      "expected": "3.14"
+    },
+    {
+      "id": "C16",
+      "description": "float — scientific notation (small number)",
+      "input": 1e-7,
+      "note": "JavaScript JSON.stringify(1e-7) produces \"1e-7\". Other languages MUST match this output exactly.",
+      "expected": "1e-7"
+    },
+    {
+      "id": "C17",
+      "description": "float — boundary: no scientific notation",
+      "input": 0.000001,
+      "expected": "0.000001"
+    },
+    {
+      "id": "C18",
+      "description": "float — IEEE 754 artifact (0.1 + 0.2 in IEEE 754)",
+      "input": 0.30000000000000004,
+      "note": "This is the exact IEEE 754 double representation. All implementations MUST produce this exact string.",
+      "expected": "0.30000000000000004"
+    },
+    {
+      "id": "C19",
+      "description": "float — smallest positive number",
+      "input": 5e-324,
+      "note": "Number.MIN_VALUE. JavaScript JSON.stringify produces \"5e-324\". Other languages MUST match.",
+      "expected": "5e-324"
+    },
+    {
+      "id": "C20",
+      "description": "negative float",
+      "input": -2.5,
+      "expected": "-2.5"
+    },
+    {
+      "id": "C21",
+      "description": "float — negative scientific notation",
+      "input": -1e-7,
+      "expected": "-1e-7"
+    },
+    {
+      "id": "C22",
+      "description": "Unicode key sort — é (U+00E9) sorts after e (U+0065)",
+      "input": { "\u00e9": 1, "e": 2 },
+      "note": "UTF-16 code-unit comparison: e (0x65) < é (0xE9). Other languages MUST match this order.",
+      "expected": "{\"e\":2,\"\u00e9\":1}"
+    },
+    {
+      "id": "C23",
+      "description": "Unicode key sort — α (U+03B1) sorts before β (U+03B2)",
+      "input": { "\u03b2": 1, "\u03b1": 2 },
+      "note": "UTF-16 code-unit comparison: α (0x3B1) < β (0x3B2).",
+      "expected": "{\"\u03b1\":2,\"\u03b2\":1}"
+    },
+    {
+      "id": "C24",
+      "description": "Unicode key sort — uppercase Z (U+005A) sorts before lowercase a (U+0061)",
+      "input": { "Z": 1, "a": 2 },
+      "note": "UTF-16 code-unit comparison: Z (0x5A) < a (0x61). NOT case-insensitive.",
+      "expected": "{\"Z\":1,\"a\":2}"
+    },
+    {
+      "id": "C25",
+      "description": "null in array is preserved as null",
+      "input": [1, null, 3],
+      "note": "Tests that an explicit JSON null inside an array round-trips unchanged. Additionally, language-native undefined in sparse or undefined-containing arrays MUST also canonicalize to null — implementations must test that in-language.",
+      "expected": "[1,null,3]"
+    },
+    {
+      "id": "C26",
+      "description": "MAX_SAFE_INTEGER is accepted as a safe integer",
+      "input": 9007199254740991,
+      "expected": "9007199254740991"
+    },
+    {
+      "id": "C27",
+      "description": "MIN_SAFE_INTEGER is accepted as a safe integer",
+      "input": -9007199254740991,
+      "expected": "-9007199254740991"
+    }
+  ]
+}

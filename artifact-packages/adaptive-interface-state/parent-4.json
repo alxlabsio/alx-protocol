@@ -1,0 +1,75 @@
+{
+  "blockHash": "0x94c1d46d5db6c4b56429bad1d173bc258da6adf664ef365d9a59bd68284524d1",
+  "contentHash": "0xbb30d553984b6d099de5e0b777d6ec70cf51c97bf7813592773cd2df619f04e0",
+  "parentHashes": [],
+  "content": {
+    "definitionLevel": "indexed",
+    "contentType": "agent.context.workflow-state",
+    "schemaVersion": "1.0",
+    "index": {
+      "title": "Security review follow-up workspace state",
+      "domain": "agent-context",
+      "contentType": "agent.context.workflow-state",
+      "concepts": [
+        "workflow-state",
+        "security-review",
+        "open-actions",
+        "prioritization"
+      ],
+      "entities": [
+        "Northlake Analytics"
+      ],
+      "status": "action-required"
+    },
+    "data": {
+      "artifactRole": "workflow-state",
+      "summary": "Current workspace state for a security review that still requires production-readiness evidence.",
+      "subject": {
+        "workspaceId": "workspace-sec-review-2026-001",
+        "sourceDecisionId": "sec-review-2026-001",
+        "subjectEntity": "Northlake Analytics"
+      },
+      "state": {
+        "phase": "pre-production-evidence-collection",
+        "status": "action-required",
+        "nextMilestone": "production-release-review"
+      },
+      "openActions": [
+        {
+          "id": "action-001",
+          "type": "collect-evidence",
+          "label": "Collect 90-day retention configuration export",
+          "owner": "vendor-security",
+          "priority": "high",
+          "status": "open"
+        },
+        {
+          "id": "action-002",
+          "type": "verify-control",
+          "label": "Verify administrator multi-factor authentication",
+          "owner": "identity-security",
+          "priority": "high",
+          "status": "open"
+        },
+        {
+          "id": "action-003",
+          "type": "review-permissions",
+          "label": "Confirm approved-field permissions",
+          "owner": "application-security",
+          "priority": "medium",
+          "status": "open"
+        }
+      ],
+      "risks": [
+        {
+          "id": "risk-001",
+          "risk": "Production release could proceed without complete evidence if open actions are not surfaced clearly.",
+          "severity": "medium",
+          "status": "active",
+          "mitigation": "Keep required-before-release actions visible until resolved."
+        }
+      ],
+      "actions": []
+    }
+  }
+}

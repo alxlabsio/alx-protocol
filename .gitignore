@@ -1,0 +1,139 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build Outputs
+dist/
+build/
+artifacts/
+cache/
+typechain-types/
+**/target/
+
+# Rust / Anchor (per-crate lockfiles are committed; build dirs are not)
+# adapters/solana/Cargo.lock - keep tracked
+
+# Generated demos / local clones
+demo-password-policy/
+xandrlabs.github.io-*/
+
+# Office / binary docs
+*.docx
+~$*
+
+# Coverage / Testing
+coverage/
+
+# Python caches / packaging
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+**/.pytest_cache/
+.mypy_cache/
+**/.mypy_cache/
+.ruff_cache/
+**/.ruff_cache/
+*.egg-info/
+**/*.egg-info/
+
+
+# TypeScript
+*.tsbuildinfo
+
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Environment / Secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Docker / Local Infra
+docker/
+
+# OS Artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.claude/
+.agents/
+.cursor/
+.vscode/
+.idea/
+*.plan.md
+
+# Local / scratch (do not commit)
+_computed_hashes.txt
+
+# Local maintainer layer (rubrics, audit tooling — not required for conformance)
+maintainer/
+maintainer/reports/
+docs-writing-report.txt
+.docs-writing/
+
+# CLI demo output (alx init demo)
+alx-demo/
+
+# Reference retrieval server local data directories
+.alx-retrieval/
+team-retrieval/
+
+# Generated static site build
+_site/
+
+# Internal / team-only documents
+internal/
+
+# On-chain contracts (not required for ALX core)
+contracts/
+
+# Maintainer build and tooling scripts (not required for integrators)
+/scripts/
+
+# Local CLI state files inside artifact packages
+artifact-packages/**/.alx/
+
+# Nested npm lockfiles (pnpm monorepo uses pnpm-lock.yaml)
+**/package-lock.json
+
+# Python virtualenv (repo root)
+.venv/
+
+# Local docs playground (dev-only)
+docs/playground.html
+docs/benchmarks.md
+docs/DOCUMENTATION-GUIDE.md
+docs/STYLE-GUIDE.md
+docs/verification-receipts.md
+
+# Windows recycle / thumbnail cache
+$RECYCLE.BIN/
+ehthumbs.db
+
+# Temp / Swap
+*.tmp
+*.bak
+*.local
+*.swp
+
+# Optional Hosting / Frontend
+.vercel
+.vercelignore
+vercel.json
+index.html
+components/
+demo/
+api/
+# Local-only artifact package editorial guide
+artifact-packages/STYLE.md
+# Local editorial scratch files
+.docs-scratch/
+docs/**/*.local.md
+docs/**/*.scratch.md
+docs/**/~$*

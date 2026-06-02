@@ -1,0 +1,137 @@
+{
+  "suite": "merkle",
+  "status": "optional-extension",
+  "description": "Merkle tree construction and proof verification. Sorted-pair hashing: keccak256(concat(min, max)).",
+  "vectors": [
+    {
+      "id": "M1",
+      "description": "two-leaf tree produces deterministic root",
+      "input": {
+        "leaves": [
+          "0x6c5a4dfda0eeee587e81679652ab63276c2849678db8632dbbb8aee7c8c3c04d",
+          "0x24404c20c6cfed59fc5d88ccd68c3ce15d56699c3535e3275288cd0ed6a8e72b"
+        ]
+      },
+      "expected": {
+        "root": "0x04b0ec75f6721ffde7e3a17c4ecbf3a1288010b092517c80142dd03f3b7fbf56",
+        "layerCount": 2
+      }
+    },
+    {
+      "id": "M2",
+      "description": "valid proof for leaf in two-leaf tree",
+      "input": {
+        "root": "0x04b0ec75f6721ffde7e3a17c4ecbf3a1288010b092517c80142dd03f3b7fbf56",
+        "leaf": "0x6c5a4dfda0eeee587e81679652ab63276c2849678db8632dbbb8aee7c8c3c04d",
+        "proof": [
+          "0x24404c20c6cfed59fc5d88ccd68c3ce15d56699c3535e3275288cd0ed6a8e72b"
+        ]
+      },
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "id": "M3",
+      "description": "invalid proof — wrong leaf",
+      "input": {
+        "root": "0x04b0ec75f6721ffde7e3a17c4ecbf3a1288010b092517c80142dd03f3b7fbf56",
+        "leaf": "0x6e1f0a87503f5b0a0cdd7504402e523bd88f8dc84e5c89f863f9cf93945bb086",
+        "proof": [
+          "0x24404c20c6cfed59fc5d88ccd68c3ce15d56699c3535e3275288cd0ed6a8e72b"
+        ]
+      },
+      "expected": {
+        "valid": false
+      }
+    },
+    {
+      "id": "M4",
+      "description": "five-leaf tree root is deterministic",
+      "input": {
+        "leaves": [
+          "0x6c5a4dfda0eeee587e81679652ab63276c2849678db8632dbbb8aee7c8c3c04d",
+          "0x24404c20c6cfed59fc5d88ccd68c3ce15d56699c3535e3275288cd0ed6a8e72b",
+          "0x6e1f0a87503f5b0a0cdd7504402e523bd88f8dc84e5c89f863f9cf93945bb086",
+          "0xe501777110c63a3e6635c57e0203e3e8261b5de84b2a76e74218272a7481b83c",
+          "0x3ff1f97275d47f62750a71fc6f243ae3836a14a4276788156ec857a8ef1873de"
+        ]
+      },
+      "expected": {
+        "root": "0x60ec7e7ff04fe32fa76344d1d70ee242f465d4b8c487688bcde5aace48b0bc40",
+        "layerCount": 4
+      }
+    },
+    {
+      "id": "M5",
+      "description": "valid proof for middle leaf in five-leaf tree",
+      "input": {
+        "root": "0x60ec7e7ff04fe32fa76344d1d70ee242f465d4b8c487688bcde5aace48b0bc40",
+        "leaf": "0x6e1f0a87503f5b0a0cdd7504402e523bd88f8dc84e5c89f863f9cf93945bb086",
+        "proof": [
+          "0x6c5a4dfda0eeee587e81679652ab63276c2849678db8632dbbb8aee7c8c3c04d",
+          "0x7834dc2a1bc869f69b478b15ee41f4b17ac4e1a24e31f1d067f3ae1dd3de1965",
+          "0xe501777110c63a3e6635c57e0203e3e8261b5de84b2a76e74218272a7481b83c"
+        ]
+      },
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "id": "M6",
+      "description": "leaf order does not affect root (sorted internally)",
+      "input": {
+        "leaves": [
+          "0x3ff1f97275d47f62750a71fc6f243ae3836a14a4276788156ec857a8ef1873de",
+          "0x6e1f0a87503f5b0a0cdd7504402e523bd88f8dc84e5c89f863f9cf93945bb086",
+          "0x6c5a4dfda0eeee587e81679652ab63276c2849678db8632dbbb8aee7c8c3c04d",
+          "0xe501777110c63a3e6635c57e0203e3e8261b5de84b2a76e74218272a7481b83c",
+          "0x24404c20c6cfed59fc5d88ccd68c3ce15d56699c3535e3275288cd0ed6a8e72b"
+        ]
+      },
+      "expected": {
+        "root": "0x60ec7e7ff04fe32fa76344d1d70ee242f465d4b8c487688bcde5aace48b0bc40"
+      }
+    },
+    {
+      "id": "M7",
+      "description": "empty proof valid only if leaf equals root (single-block checkpoint)",
+      "input": {
+        "root": "0x6c5a4dfda0eeee587e81679652ab63276c2849678db8632dbbb8aee7c8c3c04d",
+        "leaf": "0x6c5a4dfda0eeee587e81679652ab63276c2849678db8632dbbb8aee7c8c3c04d",
+        "proof": []
+      },
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "id": "M8",
+      "description": "empty proof invalid when leaf differs from root",
+      "input": {
+        "root": "0x6c5a4dfda0eeee587e81679652ab63276c2849678db8632dbbb8aee7c8c3c04d",
+        "leaf": "0x24404c20c6cfed59fc5d88ccd68c3ce15d56699c3535e3275288cd0ed6a8e72b",
+        "proof": []
+      },
+      "expected": {
+        "valid": false
+      }
+    },
+    {
+      "id": "M9",
+      "description": "duplicate leaves are NOT deduplicated — tree includes both",
+      "input": {
+        "leaves": [
+          "0x6c5a4dfda0eeee587e81679652ab63276c2849678db8632dbbb8aee7c8c3c04d",
+          "0x6c5a4dfda0eeee587e81679652ab63276c2849678db8632dbbb8aee7c8c3c04d"
+        ]
+      },
+      "expected": {
+        "root": "0x17bb3ca2c38ea306be6f9f6fceb5077c7c9c294dc29a41fc4157ca9e3de832a0",
+        "leafCount": 2
+      },
+      "note": "Implementations MUST NOT deduplicate leaves. Two identical leaves produce a tree with two leaf nodes."
+    }
+  ]
+}

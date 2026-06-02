@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/graph-verifier.v1.json",
+  "id": "graph-verifier",
+  "protocolVersion": "1",
+  "documentVersion": "1.0.0",
+  "rules": [
+    {
+      "id": "GRAPH-001",
+      "requirementLevel": "MUST",
+      "description": "The graph root MUST exist in the supplied Block set.",
+      "onFailure": "ALX_GRAPH_ROOT_NOT_FOUND"
+    },
+    {
+      "id": "GRAPH-002",
+      "requirementLevel": "MUST",
+      "description": "The supplied Block set MUST NOT contain duplicate blockHash values.",
+      "onFailure": "ALX_DUPLICATE_BLOCK"
+    },
+    {
+      "id": "GRAPH-003",
+      "requirementLevel": "MUST",
+      "description": "Every resolved edge MUST point from a known child Block to a known parent Block.",
+      "onFailure": "ALX_GRAPH_EDGE_ENDPOINT_MISSING"
+    },
+    {
+      "id": "GRAPH-004",
+      "requirementLevel": "MUST",
+      "description": "The resolved graph MUST be acyclic.",
+      "onFailure": "ALX_GRAPH_CYCLE"
+    },
+    {
+      "id": "GRAPH-005",
+      "requirementLevel": "MUST",
+      "description": "Any parent hash not present in the block set and not declared as an external boundary MUST cause verification to fail. Applies in both closed-world and open-world modes.",
+      "onFailure": "ALX_MISSING_PARENT"
+    },
+    {
+      "id": "GRAPH-006",
+      "requirementLevel": "MUST",
+      "description": "External parent boundaries declared in the verification context MUST NOT be used when validationMode is closed-world.",
+      "onFailure": "ALX_EXTERNAL_PARENT_IN_CLOSED_WORLD"
+    },
+    {
+      "id": "GRAPH-007",
+      "requirementLevel": "MUST",
+      "description": "In open-world mode, any unresolved parent not declared as an external boundary MUST fail verification.",
+      "onFailure": "ALX_EXTERNAL_PARENT_UNDECLARED"
+    },
+    {
+      "id": "GRAPH-008",
+      "requirementLevel": "MUST",
+      "description": "Every external parent declared in the verification context MUST be referenced by at least one block in the graph.",
+      "onFailure": "ALX_EXTERNAL_PARENT_NOT_REFERENCED"
+    }
+  ]
+}

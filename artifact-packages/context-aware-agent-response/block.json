@@ -1,0 +1,117 @@
+{
+  "blockHash": "0x5afb65c5c0b20086456fafd6baa7d5e1f9aaa4441e22d31fc6a75765ea05243c",
+  "contentHash": "0xf9bad1428b78e2ef53e0ccd5996cea8d500f953a22d1f59fa312fb487f0370a5",
+  "parentHashes": [
+    "0x6607ad22c81a1253089c2e4dee9f6f5812af893e67a993fdcdb68760699d6082",
+    "0x8651596b396d7e2e8ec56e260d503b8b9359bd402cd4e8bfa2da4633bae92333",
+    "0xd203f5b464cf38ef7555c6afe7c5c685e4c3d640565170605fcc25832c36b4d8"
+  ],
+  "content": {
+    "definitionLevel": "indexed",
+    "contentType": "agent.response.draft",
+    "schemaVersion": "1.0",
+    "index": {
+      "title": "Context-aware launch update draft",
+      "domain": "agent-context",
+      "contentType": "agent.response.draft",
+      "concepts": [
+        "generated-response",
+        "preference-application",
+        "brand-compliance"
+      ],
+      "entities": [
+        "Xandr Labs"
+      ],
+      "status": "ready-for-human-review"
+    },
+    "data": {
+      "artifactRole": "context-aware-agent-response",
+      "summary": "Draft response generated from explicit user-preference, brand-voice, and task-request context.",
+      "subject": {
+        "artifact": "launch update draft",
+        "audience": "external reviewers"
+      },
+      "decision": {
+        "outcome": "draft-ready-for-human-review",
+        "status": "ready-for-human-review",
+        "decisionOwner": "communications-agent"
+      },
+      "rationale": {
+        "summary": "The draft applies concise structure, preferred terminology, and explicit integration boundaries from its parent context Blocks.",
+        "basis": [
+          {
+            "artifactRole": "user-preference-profile",
+            "usedFor": [
+              "tone",
+              "verbosity",
+              "formatting"
+            ]
+          },
+          {
+            "artifactRole": "brand-voice-profile",
+            "usedFor": [
+              "preferred terminology",
+              "restricted terminology",
+              "boundary framing"
+            ]
+          },
+          {
+            "artifactRole": "task-request",
+            "usedFor": [
+              "audience",
+              "required message points"
+            ]
+          }
+        ]
+      },
+      "findings": [
+        {
+          "id": "finding-001",
+          "finding": "Draft uses preferred phrase \"verified lineage\".",
+          "status": "supported"
+        },
+        {
+          "id": "finding-002",
+          "finding": "Draft avoids banned phrase \"trustless AI\".",
+          "status": "supported"
+        }
+      ],
+      "conditions": [
+        {
+          "id": "condition-001",
+          "requirement": "Human reviewer must approve before publication.",
+          "status": "required-before-publication",
+          "owner": "communications-lead",
+          "evidenceRequired": "approval receipt"
+        }
+      ],
+      "risks": [
+        {
+          "id": "risk-001",
+          "risk": "Brand or preference profiles may become stale over time.",
+          "severity": "medium",
+          "status": "monitor",
+          "mitigation": "Require profile review on scheduled updates."
+        }
+      ],
+      "actions": [
+        {
+          "id": "action-001",
+          "type": "request-human-review",
+          "description": "Route draft to communications lead for approval.",
+          "owner": "communications-agent",
+          "requiredBefore": "publication",
+          "status": "open"
+        }
+      ],
+      "renderedOutput": {
+        "headline": "This week: clearer verification, stronger portability",
+        "body": [
+          "We hardened ALX trace completeness so verifiers can distinguish complete lineage from declared external boundaries.",
+          "We added portable verification receipts and artifact packages that preserve verified lineage across systems.",
+          "IPFS remains an optional storage integration around the Block, not a requirement for Block validity."
+        ]
+      }
+    }
+  }
+}

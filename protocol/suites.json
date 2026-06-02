@@ -1,0 +1,88 @@
+{
+  "protocolVersion": 1,
+  "core": {
+    "required": true,
+    "suites": [
+      {
+        "id": "canonicalization",
+        "path": "protocol/test-vectors/canonicalization.json",
+        "required": true,
+        "comparison": "exact"
+      },
+      {
+        "id": "canonicalization-negative",
+        "path": "protocol/test-vectors/canonicalization-negative.json",
+        "required": true,
+        "comparison": "semantic"
+      },
+      {
+        "id": "canonicalization-depth",
+        "path": "protocol/test-vectors/canonicalization-depth.json",
+        "required": true,
+        "comparison": "semantic"
+      },
+      {
+        "id": "block-identity",
+        "path": "protocol/test-vectors/block-identity.json",
+        "required": true,
+        "comparison": "semantic"
+      },
+      {
+        "id": "parent-limits",
+        "path": "protocol/test-vectors/parent-limits.json",
+        "required": true,
+        "comparison": "semantic"
+      },
+      {
+        "id": "attribution-trace",
+        "path": "protocol/test-vectors/attribution-trace.json",
+        "required": true,
+        "comparison": "semantic"
+      },
+      {
+        "id": "lineage-negative",
+        "path": "protocol/test-vectors/lineage-negative.json",
+        "required": true,
+        "comparison": "semantic"
+      },
+      {
+        "id": "lineage-boundaries",
+        "path": "protocol/test-vectors/lineage-boundaries.json",
+        "required": true,
+        "comparison": "semantic"
+      },
+      {
+        "id": "semantic-validity",
+        "path": "protocol/test-vectors/semantic-validity.json",
+        "required": true,
+        "comparison": "semantic"
+      },
+      {
+        "id": "semantic-integrity",
+        "path": "protocol/test-vectors/semantic-integrity.json",
+        "required": true,
+        "comparison": "semantic"
+      }
+    ]
+  },
+  "extensions": [
+    {
+      "id": "merkle",
+      "path": "protocol/extensions/merkle/",
+      "manifest": "protocol/extensions/merkle/extension.json",
+      "requiredForCore": false
+    },
+    {
+      "id": "signing",
+      "path": "protocol/extensions/signing/",
+      "manifest": "protocol/extensions/signing/extension.json",
+      "requiredForCore": false
+    },
+    {
+      "id": "ipfs-artifact-package",
+      "path": "protocol/extensions/ipfs-artifact-package/",
+      "manifest": "protocol/extensions/ipfs-artifact-package/extension.json",
+      "requiredForCore": false
+    }
+  ]
+}

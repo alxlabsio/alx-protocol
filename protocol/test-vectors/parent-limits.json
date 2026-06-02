@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/test-vector.schema.json",
+  "suite": "parent-limits",
+  "description": "Normative parentHashes boundary behavior. Implementations MUST accept 256 normalized parents and reject 257.",
+  "vectors": [
+    {
+      "id": "PL1",
+      "description": "exactly MAX_PARENTS normalized parents is accepted",
+      "input": {
+        "content": "parent-limit-boundary",
+        "generatedParentCount": 256
+      },
+      "expected": {
+        "ok": true,
+        "normalizedParentCount": 256
+      }
+    },
+    {
+      "id": "PL2",
+      "description": "more than MAX_PARENTS normalized parents is rejected",
+      "input": {
+        "content": "parent-limit-overflow",
+        "generatedParentCount": 257
+      },
+      "expected": {
+        "ok": false,
+        "error": "too_many_parents"
+      }
+    }
+  ]
+}

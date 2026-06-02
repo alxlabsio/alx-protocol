@@ -1,0 +1,32 @@
+{
+    "block": {
+        "blockHash":  "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
+        "contentHash":  "0x5fe9e5dcdf0168c245170402b2410ff46a8eb6958a408981407720b8fd0b045a",
+        "parentHashes":  [],
+        "content":  "market analysis findings"
+    },
+    "attestation":  {
+                        "blockHash":  "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
+                        "attester":  "reviewer-001",
+                        "algorithm":  "ed25519",
+                        "timestamp":  1778788800,
+                        "signature":  "fixture-signature-1"
+                    },
+    "attestations":  [
+                         {
+                             "blockHash":  "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
+                             "attester":  "reviewer-001",
+                             "algorithm":  "ed25519",
+                             "timestamp":  1778788800,
+                             "signature":  "fixture-signature-1"
+                         },
+                         {
+                             "blockHash":  "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
+                             "attester":  "reviewer-002",
+                             "algorithm":  "eip712",
+                             "timestamp":  1778788860,
+                             "signature":  "fixture-signature-2"
+                         }
+                     ]
+}
+

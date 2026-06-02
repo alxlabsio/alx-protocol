@@ -1,0 +1,55 @@
+{
+  "suite": "alx.signing.ed25519.v1",
+  "status": "optional-extension",
+  "description": "Portable Ed25519 Block attestation verification vectors.",
+  "vectors": [
+    {
+      "id": "ED25519-1",
+      "description": "known Ed25519 attestation verifies",
+      "operation": "validatePortableSignedBlock",
+      "input": {
+        "block": {
+          "blockHash": "0x110bc5bdf29f767cddc5eeee4398c9df4da406c8e8400530ff74608ab1c0e091",
+          "contentHash": "0xc701bcc30b027bb4f53638ccbd7a807ce7a1c5f596fc9a13c903f0fadcf5e4fa",
+          "parentHashes": [],
+          "content": {
+            "workflow": "multi-vendor-security-review",
+            "decision": "approve-with-conditions"
+          }
+        },
+        "attestation": {
+          "blockHash": "0x110bc5bdf29f767cddc5eeee4398c9df4da406c8e8400530ff74608ab1c0e091",
+          "attester": "0x8a88e3dd7409f195fd52db2d3cba5d72ca6709bf1d94121bf3748801b40f6f5c",
+          "algorithm": "ed25519",
+          "timestamp": 1778788800,
+          "signature": "0xea0f911f55d3b9be13b06966ded560d5a3ce5c0a2b70926609f518dbcb7cb2ed6440bead4e2419c75274282f045b1aa35101af3627037a8843d20f811e22a502"
+        }
+      },
+      "expected": { "ok": true, "algorithm": "ed25519" }
+    },
+    {
+      "id": "ED25519-2",
+      "description": "tampered Ed25519 attestation is rejected",
+      "operation": "validatePortableSignedBlock",
+      "input": {
+        "block": {
+          "blockHash": "0x110bc5bdf29f767cddc5eeee4398c9df4da406c8e8400530ff74608ab1c0e091",
+          "contentHash": "0xc701bcc30b027bb4f53638ccbd7a807ce7a1c5f596fc9a13c903f0fadcf5e4fa",
+          "parentHashes": [],
+          "content": {
+            "workflow": "multi-vendor-security-review",
+            "decision": "approve-with-conditions"
+          }
+        },
+        "attestation": {
+          "blockHash": "0x110bc5bdf29f767cddc5eeee4398c9df4da406c8e8400530ff74608ab1c0e091",
+          "attester": "0x8a88e3dd7409f195fd52db2d3cba5d72ca6709bf1d94121bf3748801b40f6f5c",
+          "algorithm": "ed25519",
+          "timestamp": 1778788800,
+          "signature": "0xea0f911f55d3b9be13b06966ded560d5a3ce5c0a2b70926609f518dbcb7cb2ed6440bead4e2419c75274282f045b1aa35101af3627037a8843d20f811e22a5ff"
+        }
+      },
+      "expected": { "ok": false, "algorithm": "ed25519" }
+    }
+  ]
+}

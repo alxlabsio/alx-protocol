@@ -1,0 +1,27 @@
+{
+  "id": "merkle",
+  "extensionVersion": "1.0.0",
+  "lifecycle": "stable",
+  "requiredForCore": false,
+  "compatibleProtocolVersions": ["1"],
+  "deprecated": false,
+  "supersedes": null,
+  "vectors": [
+    {
+      "id": "merkle",
+      "path": "protocol/extensions/merkle/test-vectors/merkle.json"
+    }
+  ],
+  "runner": {
+    "type": "cli",
+    "command": "alx",
+    "args": ["extension-conformance", "merkle"]
+  },
+  "schemas": [
+    {
+      "id": "merkle-proof",
+      "path": "protocol/extensions/merkle/schemas/merkle-proof.schema.json"
+    }
+  ],
+  "errorCodes": "protocol/extensions/merkle/error-codes.json"
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/hashing.v1.json",
+  "id": "hashing",
+  "protocolVersion": "1",
+  "documentVersion": "1.0.0",
+  "algorithm": "keccak256",
+  "outputFormat": {
+    "encoding": "hex",
+    "prefix": "0x",
+    "lowercase": true,
+    "digestBytes": 32
+  },
+  "domainSeparation": {
+    "enabled": false,
+    "note": "ALX v1 preserves the original identity model. Future major versions may introduce explicit domain-separated preimages."
+  },
+  "preimages": [
+    {
+      "id": "HASH-001",
+      "name": "contentHash",
+      "canonicalization": "canonicalization.v1",
+      "input": "$.content",
+      "formula": "keccak256(canonicalize(content))"
+    },
+    {
+      "id": "HASH-002",
+      "name": "blockHash",
+      "canonicalization": "canonicalization.v1",
+      "input": {
+        "content": "$.content",
+        "parentHashes": "$.parentHashes"
+      },
+      "formula": "keccak256(canonicalize({ content, parentHashes }))"
+    }
+  ],
+  "parentHashes": {
+    "normalizedBeforeHashing": true,
+    "sortOrder": "lexicographic-ascending",
+    "duplicatesRejectedDuringValidation": true,
+    "maxItems": 256
+  },
+  "examples": [
+    {
+      "content": {
+        "text": "hello"
+      },
+      "parentHashes": [],
+      "contentPreimage": "{\"text\":\"hello\"}",
+      "blockPreimage": "{\"content\":{\"text\":\"hello\"},\"parentHashes\":[]}"
+    }
+  ]
+}

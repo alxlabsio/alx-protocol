@@ -1,0 +1,6 @@
+{
+  "$comment": "Invalid: contentHash is required",
+  "blockHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "parentHashes": [],
+  "content": "missing content hash"
+}

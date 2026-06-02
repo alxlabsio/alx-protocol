@@ -1,0 +1,14 @@
+{
+  "outcome": "approved",
+  "conditions": [
+    "Legal team to complete UK regulatory review within 30 days.",
+    "Deal proceeds only upon written legal clearance."
+  ],
+  "votingRecord": [
+    { "member": "jl", "vote": "approve" },
+    { "member": "rk", "vote": "approve" },
+    { "member": "mt", "vote": "abstain" }
+  ],
+  "notes": "Committee accepted the elevated UK regulatory risk classification from the AI analysis. Contingency conditions satisfy the investment policy threshold.",
+  "decidedBy": "investment-committee"
+}

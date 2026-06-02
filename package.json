@@ -1,0 +1,61 @@
+{
+  "name": "alx-protocol",
+  "private": true,
+  "description": "ALX Protocol monorepo — specification, reference implementations, CLI, and conformance tooling",
+  "type": "module",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20 <23",
+    "pnpm": ">=9"
+  },
+  "bin": {
+    "alx": "./cli/bin/alx.js"
+  },
+  "dependencies": {
+    "@alx-protocol/sdk": "workspace:*"
+  },
+  "scripts": {
+    "build": "pnpm --filter @alx-protocol/sdk run build",
+    "typecheck": "pnpm --filter @alx-protocol/sdk exec tsc --noEmit",
+    "test": "node --test \"sdk/src/__tests__/**/*.test.js\"",
+    "test:artifact-packages": "node --test cli/__tests__/*.test.js",
+    "test:vectors": "node --test sdk/src/__tests__/conformance-vectors.test.js",
+    "test:conformance": "node conformance/bin/run.js --self-test",
+    "test:conformance:ts": "node conformance/bin/run.js --impl \"node sdk/conformance-adapter.js\"",
+    "test:conformance:python": "node conformance/bin/run.js --impl \"python reference-implementations/python/conformance_adapter.py\"",
+    "test:conformance:rust": "node conformance/bin/run.js --impl \"reference-implementations/rust/target/release/conformance_adapter\"",
+    "test:extension": "pnpm run test:extension:merkle && pnpm run test:extension:signing && pnpm run test:extension:ipfs",
+    "test:extension:ipfs": "node conformance/bin/run-ipfs-extension.js",
+    "test:extension:merkle": "node conformance/bin/run-merkle-extension.js",
+    "test:extension:merkle:ts": "node conformance/bin/run-merkle-extension.js --impl \"node sdk/conformance-adapter.js\"",
+    "test:extension:merkle:python": "node conformance/bin/run-merkle-extension.js --impl \"python reference-implementations/python/conformance_adapter.py\"",
+    "test:extension:merkle:rust": "node conformance/bin/run-merkle-extension.js --impl \"reference-implementations/rust/target/release/conformance_adapter\"",
+    "test:extension:signing": "node conformance/bin/run-signing-extension.js",
+    "test:extension:signing:ts": "node conformance/bin/run-signing-extension.js --impl \"node sdk/conformance-adapter.js\"",
+    "test:extension:signing:python": "node conformance/bin/run-signing-extension.js --impl \"python reference-implementations/python/conformance_adapter.py\"",
+    "test:extension:signing:rust": "node conformance/bin/run-signing-extension.js --impl \"reference-implementations/rust/target/release/conformance_adapter\"",
+    "validate:artifact-packages": "node cli/lib/artifact-packages.js",
+    "verify:suites": "node conformance/bin/verify-suite-model.js",
+    "verify:schemas": "node conformance/bin/verify-schema-alignment.js",
+    "verify:conformance-claims": "node conformance/bin/verify-conformance-claims.js",
+    "verify:protocol-metadata": "node conformance/bin/verify-protocol-metadata.js",
+    "verify:limits": "node conformance/bin/verify-limit-alignment.js",
+    "verify:fixtures": "node conformance/bin/verify-fixtures.js",
+    "verify": "pnpm run verify:suites && pnpm run verify:schemas && pnpm run verify:conformance-claims && pnpm run verify:protocol-metadata && pnpm run verify:limits && pnpm run verify:fixtures && pnpm run validate:artifact-packages",
+    "ci": "pnpm run build && pnpm run verify && pnpm run test:artifact-packages && pnpm run test && pnpm run test:conformance && pnpm run test:extension",
+    "maintainer:audit": "node maintainer/audit/run.js --profile gate --fail-on error",
+    "maintainer:audit:full": "node maintainer/audit/run.js --profile full --fail-on error",
+    "maintainer:audit:json": "node maintainer/audit/run.js --profile gate --json --fail-on error"
+  },
+  "devDependencies": {
+    "ajv": "8.17.1",
+    "@noble/curves": "1.8.1",
+    "@noble/ed25519": "3.1.0",
+    "@noble/secp256k1": "3.1.0",
+    "@types/node": "20.17.6",
+    "ethers": "6.13.4",
+    "fast-check": "4.8.0",
+    "js-sha3": "0.9.3",
+    "typescript": "5.7.3"
+  }
+}

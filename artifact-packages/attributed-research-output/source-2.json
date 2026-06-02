@@ -1,0 +1,30 @@
+{
+  "blockHash": "0x4efb89c445dc8facddb04454ed18dbfbbc571f5f36b83d3362821f733c4446e9",
+  "contentHash": "0x7231ee1af3ff5059f3abf86b5e2a4a48b818acaff81ef496db5f4bd5a619f82e",
+  "parentHashes": [],
+  "content": {
+    "type": "agent.capability",
+    "id": "agent.evaluate_artifact",
+    "version": "1.0.0",
+    "domain": "agent",
+    "source": "xandr",
+    "summary": "Bounded execution contract for scoring a generated artifact against rubric criteria and identifying sections that need repair.",
+    "acceptanceCriteria": [
+      "Every rubric criterion is scored.",
+      "Overall score is computed from weighted criteria.",
+      "Failed checks identify specific artifact sections for repair.",
+      "Evaluation report includes per-criterion breakdown.",
+      "Score is reproducible — same artifact and same rubric produce the same score."
+    ],
+    "invariants": [
+      "Every artifact must always be evaluated against its corresponding rubric.",
+      "The evaluation process must never produce inconsistent scores for the same artifact and rubric."
+    ],
+    "failureModes": [
+      "Subjective check evaluation — human-judgment checks scored inconsistently across runs.",
+      "Missing rubric for artifact type — evaluation skipped entirely.",
+      "Rubric criteria too broad to produce actionable repair targets.",
+      "Evaluation score does not correlate with actual artifact usefulness."
+    ]
+  }
+}

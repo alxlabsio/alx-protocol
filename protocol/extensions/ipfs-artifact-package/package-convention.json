@@ -1,0 +1,43 @@
+{
+  "id": "alx.ipfs-artifact-package.convention",
+  "packageVersion": "1",
+  "packageRoot": "alx-artifact",
+  "requiredFiles": [
+    {
+      "path": "manifest.json",
+      "role": "ipfs-artifact-package-manifest"
+    },
+    {
+      "path": "block.json",
+      "role": "alx-block"
+    },
+    {
+      "path": "content.json",
+      "role": "alx-content"
+    }
+  ],
+  "optionalFiles": [
+    {
+      "path": "parents.json",
+      "role": "parent-reference-list"
+    },
+    {
+      "path": "verification.json",
+      "role": "verification-receipt"
+    }
+  ],
+  "optionalDirectories": [
+    {
+      "path": "attachments",
+      "role": "supporting-attachments"
+    },
+    {
+      "path": "evidence",
+      "role": "supporting-evidence"
+    },
+    {
+      "path": "attestations",
+      "role": "signed-attestations"
+    }
+  ]
+}

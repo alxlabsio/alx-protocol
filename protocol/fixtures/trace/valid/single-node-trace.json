@@ -1,0 +1,23 @@
+{
+  "root": "0x0000000000000000000000000000000000000000000000000000000000000001",
+  "validationMode": "closed-world",
+  "complete": true,
+  "nodes": [
+    {
+      "hash": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "minDepth": 0,
+      "maxDepth": 0,
+      "pathCount": 1,
+      "parentCount": 0,
+      "childCount": 0
+    }
+  ],
+  "edges": [],
+  "leaves": [
+    "0x0000000000000000000000000000000000000000000000000000000000000001"
+  ],
+  "missingParents": [],
+  "externalParents": [],
+  "maxDepth": 0,
+  "cycle": false
+}

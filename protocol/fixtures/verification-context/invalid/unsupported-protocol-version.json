@@ -1,0 +1,7 @@
+{
+  "protocolVersion": "2",
+  "validationMode": "closed-world",
+  "graphRoot": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "extensions": [],
+  "externalParents": []
+}

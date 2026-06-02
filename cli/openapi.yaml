@@ -1,0 +1,316 @@
+openapi: 3.1.0
+info:
+  title: ALX Protocol Verification API
+  version: 1.0.0
+  description: |
+    HTTP API for creating, validating, and tracing ALX Protocol Blocks.
+    Stateless verification server — no authentication required.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  contact:
+    name: Xandr Labs
+    url: https://xandrlabs.ai
+    email: team@xandrlabs.ai
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Verifies the server and SDK are operational.
+      operationId: getHealth
+      responses:
+        "200":
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok, degraded]
+                  sdk:
+                    type: string
+                    enum: [ok, degraded]
+                  implementation:
+                    type: string
+                    example: typescript-reference
+                  protocolVersion:
+                    type: string
+                    example: "1"
+
+  /version:
+    get:
+      summary: Version information
+      operationId: getVersion
+      responses:
+        "200":
+          description: CLI and protocol version
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cli:
+                    type: string
+                    example: "1.0.0"
+                  protocol:
+                    type: string
+                    example: "1"
+
+  /block/create:
+    post:
+      summary: Create a Block
+      description: |
+        Creates a content-addressed Block from the provided content and optional parent hashes.
+        The blockHash is deterministic — same content + same parents always produce the same hash.
+      operationId: createBlock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  description: Any JSON-serializable value. The protocol never inspects it.
+                parentHashes:
+                  type: array
+                  items:
+                    type: string
+                    pattern: "^0x[a-f0-9]{64}$"
+                  description: Sorted, deduplicated dependency set. Invalid hashes are silently dropped.
+            example:
+              content:
+                type: ai.response
+                text: Market analysis shows growth in AI infrastructure
+              parentHashes: []
+      responses:
+        "200":
+          description: Block created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Block"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /block/validate:
+    post:
+      summary: Validate a Block
+      description: |
+        Verifies that a Block's blockHash matches its content and parents.
+        Returns ok: true if the hash is valid, ok: false if the content was tampered.
+      operationId: validateBlock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Block"
+      responses:
+        "200":
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  ok:
+                    type: boolean
+                  blockHash:
+                    type: string
+                  expectedHash:
+                    type: string
+                  expected:
+                    type: string
+                  actual:
+                    type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /validate:
+    post:
+      summary: Validate a Block (alias)
+      description: Alias for /block/validate.
+      operationId: validateBlockAlias
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Block"
+      responses:
+        "200":
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  ok:
+                    type: boolean
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /trace:
+    post:
+      summary: Trace attribution
+      description: |
+        Resolves the full lineage structure from a root Block through a graph.
+        Returns every reachable node, edge, depth, and exact path count.
+      operationId: traceAttribution
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [root, graph]
+              properties:
+                root:
+                  type: string
+                  pattern: "^0x[a-f0-9]{64}$"
+                  description: The Block hash to trace from
+                graph:
+                  type: object
+                  additionalProperties:
+                    type: array
+                    items:
+                      type: string
+                  description: Hash-to-parents mapping
+            example:
+              root: "0xabcdef..."
+              graph:
+                "0xabcdef...": ["0x123456..."]
+                "0x123456...": []
+      responses:
+        "200":
+          description: Attribution trace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttributionTrace"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /test-vectors/run:
+    post:
+      summary: Run conformance tests
+      description: Executes the canonical test vector suite and returns results.
+      operationId: runTestVectors
+      responses:
+        "200":
+          description: Conformance results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  passed:
+                    type: integer
+                  failed:
+                    type: integer
+                  total:
+                    type: integer
+                  conformant:
+                    type: boolean
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        status:
+                          type: string
+                          enum: [passed, failed, skipped]
+                        message:
+                          type: string
+
+components:
+  schemas:
+    Block:
+      type: object
+      required: [blockHash, contentHash, parentHashes, content]
+      properties:
+        blockHash:
+          type: string
+          pattern: "^0x[a-f0-9]{64}$"
+          description: "keccak256(canonicalize({ content, parentHashes }))"
+        contentHash:
+          type: string
+          pattern: "^0x[a-f0-9]{64}$"
+          description: "keccak256(canonicalize(content))"
+        parentHashes:
+          type: array
+          items:
+            type: string
+            pattern: "^0x[a-f0-9]{64}$"
+          uniqueItems: true
+          description: Sorted, deduplicated dependency set
+        content:
+          description: Opaque JSON-serializable payload
+
+    AttributionTrace:
+      type: object
+      properties:
+        root:
+          type: string
+        nodes:
+          type: array
+          items:
+            type: object
+            properties:
+              hash:
+                type: string
+              minDepth:
+                type: integer
+              maxDepth:
+                type: integer
+              pathCount:
+                type: integer
+              parentCount:
+                type: integer
+              childCount:
+                type: integer
+        edges:
+          type: array
+          items:
+            type: object
+            properties:
+              from:
+                type: string
+              to:
+                type: string
+        leaves:
+          type: array
+          items:
+            type: string
+        maxDepth:
+          type: integer
+        cycle:
+          type: boolean
+        precisionLoss:
+          type: boolean
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
