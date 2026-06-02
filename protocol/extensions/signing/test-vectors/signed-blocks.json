@@ -1,0 +1,96 @@
+{
+  "suite": "signed-blocks",
+  "status": "optional-extension",
+  "vectors": [
+    {
+      "id": "SB1",
+      "description": "singular attestation wrapper validates",
+      "input": {
+        "block": {
+          "blockHash": "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
+          "contentHash": "0x5fe9e5dcdf0168c245170402b2410ff46a8eb6958a408981407720b8fd0b045a",
+          "parentHashes": [],
+          "content": "market analysis findings"
+        },
+        "attestation": {
+          "blockHash": "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
+          "attester": "reviewer-001",
+          "algorithm": "fixture",
+          "timestamp": 1778788800,
+          "signature": "reviewer-001:f533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421"
+        }
+      },
+      "expected": { "ok": true, "attestationCount": 1 }
+    },
+    {
+      "id": "SB2",
+      "description": "plural attestations validate",
+      "note": "Both attestation (singular, deprecated) and attestations (plural) are intentionally present to verify backward-compat handling: implementations must prefer attestations when both exist.",
+      "input": {
+        "block": {
+          "blockHash": "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
+          "contentHash": "0x5fe9e5dcdf0168c245170402b2410ff46a8eb6958a408981407720b8fd0b045a",
+          "parentHashes": [],
+          "content": "market analysis findings"
+        },
+        "attestation": {
+          "blockHash": "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
+          "attester": "reviewer-001",
+          "algorithm": "fixture",
+          "timestamp": 1778788800,
+          "signature": "reviewer-001:f533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421"
+        },
+        "attestations": [
+          {
+            "blockHash": "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
+            "attester": "reviewer-001",
+            "algorithm": "fixture",
+            "timestamp": 1778788800,
+            "signature": "reviewer-001:f533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421"
+          },
+          {
+            "blockHash": "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
+            "attester": "reviewer-002",
+            "algorithm": "fixture",
+            "timestamp": 1778788860,
+            "signature": "reviewer-002:f533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421"
+          }
+        ]
+      },
+      "expected": { "ok": true, "attestationCount": 2 }
+    },
+    {
+      "id": "SB3",
+      "description": "attestation bound to wrong block hash is rejected",
+      "input": {
+        "block": {
+          "blockHash": "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
+          "contentHash": "0x5fe9e5dcdf0168c245170402b2410ff46a8eb6958a408981407720b8fd0b045a",
+          "parentHashes": [],
+          "content": "market analysis findings"
+        },
+        "attestation": {
+          "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "attester": "reviewer-001",
+          "algorithm": "fixture",
+          "timestamp": 1778788800,
+          "signature": "reviewer-001:f533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421"
+        }
+      },
+      "expected": { "ok": false, "attestationCount": 1, "reason": "attestation.blockHash does not match block.blockHash" }
+    },
+    {
+      "id": "SB4",
+      "description": "missing attestation is rejected",
+      "input": {
+        "block": {
+          "blockHash": "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
+          "contentHash": "0x5fe9e5dcdf0168c245170402b2410ff46a8eb6958a408981407720b8fd0b045a",
+          "parentHashes": [],
+          "content": "market analysis findings"
+        }
+      },
+      "expected": { "ok": false, "attestationCount": 0, "reason": "no attestation present" }
+    }
+  ]
+}

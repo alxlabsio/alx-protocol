@@ -1,0 +1,8 @@
+{
+  "$comment": "Invalid: additional properties not allowed by schema",
+  "blockHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "contentHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "parentHashes": [],
+  "content": "test",
+  "extraField": "should not be here"
+}

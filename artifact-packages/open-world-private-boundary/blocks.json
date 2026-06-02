@@ -1,0 +1,136 @@
+[
+  {
+    "blockHash": "0x8c2733e732c2641cb82a467ae1b2c3f889a14de14414c8132611a5349b96bcd2",
+    "contentHash": "0x02e4d83c88e9dd2e4736d7a3210b91120e176cf144aa556458fa5640157fd56d",
+    "parentHashes": [],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "privacy.internal-assessment",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "Internal data minimization assessment",
+        "domain": "privacy",
+        "contentType": "privacy.internal-assessment",
+        "concepts": [
+          "data-minimization",
+          "retention",
+          "cross-border-transfer"
+        ],
+        "entities": [
+          "partner analytics exchange"
+        ],
+        "status": "approved"
+      },
+      "data": {
+        "artifactRole": "internal-data-minimization-assessment",
+        "summary": "Internal review approves only aggregated metrics for the partner analytics exchange.",
+        "subject": {
+          "system": "partner analytics exchange"
+        },
+        "findings": [
+          {
+            "id": "finding-001",
+            "finding": "Aggregated metrics are sufficient for the approved use case.",
+            "status": "accepted"
+          },
+          {
+            "id": "finding-002",
+            "finding": "Raw support transcripts are not necessary for the approved use case.",
+            "status": "rejected"
+          }
+        ],
+        "conditions": [],
+        "risks": [],
+        "actions": []
+      }
+    }
+  },
+  {
+    "blockHash": "0x51cae12579b1f3894dd5762cd8198010d7f26a3b74b6dc27ffafd66123509130",
+    "contentHash": "0xa553a1d50ee5ff2016f0d62a169dd1c3b542dbe1992268fb37e21323b5044f4a",
+    "parentHashes": [
+      "0x8c2733e732c2641cb82a467ae1b2c3f889a14de14414c8132611a5349b96bcd2",
+      "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    ],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "privacy.review.decision",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "Conditional approval with unresolved partner boundary",
+        "domain": "privacy",
+        "contentType": "privacy.review.decision",
+        "concepts": [
+          "external-boundary",
+          "partial-verification",
+          "data-sharing"
+        ],
+        "entities": [
+          "partner analytics exchange"
+        ],
+        "status": "awaiting-external-evidence"
+      },
+      "data": {
+        "decisionId": "privacy-review-2026-004",
+        "summary": "Internal requirements are satisfied, but full lineage remains incomplete until the partner data-protection assessment is provided.",
+        "subject": {
+          "system": "partner analytics exchange"
+        },
+        "decision": {
+          "outcome": "approve-pending-external-review",
+          "status": "awaiting-external-evidence",
+          "decisionOwner": "privacy-engineering",
+          "nextReviewTrigger": "partner-assessment-received"
+        },
+        "rationale": {
+          "summary": "The resolved internal assessment supports a limited approval, while the partner assessment remains outside the supplied graph.",
+          "basis": [
+            {
+              "artifactRole": "internal-data-minimization-assessment",
+              "usedFor": [
+                "approved data classes",
+                "retention limit"
+              ]
+            },
+            {
+              "artifactRole": "partner-data-protection-assessment",
+              "usedFor": [
+                "processor controls",
+                "cross-border transfer review"
+              ],
+              "resolution": "external"
+            }
+          ]
+        },
+        "conditions": [
+          {
+            "id": "condition-001",
+            "requirement": "Obtain the partner data-protection assessment before claiming complete verification.",
+            "status": "required-before-full-validation",
+            "owner": "privacy-engineering",
+            "evidenceRequired": "partner assessment Block"
+          }
+        ],
+        "risks": [
+          {
+            "id": "risk-001",
+            "risk": "The unresolved partner boundary may contain controls that affect the final approval posture.",
+            "severity": "medium",
+            "status": "open-boundary",
+            "mitigation": "Keep the decision partial until the partner assessment is resolved."
+          }
+        ],
+        "actions": [
+          {
+            "id": "action-001",
+            "type": "collect-evidence",
+            "description": "Request the partner data-protection assessment package.",
+            "owner": "privacy-engineering",
+            "requiredBefore": "full-validation",
+            "status": "open"
+          }
+        ]
+      }
+    }
+  }
+]

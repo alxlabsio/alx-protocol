@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/extensions/ipfs-artifact-package/1/schemas/ipfs-artifact-package-manifest.schema.json",
+  "title": "ALX IPFS Artifact Package Manifest",
+  "description": "Optional storage manifest mapping ALX Block identities to IPFS CIDs without changing core Block validity.",
+  "$comment": "This schema validates package-manifest shape only. It does not make IPFS required for ALX validity, verify CID availability, or prove that stored bytes match the referenced ALX hashes.",
+  "type": "object",
+  "properties": {
+    "packageVersion": {
+      "type": "string",
+      "const": "1",
+      "description": "Package manifest format version. Must be '1' for v1 manifests."
+    },
+    "blockHash": {
+      "$ref": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/defs.schema.json#/$defs/hash",
+      "description": "blockHash of the ALX Block this manifest describes."
+    },
+    "contentHash": {
+      "$ref": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/defs.schema.json#/$defs/hash",
+      "description": "contentHash of the ALX Block's content field."
+    },
+    "blockCid": {
+      "$ref": "#/$defs/cid",
+      "description": "IPFS CID of the full Block JSON."
+    },
+    "contentCid": {
+      "$ref": "#/$defs/cid",
+      "description": "IPFS CID of the Block's content field."
+    },
+    "parents": {
+      "type": "array",
+      "maxItems": 256,
+      "uniqueItems": true,
+      "description": "IPFS CID mappings for each parent Block declared in parentHashes.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "blockHash": {
+            "$ref": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/defs.schema.json#/$defs/hash"
+          },
+          "cid": {
+            "$ref": "#/$defs/cid"
+          }
+        },
+        "required": ["blockHash", "cid"],
+        "additionalProperties": false
+      }
+    },
+    "attachments": {
+      "type": "array",
+      "maxItems": 1024,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/packageResource"
+      },
+      "default": [],
+      "description": "Additional files included in this artifact package."
+    },
+    "evidence": {
+      "type": "array",
+      "maxItems": 1024,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/packageResource"
+      },
+      "default": [],
+      "description": "Evidence files supporting this artifact, such as evaluation reports or policy documents."
+    },
+    "attestations": {
+      "type": "array",
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/packageResource"
+      },
+      "default": [],
+      "description": "Attestation files associated with this Block."
+    },
+    "verificationReceiptCid": {
+      "$ref": "#/$defs/cid",
+      "description": "CID of the verification receipt for this Block. Does not affect Block identity."
+    }
+  },
+  "required": ["packageVersion", "blockHash", "contentHash", "blockCid", "contentCid", "parents"],
+  "additionalProperties": false,
+  "$defs": {
+    "cid": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 128,
+      "pattern": "^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]+)$",
+      "description": "CIDv0 base58btc or CIDv1 base32 string."
+    },
+    "packagePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^(?!/)(?!.*\\.\\.)([a-zA-Z0-9._/-]+)$",
+      "description": "Relative package path. Absolute paths and parent traversal are not allowed."
+    },
+    "packageResource": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A named file resource within an artifact package, identified by role and addressable by IPFS CID.",
+      "required": ["id", "role", "path", "cid"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9-]{0,127}$"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9-]{0,127}$"
+        },
+        "path": {
+          "$ref": "#/$defs/packagePath"
+        },
+        "cid": {
+          "$ref": "#/$defs/cid"
+        },
+        "contentHash": {
+          "$ref": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/defs.schema.json#/$defs/hash",
+          "description": "ALX contentHash of this resource's JSON content, when applicable."
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "packageVersion": "1",
+      "blockHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "contentHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "blockCid": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3ocl5t3u7z5e2aa",
+      "contentCid": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3ocl5t3u7z5e2ab",
+      "parents": [
+        {
+          "blockHash": "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "cid": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3ocl5t3u7z5e2ac"
+        }
+      ],
+      "attachments": [],
+      "evidence": [],
+      "attestations": [],
+      "verificationReceiptCid": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3ocl5t3u7z5e2ad"
+    }
+  ]
+}

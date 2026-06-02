@@ -1,0 +1,29 @@
+{
+  "$schema": "../schemas/test-vector.schema.json",
+  "suite": "canonicalization-depth",
+  "description": "Normative recursion-depth boundary vectors for canonicalization.",
+  "vectors": [
+    {
+      "id": "CD1",
+      "description": "depth exactly 128 MUST be accepted",
+      "input": {
+        "generatedDepth": 128,
+        "leaf": "value"
+      },
+      "expected": {
+        "ok": true
+      }
+    },
+    {
+      "id": "CD2",
+      "description": "depth 129 MUST be rejected",
+      "input": {
+        "generatedDepth": 129,
+        "leaf": "value"
+      },
+      "expected": {
+        "ok": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/extensions/signing/1/schemas/signed-block.schema.json",
+  "title": "ALX Signed Block Extension",
+  "description": "Optional signing extension profile for ALX Blocks. Signing metadata is excluded from Block identity.",
+  "$comment": "This schema validates structural shape only. It does not verify contentHash, blockHash derivation, parent hash ordering, attestation binding, or signature validity.",
+  "type": "object",
+  "properties": {
+    "block": {
+      "$ref": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/block.schema.json",
+      "description": "The ALX Block being attested."
+    },
+    "attestation": {
+      "$ref": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/defs.schema.json#/$defs/attestation",
+      "description": "A single cryptographic attestation over this Block's blockHash."
+    },
+    "attestations": {
+      "type": "array",
+      "items": {
+        "$ref": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/defs.schema.json#/$defs/attestation"
+      },
+      "description": "Multiple cryptographic attestations over this Block's blockHash."
+    }
+  },
+  "required": [
+    "block"
+  ],
+  "anyOf": [
+    {
+      "required": [
+        "attestation"
+      ]
+    },
+    {
+      "required": [
+        "attestations"
+      ]
+    }
+  ],
+  "additionalProperties": false
+}

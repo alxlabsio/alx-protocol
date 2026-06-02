@@ -1,0 +1,108 @@
+{
+  "$schema": "../schemas/test-vector.schema.json",
+  "suite": "semantic-validity",
+  "description": "Protocol-invalid cases that remain structurally schema-valid and therefore must be rejected by verifier semantics rather than JSON Schema.",
+  "vectors": [
+    {
+      "id": "SV1",
+      "description": "contentHash mismatch is protocol-invalid even when shape is valid",
+      "operation": "validateBlock",
+      "input": {
+        "blockHash": "0xab6476c50c9e1e64be86b34d5076396c137ca0c661f3bb4ff3548f4bce7d00eb",
+        "contentHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "parentHashes": [],
+        "content": "semantic baseline"
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "id": "SV2",
+      "description": "blockHash mismatch is protocol-invalid even when shape is valid",
+      "operation": "validateBlock",
+      "input": {
+        "blockHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "contentHash": "0xfd5b18dcd016c54324318c476d4139f90e5a63a23afe04828775e6eb947b6558",
+        "parentHashes": [],
+        "content": "semantic baseline"
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "id": "SV3",
+      "description": "unsorted parentHashes are protocol-invalid despite schema-valid shape",
+      "operation": "validateBlock",
+      "input": {
+        "blockHash": "0xa6936efc85496a08a9c6bda84bbfebfcca3323f3c637b8f190d22f1215f07bfb",
+        "contentHash": "0xfece1a4c4e4a4d8561770b636f41cc88438a90118aff78244c497f23e3a16dda",
+        "parentHashes": [
+          "0x0000000000000000000000000000000000000000000000000000000000000002",
+          "0x0000000000000000000000000000000000000000000000000000000000000001"
+        ],
+        "content": "semantic parents"
+      },
+      "expected": {
+        "ok": false,
+        "parentsCanonical": false
+      }
+    },
+    {
+      "id": "SV4",
+      "description": "self-parenting is protocol-invalid",
+      "operation": "validateBlock",
+      "input": {
+        "blockHash": "0xbb9bc2aa9179b6ac34324a2e31792d98edfbc48065b07508ddf8cbd958c92312",
+        "contentHash": "0xf9408973bbcb5a9d09b81bfc3125ff6d636305ecd2ca62b237b5bc5f6c9dbe30",
+        "parentHashes": [
+          "0xbb9bc2aa9179b6ac34324a2e31792d98edfbc48065b07508ddf8cbd958c92312"
+        ],
+        "content": "self parent impossible placeholder"
+      },
+      "expected": {
+        "ok": false,
+        "selfRef": true
+      }
+    },
+    {
+      "id": "SV5",
+      "description": "graph cycle is protocol-invalid",
+      "operation": "validateGraph",
+      "input": {
+        "graph": {
+          "0x0000000000000000000000000000000000000000000000000000000041": [
+            "0x0000000000000000000000000000000000000000000000000000000042"
+          ],
+          "0x0000000000000000000000000000000000000000000000000000000042": [
+            "0x0000000000000000000000000000000000000000000000000000000041"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "issueCount": 2
+      }
+    },
+    {
+      "id": "SV6",
+      "description": "missing parent is invalid under current closed-world graph validation",
+      "operation": "validateGraph",
+      "input": {
+        "graph": {
+          "0x0000000000000000000000000000000000000000000000000000000051": [
+            "0x0000000000000000000000000000000000000000000000000000000052"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "issueCount": 1,
+        "missing": [
+          "0x0000000000000000000000000000000000000000000000000000000052"
+        ]
+      }
+    }
+  ]
+}

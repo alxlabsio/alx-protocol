@@ -1,0 +1,49 @@
+{
+  "root": "0x957820762717408ae6a1f8c6a31a64fcef66423962a5ec34fdb71d40f3652c33",
+  "validationMode": "closed-world",
+  "complete": true,
+  "nodes": [
+    {
+      "hash": "0x957820762717408ae6a1f8c6a31a64fcef66423962a5ec34fdb71d40f3652c33",
+      "minDepth": 0,
+      "maxDepth": 0,
+      "pathCount": 1,
+      "parentCount": 2,
+      "childCount": 0
+    },
+    {
+      "hash": "0x603949adf98f374ed5b5b05e492e8fd4d2257fbbe366085d7bc2ee3d05d2b209",
+      "minDepth": 1,
+      "maxDepth": 1,
+      "pathCount": 1,
+      "parentCount": 0,
+      "childCount": 1
+    },
+    {
+      "hash": "0xe5512a345b8c9f4ebdd5e639291127eea1667154f8ae51ff419899d6bbce22b8",
+      "minDepth": 1,
+      "maxDepth": 1,
+      "pathCount": 1,
+      "parentCount": 0,
+      "childCount": 1
+    }
+  ],
+  "edges": [
+    {
+      "from": "0x957820762717408ae6a1f8c6a31a64fcef66423962a5ec34fdb71d40f3652c33",
+      "to": "0x603949adf98f374ed5b5b05e492e8fd4d2257fbbe366085d7bc2ee3d05d2b209"
+    },
+    {
+      "from": "0x957820762717408ae6a1f8c6a31a64fcef66423962a5ec34fdb71d40f3652c33",
+      "to": "0xe5512a345b8c9f4ebdd5e639291127eea1667154f8ae51ff419899d6bbce22b8"
+    }
+  ],
+  "leaves": [
+    "0x603949adf98f374ed5b5b05e492e8fd4d2257fbbe366085d7bc2ee3d05d2b209",
+    "0xe5512a345b8c9f4ebdd5e639291127eea1667154f8ae51ff419899d6bbce22b8"
+  ],
+  "missingParents": [],
+  "externalParents": [],
+  "maxDepth": 1,
+  "cycle": false
+}

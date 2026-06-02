@@ -1,0 +1,43 @@
+{
+  "root": "0x3333333333333333333333333333333333333333333333333333333333333333",
+  "validationMode": "open-world",
+  "complete": false,
+  "nodes": [
+    {
+      "hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "minDepth": 0,
+      "maxDepth": 0,
+      "pathCount": 1,
+      "parentCount": 2,
+      "childCount": 0
+    },
+    {
+      "hash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "minDepth": 1,
+      "maxDepth": 1,
+      "pathCount": 1,
+      "parentCount": 0,
+      "childCount": 1
+    }
+  ],
+  "edges": [
+    {
+      "from": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "to": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "from": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "to": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "leaves": [
+    "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "missingParents": [],
+  "externalParents": [
+    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  ],
+  "maxDepth": 1,
+  "cycle": false,
+  "precisionLoss": false
+}

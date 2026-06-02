@@ -1,0 +1,8 @@
+{
+  "blockHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "contentHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "parentHashes": [
+    "0x0000000000000000000000000000000000000000000000000000000000000001"
+  ],
+  "content": "one-parent boundary fixture"
+}

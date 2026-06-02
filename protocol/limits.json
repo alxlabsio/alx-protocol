@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/limits.v1.json",
+  "id": "limits",
+  "protocolVersion": "1",
+  "documentVersion": "1.0.0",
+  "normativeProtocolLimits": [
+    { "id": "LIMIT-001", "name": "Maximum parent hashes", "value": 256, "unit": "items", "source": "protocol/spec.md" },
+    { "id": "LIMIT-002", "name": "Maximum canonicalization depth", "value": 128, "unit": "nesting-levels", "source": "protocol/spec.md" }
+  ],
+  "implementationSafetyLimits": [
+    { "id": "LIMIT-101", "name": "Maximum canonical byte size", "value": 16777216, "unit": "bytes", "source": "AGENTS.md" },
+    { "id": "LIMIT-102", "name": "Maximum HTTP request body size", "value": 10485760, "unit": "bytes", "source": "AGENTS.md" },
+    { "id": "LIMIT-103", "name": "Maximum verifier runtime", "value": 5000, "unit": "milliseconds", "source": "recommended-operational-policy" },
+    { "id": "LIMIT-104", "name": "Maximum string bytes", "value": 65536, "unit": "bytes", "source": "recommended-operational-policy" },
+    { "id": "LIMIT-105", "name": "Maximum array items", "value": 10000, "unit": "items", "source": "recommended-operational-policy" },
+    { "id": "LIMIT-106", "name": "Maximum object properties", "value": 1000, "unit": "items", "source": "recommended-operational-policy" },
+    { "id": "LIMIT-107", "name": "Maximum attribution nodes", "value": 10000, "unit": "items", "source": "recommended-operational-policy" },
+    { "id": "LIMIT-108", "name": "Maximum attribution edges", "value": 50000, "unit": "items", "source": "recommended-operational-policy" }
+  ],
+  "notes": [
+    "Only normativeProtocolLimits affect protocol validity in v1.",
+    "implementationSafetyLimits are recommended operational guards and MUST NOT be used to claim protocol-invalidity unless promoted by a future protocol version."
+  ]
+}

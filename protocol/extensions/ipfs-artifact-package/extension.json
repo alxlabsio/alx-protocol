@@ -1,0 +1,24 @@
+{
+  "id": "ipfs-artifact-package",
+  "extensionVersion": "1.0.0",
+  "lifecycle": "provisional",
+  "requiredForCore": false,
+  "compatibleProtocolVersions": ["1"],
+  "deprecated": false,
+  "supersedes": null,
+  "vectors": [
+    {
+      "id": "manifest-validation",
+      "path": "protocol/extensions/ipfs-artifact-package/test-vectors/manifest-validation.json"
+    }
+  ],
+  "runner": {
+    "type": "schema-only"
+  },
+  "schemas": [
+    {
+      "id": "ipfs-artifact-package-manifest",
+      "path": "protocol/extensions/ipfs-artifact-package/schemas/ipfs-artifact-package-manifest.schema.json"
+    }
+  ]
+}

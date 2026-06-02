@@ -1,0 +1,125 @@
+{
+  "name": "@alx-protocol/sdk",
+  "version": "1.0.0",
+  "description": "ALX Protocol TypeScript SDK — deterministic infrastructure for verifiable content, interoperable context, and traceable attribution",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./hash-utils": {
+      "import": "./dist/hash-utils.js",
+      "types": "./dist/hash-utils.d.ts"
+    },
+    "./block": {
+      "import": "./dist/block.js",
+      "types": "./dist/block.d.ts"
+    },
+    "./lineage": {
+      "import": "./dist/block-lineage.js",
+      "types": "./dist/block-lineage.d.ts"
+    },
+    "./trace": {
+      "import": "./dist/block-trace.js",
+      "types": "./dist/block-trace.d.ts"
+    },
+    "./canonicalization": {
+      "import": "./dist/canonicalization.js",
+      "types": "./dist/canonicalization.d.ts"
+    },
+    "./signatures": {
+      "import": "./dist/signatures.js",
+      "types": "./dist/signatures.d.ts"
+    },
+    "./eip712": {
+      "import": "./dist/eip712.js",
+      "types": "./dist/eip712.d.ts"
+    },
+    "./ed25519": {
+      "import": "./dist/ed25519.js",
+      "types": "./dist/ed25519.d.ts"
+    },
+    "./p256": {
+      "import": "./dist/p256.js",
+      "types": "./dist/p256.d.ts"
+    },
+    "./merkle": {
+      "import": "./dist/merkle.js",
+      "types": "./dist/merkle.d.ts"
+    },
+    "./extensions": {
+      "import": "./dist/extensions.js",
+      "types": "./dist/extensions.d.ts"
+    },
+    "./replay": {
+      "import": "./dist/replay.js",
+      "types": "./dist/replay.d.ts"
+    },
+    "./middleware": {
+      "import": "./dist/middleware.js",
+      "types": "./dist/middleware.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "js-sha3": "^0.9.3"
+  },
+  "peerDependencies": {
+    "@noble/secp256k1": "^3.0.0",
+    "@noble/ed25519": "^3.0.0",
+    "@noble/curves": "^1.0.0 || ^2.0.0",
+    "ethers": "^6.13.0"
+  },
+  "peerDependenciesMeta": {
+    "@noble/secp256k1": {
+      "optional": true
+    },
+    "@noble/curves": {
+      "optional": true
+    },
+    "ethers": {
+      "optional": true
+    },
+    "@noble/ed25519": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^5.4.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20 <23"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xandrlabs/alx-protocol",
+    "directory": "sdk"
+  },
+  "keywords": [
+    "alx",
+    "protocol",
+    "sdk",
+    "typescript",
+    "blocks",
+    "lineage",
+    "settlement",
+    "attribution",
+    "deterministic",
+    "verifiable"
+  ]
+}

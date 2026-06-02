@@ -1,0 +1,235 @@
+[
+  {
+    "blockHash": "0x5466cc3adf4a91ea574964e4ab68b71f0d7384114e0b69e04425a0aae5411da3",
+    "contentHash": "0x0545a218ae4b62e9bed8c9a467a6700e75f7f6f29fbaf43879ed28c567d2e467",
+    "parentHashes": [],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "agent.research.summary",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "Competitor pricing research summary",
+        "domain": "market-research",
+        "contentType": "agent.research.summary",
+        "concepts": [
+          "agent-handoff",
+          "pricing",
+          "source-grounding"
+        ],
+        "entities": [
+          "Vendor-A Research Agent"
+        ],
+        "status": "complete"
+      },
+      "data": {
+        "artifactRole": "vendor-a-research-summary",
+        "summary": "Vendor-A agent summarized public pricing changes across three competitors.",
+        "subject": {
+          "topic": "competitor pricing",
+          "producerSystem": "Vendor-A Research Agent"
+        },
+        "findings": [
+          {
+            "id": "finding-001",
+            "finding": "Two competitors raised enterprise minimums in Q2.",
+            "status": "supported"
+          },
+          {
+            "id": "finding-002",
+            "finding": "One competitor introduced usage-based overages.",
+            "status": "supported"
+          }
+        ],
+        "conditions": [],
+        "risks": [
+          {
+            "id": "risk-001",
+            "risk": "Summary depends on public pages that may change after capture.",
+            "severity": "low",
+            "status": "accepted",
+            "mitigation": "Preserve source lineage and review timestamp."
+          }
+        ],
+        "actions": []
+      }
+    }
+  },
+  {
+    "blockHash": "0x128396c6c30d8e3487b48312d8ef01a928c54d4b5d8df2c9ba2cdbc251d84bf6",
+    "contentHash": "0x1e8f0f2367632903f4fb90f83ba61a8a53ca6df21f4630751f54e9cae2a97eeb",
+    "parentHashes": [
+      "0x5466cc3adf4a91ea574964e4ab68b71f0d7384114e0b69e04425a0aae5411da3"
+    ],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "agent.review.assessment",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "Independent review of pricing summary",
+        "domain": "market-research",
+        "contentType": "agent.review.assessment",
+        "concepts": [
+          "cross-vendor-review",
+          "quality-control",
+          "verification"
+        ],
+        "entities": [
+          "Vendor-B Review Agent"
+        ],
+        "status": "review-complete"
+      },
+      "data": {
+        "artifactRole": "vendor-b-review-assessment",
+        "summary": "Vendor-B agent reviewed the research summary for completeness and unsupported claims.",
+        "subject": {
+          "reviewedArtifact": "competitor pricing research summary",
+          "reviewerSystem": "Vendor-B Review Agent"
+        },
+        "decision": {
+          "outcome": "accept-with-note",
+          "status": "review-complete",
+          "decisionOwner": "vendor-b-review-agent"
+        },
+        "rationale": {
+          "summary": "The source summary is internally consistent and suitable for downstream planning, with one caveat on freshness.",
+          "basis": [
+            {
+              "artifactRole": "vendor-a-research-summary",
+              "usedFor": [
+                "pricing findings",
+                "source-grounded claims"
+              ]
+            }
+          ]
+        },
+        "findings": [
+          {
+            "id": "finding-003",
+            "finding": "No unsupported claims detected in reviewed summary.",
+            "status": "supported"
+          },
+          {
+            "id": "finding-004",
+            "finding": "Freshness should be checked before external publication.",
+            "status": "advisory"
+          }
+        ],
+        "conditions": [
+          {
+            "id": "condition-001",
+            "requirement": "Recheck source freshness before customer-facing publication.",
+            "status": "required-before-publication",
+            "owner": "publishing-workflow",
+            "evidenceRequired": "freshness check receipt"
+          }
+        ],
+        "risks": [],
+        "actions": [
+          {
+            "id": "action-001",
+            "type": "freshness-check",
+            "description": "Recheck cited competitor pricing pages before publication.",
+            "owner": "publishing-workflow",
+            "requiredBefore": "public-release",
+            "status": "open"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "blockHash": "0x49ed90723df6b2efea65c3435616aff8094394308fb3eb536281105ce4700ab4",
+    "contentHash": "0x1fff6494202dafaeb325e1d5b58b985fad70a85053309a3a6a4d1433b0d7fa7a",
+    "parentHashes": [
+      "0x128396c6c30d8e3487b48312d8ef01a928c54d4b5d8df2c9ba2cdbc251d84bf6",
+      "0x5466cc3adf4a91ea574964e4ab68b71f0d7384114e0b69e04425a0aae5411da3"
+    ],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "agent.planning.recommendation",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "Pricing response recommendation",
+        "domain": "product-strategy",
+        "contentType": "agent.planning.recommendation",
+        "concepts": [
+          "cross-vendor-handoff",
+          "planning",
+          "reuse"
+        ],
+        "entities": [
+          "Vendor-C Planning Agent"
+        ],
+        "status": "ready-for-review"
+      },
+      "data": {
+        "decisionId": "pricing-response-2026-002",
+        "artifactRole": "vendor-c-planning-recommendation",
+        "summary": "Vendor-C planning agent recommends holding list price while introducing a clearer overage policy.",
+        "subject": {
+          "businessArea": "pricing strategy",
+          "consumerSystem": "Vendor-C Planning Agent"
+        },
+        "decision": {
+          "outcome": "recommend-pricing-response",
+          "status": "ready-for-review",
+          "decisionOwner": "product-strategy"
+        },
+        "rationale": {
+          "summary": "The recommendation uses verified research from Vendor-A and an independent review from Vendor-B without depending on either vendor platform at verification time.",
+          "basis": [
+            {
+              "artifactRole": "vendor-a-research-summary",
+              "usedFor": [
+                "market signal",
+                "competitor pricing direction"
+              ]
+            },
+            {
+              "artifactRole": "vendor-b-review-assessment",
+              "usedFor": [
+                "quality-control",
+                "publication caveat"
+              ]
+            }
+          ]
+        },
+        "findings": [
+          {
+            "id": "finding-005",
+            "finding": "Competitive pressure supports policy clarification more than immediate list-price change.",
+            "status": "supported"
+          }
+        ],
+        "conditions": [
+          {
+            "id": "condition-002",
+            "requirement": "Complete freshness check before external publication.",
+            "status": "required-before-publication",
+            "owner": "publishing-workflow",
+            "evidenceRequired": "freshness check receipt"
+          }
+        ],
+        "risks": [
+          {
+            "id": "risk-002",
+            "risk": "Market conditions may change before launch.",
+            "severity": "medium",
+            "status": "monitor",
+            "mitigation": "Require a freshness check before publication."
+          }
+        ],
+        "actions": [
+          {
+            "id": "action-002",
+            "type": "request-human-review",
+            "description": "Route recommendation to product strategy lead for approval.",
+            "owner": "product-strategy",
+            "requiredBefore": "publication",
+            "status": "open"
+          }
+        ]
+      }
+    }
+  }
+]

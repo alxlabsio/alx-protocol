@@ -1,0 +1,12 @@
+{
+  "definitionLevel": "indexed",
+  "contentType": "research.summary",
+  "index": {
+    "title": "Quarterly market synthesis",
+    "domain": "market-research",
+    "concepts": ["pricing", "competition", "demand"]
+  },
+  "data": {
+    "summary": "..."
+  }
+}

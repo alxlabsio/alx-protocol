@@ -1,0 +1,56 @@
+{
+  "blockHash": "0xe5512a345b8c9f4ebdd5e639291127eea1667154f8ae51ff419899d6bbce22b8",
+  "contentHash": "0xe209eb7204a63cf790ca23d81952d9b78f6dde7791b3e8905b291d581021df32",
+  "parentHashes": [],
+  "content": {
+    "definitionLevel": "indexed",
+    "contentType": "research.source.interviews",
+    "schemaVersion": "1.0",
+    "index": {
+      "title": "Enterprise buyer interview synthesis",
+      "domain": "market-research",
+      "contentType": "research.source.interviews",
+      "concepts": [
+        "trust",
+        "handoff",
+        "compliance"
+      ],
+      "entities": [
+        "enterprise-buyers"
+      ],
+      "status": "complete"
+    },
+    "data": {
+      "artifactRole": "buyer-interview-synthesis",
+      "summary": "Interview synthesis covering how buyers evaluate trust infrastructure.",
+      "subject": {
+        "interviewCount": 12,
+        "participantRoles": [
+          "security",
+          "data-platform",
+          "ai-governance"
+        ]
+      },
+      "findings": [
+        {
+          "id": "finding-004",
+          "finding": "Buyers want exportable evidence.",
+          "status": "observed"
+        },
+        {
+          "id": "finding-005",
+          "finding": "Cross-tool verification is a recurring requirement.",
+          "status": "observed"
+        },
+        {
+          "id": "finding-006",
+          "finding": "Completeness status matters in regulated workflows.",
+          "status": "observed"
+        }
+      ],
+      "conditions": [],
+      "risks": [],
+      "actions": []
+    }
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/verification-receipt.schema.json",
+  "title": "ALX Verification Receipt",
+  "description": "Portable record of a completed ALX graph verification run.",
+  "$comment": "A receipt records verification results. It is not part of Block identity and does not itself prove signature validity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receiptVersion",
+    "protocolVersion",
+    "verifiedAt",
+    "verifier",
+    "root",
+    "validationMode",
+    "ok",
+    "complete",
+    "blockCount",
+    "edgeCount",
+    "externalParents",
+    "missingParents",
+    "errors",
+    "warnings"
+  ],
+  "properties": {
+    "receiptVersion": {
+      "type": "string",
+      "const": "1",
+      "description": "Receipt format version. Must be '1' for v1 receipts."
+    },
+    "protocolVersion": {
+      "type": "string",
+      "const": "1",
+      "description": "ALX Protocol version under which the graph was verified. Must be '1' for v1."
+    },
+    "verifiedAt": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Unix timestamp (seconds) when verification completed."
+    },
+    "verifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Identity of the implementation that produced this receipt.",
+      "required": ["name", "version"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Name of the verifying implementation."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Version of the verifying implementation."
+        }
+      }
+    },
+    "root": {
+      "$ref": "./defs.schema.json#/$defs/hash",
+      "description": "blockHash of the graph root — the Block from which verification was initiated."
+    },
+    "validationMode": {
+      "enum": ["closed-world", "open-world"],
+      "description": "Validation mode used: closed-world requires all parentHashes to resolve; open-world permits declared external boundaries."
+    },
+    "ok": {
+      "type": "boolean",
+      "description": "True if the graph passed structural verification under the selected validation mode."
+    },
+    "complete": {
+      "type": "boolean",
+      "description": "True if all parentHashes in the graph were resolved. False when external or missing parents exist."
+    },
+    "blockCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of Blocks resolved in the verified graph."
+    },
+    "edgeCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of parentHashes edges traversed in the verified graph."
+    },
+    "externalParents": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "./defs.schema.json#/$defs/hash" },
+      "description": "Parent hashes declared as external boundaries in the verification context."
+    },
+    "missingParents": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "./defs.schema.json#/$defs/hash" },
+      "description": "Parent hashes that could not be resolved and were not declared as external boundaries."
+    },
+    "errors": {
+      "type": "array",
+      "items": { "$ref": "./defs.schema.json#/$defs/error" },
+      "description": "Structured errors produced during verification. Non-empty when ok is false."
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "$ref": "./defs.schema.json#/$defs/error" },
+      "description": "Non-fatal issues noted during verification. Does not affect ok."
+    },
+    "traceHash": {
+      "$ref": "./defs.schema.json#/$defs/hash",
+      "description": "Optional blockHash of an attribution trace associated with this verification run."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "ok": { "const": false } },
+        "required": ["ok"]
+      },
+      "then": {
+        "properties": { "errors": { "minItems": 1 } }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "ok": { "const": true },
+          "validationMode": { "const": "closed-world" }
+        },
+        "required": ["ok", "validationMode"]
+      },
+      "then": {
+        "properties": { "complete": { "const": true } }
+      }
+    },
+    {
+      "if": {
+        "properties": { "externalParents": { "minItems": 1 } },
+        "required": ["externalParents"]
+      },
+      "then": {
+        "properties": { "complete": { "const": false } }
+      }
+    }
+  ]
+}

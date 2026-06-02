@@ -1,0 +1,18 @@
+{
+  "blockHash": "0xc03622e962ba72fcd59798de396bcaddeba27f762791d20e42b3c8ee7e35eeb3",
+  "contentHash": "0x39a8bdaabadee2f0e9f9271525ff383b57d935d1a8d7ba13f6d9c1de8cef6d82",
+  "parentHashes": [
+    "0xd71e3fb378abffdfbde0ddea0fce6fb536a19102851da826d91c52e9eceb135b"
+  ],
+  "content": {
+    "type": "ai.prompt",
+    "summary": "Acquisition analysis request — Meridian Holdings Q4 2025",
+    "file": "prompt-meridian-q4.json",
+    "sha256": "0xf787d0749dc15435d7febe06824a48bdd817cf1544382038634157162138eb06",
+    "model": "claude-sonnet-4-6",
+    "sessionId": "sess_01jt4kx9m2f",
+    "requestId": "req_7c3b8a",
+    "timestamp": "2026-05-31T09:00:00.000Z"
+  },
+  "protocolVersion": "1"
+}

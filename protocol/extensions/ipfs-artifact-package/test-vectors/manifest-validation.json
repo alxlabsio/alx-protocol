@@ -1,0 +1,31 @@
+{
+  "suite": "manifest-validation",
+  "description": "IPFS artifact package manifest schema validation vectors. Each vector references a fixture file and asserts schema acceptance or rejection.",
+  "schema": "protocol/extensions/ipfs-artifact-package/schemas/ipfs-artifact-package-manifest.schema.json",
+  "vectors": [
+    {
+      "id": "IPFS-V1",
+      "description": "minimal valid package manifest with CIDv1 block and content CIDs",
+      "fixture": "fixtures/valid/minimal-package.json",
+      "expected": { "valid": true }
+    },
+    {
+      "id": "IPFS-V2",
+      "description": "valid manifest with parent blockHash to CID mapping",
+      "fixture": "fixtures/valid/package-with-parent.json",
+      "expected": { "valid": true }
+    },
+    {
+      "id": "IPFS-V3",
+      "description": "invalid blockCid pattern is rejected",
+      "fixture": "fixtures/invalid/bad-cid.json",
+      "expected": { "valid": false }
+    },
+    {
+      "id": "IPFS-V4",
+      "description": "unknown top-level fields are rejected",
+      "fixture": "fixtures/invalid/extra-field.json",
+      "expected": { "valid": false }
+    }
+  ]
+}

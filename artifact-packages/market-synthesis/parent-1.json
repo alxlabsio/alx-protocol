@@ -1,0 +1,52 @@
+{
+  "blockHash": "0x603949adf98f374ed5b5b05e492e8fd4d2257fbbe366085d7bc2ee3d05d2b209",
+  "contentHash": "0x057e47cada116dd76699a0a4f43223b5f2fcdc178373cdf81bbfd584058adc0a",
+  "parentHashes": [],
+  "content": {
+    "definitionLevel": "indexed",
+    "contentType": "research.source.market-scan",
+    "schemaVersion": "1.0",
+    "index": {
+      "title": "Enterprise AI infrastructure market scan",
+      "domain": "market-research",
+      "contentType": "research.source.market-scan",
+      "concepts": [
+        "auditability",
+        "procurement",
+        "agent-infrastructure"
+      ],
+      "entities": [
+        "enterprise-ai-market"
+      ],
+      "status": "complete"
+    },
+    "data": {
+      "artifactRole": "market-scan",
+      "summary": "Public vendor scan covering audit, lineage, and orchestration claims across 24 offerings.",
+      "subject": {
+        "coverage": "24 public vendor offerings",
+        "collectionWindow": "2026-Q2"
+      },
+      "findings": [
+        {
+          "id": "finding-001",
+          "finding": "Audit logging is common.",
+          "status": "observed"
+        },
+        {
+          "id": "finding-002",
+          "finding": "Portable lineage is uncommon.",
+          "status": "observed"
+        },
+        {
+          "id": "finding-003",
+          "finding": "Storage and orchestration are often bundled.",
+          "status": "observed"
+        }
+      ],
+      "conditions": [],
+      "risks": [],
+      "actions": []
+    }
+  }
+}

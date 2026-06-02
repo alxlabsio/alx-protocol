@@ -1,0 +1,14 @@
+{
+  "$comment": "Invalid for the core Block schema: signing metadata belongs to the signing extension",
+  "blockHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "contentHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "parentHashes": [],
+  "content": "signed metadata must not leak into the core schema",
+  "attestation": {
+    "blockHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "attester": "reviewer-001",
+    "algorithm": "ed25519",
+    "timestamp": 1778788800,
+    "signature": "fixture-signature"
+  }
+}

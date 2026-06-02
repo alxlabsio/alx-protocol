@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/attribution-trace.schema.json",
+  "title": "ALX Attribution Trace",
+  "description": "Derivation graph structure computed from a root Block — captures path counts, depths, and lineage topology.",
+  "$comment": "This schema validates structural shape only. It does not prove root membership, edge endpoint membership, leaf truth, depth correctness, pathCount correctness, or graph consistency.",
+  "type": "object",
+  "properties": {
+    "root": {
+      "$ref": "./defs.schema.json#/$defs/hash",
+      "description": "blockHash of the root Block whose lineage was traced."
+    },
+    "validationMode": {
+      "enum": ["closed-world", "open-world"],
+      "description": "Validation mode used during the trace: closed-world requires all parentHashes to resolve; open-world permits declared external boundaries."
+    },
+    "complete": {
+      "type": "boolean",
+      "description": "True only when all required lineage was resolved under the selected validation mode."
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "properties": {
+          "hash": {
+            "$ref": "./defs.schema.json#/$defs/hash"
+          },
+          "minDepth": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Shortest path length from root to this node"
+          },
+          "maxDepth": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Longest path length from root to this node"
+          },
+          "pathCount": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Number of distinct paths from root to this node"
+          },
+          "parentCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of direct parents this node has"
+          },
+          "childCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of blocks that reference this node as a parent"
+          }
+        },
+        "required": ["hash", "minDepth", "maxDepth", "pathCount", "parentCount", "childCount"],
+        "additionalProperties": false
+      }
+    },
+    "edges": {
+      "type": "array",
+      "maxItems": 50000,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "$ref": "./defs.schema.json#/$defs/hash",
+            "description": "Child block hash"
+          },
+          "to": {
+            "$ref": "./defs.schema.json#/$defs/hash",
+            "description": "Parent block hash"
+          }
+        },
+        "required": ["from", "to"],
+        "additionalProperties": false
+      }
+    },
+    "leaves": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "./defs.schema.json#/$defs/hash"
+      },
+      "description": "Resolved nodes with no resolved parents. External parents are not leaves unless they are resolved as nodes."
+    },
+    "missingParents": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "./defs.schema.json#/$defs/hash"
+      },
+      "description": "Unresolved parent hashes that were not declared as external boundaries."
+    },
+    "externalParents": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "./defs.schema.json#/$defs/hash"
+      },
+      "description": "Unresolved parent hashes explicitly declared as external boundaries in verification context."
+    },
+    "maxDepth": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Longest path length from the root Block to any node in the trace."
+    },
+    "cycle": {
+      "type": "boolean",
+      "description": "True if a cycle was detected during traversal. Cyclic graphs are structurally invalid under ALX Protocol."
+    },
+    "precisionLoss": {
+      "type": "boolean",
+      "description": "True when pathCount values exceeded safe integer precision (2^53 − 1) during computation. Absent when no precision loss occurred."
+    }
+  },
+  "required": ["root", "validationMode", "complete", "nodes", "edges", "leaves", "missingParents", "externalParents", "maxDepth", "cycle"],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "validationMode": { "const": "closed-world" }
+        },
+        "required": ["validationMode"]
+      },
+      "then": {
+        "properties": {
+          "externalParents": { "maxItems": 0 }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "externalParents": { "minItems": 1 }
+        },
+        "required": ["externalParents"]
+      },
+      "then": {
+        "properties": {
+          "complete": { "const": false }
+        }
+      }
+    }
+  ]
+}

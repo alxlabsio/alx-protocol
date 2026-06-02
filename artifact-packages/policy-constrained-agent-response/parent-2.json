@@ -1,0 +1,72 @@
+{
+  "blockHash": "0xd203f5b464cf38ef7555c6afe7c5c685e4c3d640565170605fcc25832c36b4d8",
+  "contentHash": "0x36d0a6540c6e2b2ebf8bd5c36546f153fecd6ac17d7224b9c24d34d5006f6d09",
+  "parentHashes": [],
+  "content": {
+    "definitionLevel": "indexed",
+    "contentType": "agent.context.brand-voice",
+    "schemaVersion": "1.0",
+    "index": {
+      "title": "Xandr Labs brand voice profile",
+      "domain": "agent-context",
+      "contentType": "agent.context.brand-voice",
+      "concepts": [
+        "brand-voice",
+        "terminology",
+        "banned-words"
+      ],
+      "entities": [
+        "Xandr Labs"
+      ],
+      "status": "active"
+    },
+    "data": {
+      "artifactRole": "brand-voice-profile",
+      "summary": "Portable brand behavior constraints for generated communications.",
+      "subject": {
+        "brand": "Xandr Labs",
+        "profileVersion": "2026.1"
+      },
+      "approvedTerms": [
+        {
+          "id": "term-001",
+          "term": "verified lineage",
+          "status": "preferred"
+        },
+        {
+          "id": "term-002",
+          "term": "portable verification receipt",
+          "status": "preferred"
+        }
+      ],
+      "restrictedTerms": [
+        {
+          "id": "term-003",
+          "term": "trustless AI",
+          "status": "banned",
+          "reason": "overclaim"
+        },
+        {
+          "id": "term-004",
+          "term": "revolutionary",
+          "status": "banned",
+          "reason": "marketing inflation"
+        }
+      ],
+      "voiceRules": [
+        {
+          "id": "voice-001",
+          "rule": "Use precise language before advocacy.",
+          "status": "active"
+        },
+        {
+          "id": "voice-002",
+          "rule": "Explain boundaries explicitly when discussing optional integrations.",
+          "status": "active"
+        }
+      ],
+      "actions": [],
+      "risks": []
+    }
+  }
+}

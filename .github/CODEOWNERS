@@ -1,0 +1,19 @@
+# ALX Protocol Code Owners
+# These owners are automatically requested for review on PRs.
+
+# Protocol specification — requires maintainer review
+/protocol/ @xandrlabs/protocol-maintainers
+
+# Reference implementations
+/reference-implementations/typescript/ @xandrlabs/sdk-maintainers
+/reference-implementations/python/ @xandrlabs/sdk-maintainers
+/reference-implementations/rust/ @xandrlabs/sdk-maintainers
+
+# Smart contracts — requires security review
+/contracts/ @xandrlabs/protocol-maintainers
+
+# Documentation
+/docs/ @xandrlabs/protocol-maintainers
+
+# CI/CD and infrastructure
+/.github/ @xandrlabs/protocol-maintainers

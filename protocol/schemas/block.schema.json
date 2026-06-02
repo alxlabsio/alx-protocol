@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/block.schema.json",
+  "title": "ALX Block",
+  "description": "The ALX Protocol primitive — binds artifact content and parent lineage into a single deterministic blockHash.",
+  "$comment": "This schema validates structural shape only. It does not verify contentHash, blockHash derivation, parent hash ordering, graph completeness, graph acyclicity, signature validity, or trace relational correctness.",
+  "type": "object",
+  "properties": {
+    "blockHash": {
+      "$ref": "./defs.schema.json#/$defs/hash",
+      "description": "Deterministic Block identity — keccak256(canonicalize({ content, parentHashes })). Any change to content or parentHashes produces a different blockHash."
+    },
+    "contentHash": {
+      "$ref": "./defs.schema.json#/$defs/hash",
+      "description": "keccak256(canonicalize(content)) — content-only identity"
+    },
+    "parentHashes": {
+      "$ref": "./defs.schema.json#/$defs/parentHashes",
+      "description": "Declared upstream Block identities, bound into blockHash. Must be sorted and deduplicated."
+    },
+    "content": {
+      "description": "Opaque JSON-serializable artifact payload. The protocol does not inspect or interpret content."
+    }
+  },
+  "required": [
+    "blockHash",
+    "contentHash",
+    "parentHashes",
+    "content"
+  ],
+  "additionalProperties": false
+}

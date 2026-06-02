@@ -1,0 +1,14 @@
+[
+  {
+    "blockHash": "0x51abaf54a82a83471188a54008cd508d1e96b1188796d9712a6d86284ac3719b",
+    "contentType": "evaluation.run",
+    "title": "Policy QA release evaluation run",
+    "artifactRole": "evaluation-run"
+  },
+  {
+    "blockHash": "0xced7410d56d2a18207862ba6bfb366ba45238de0bddcfb418352e9c3d5f0c8f3",
+    "contentType": "governance.release-policy",
+    "title": "Model release gating policy",
+    "artifactRole": "release-gating-policy"
+  }
+]

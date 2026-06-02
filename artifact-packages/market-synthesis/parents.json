@@ -1,0 +1,14 @@
+[
+  {
+    "blockHash": "0x603949adf98f374ed5b5b05e492e8fd4d2257fbbe366085d7bc2ee3d05d2b209",
+    "contentType": "research.source.market-scan",
+    "title": "Enterprise AI infrastructure market scan",
+    "artifactRole": "market-scan"
+  },
+  {
+    "blockHash": "0xe5512a345b8c9f4ebdd5e639291127eea1667154f8ae51ff419899d6bbce22b8",
+    "contentType": "research.source.interviews",
+    "title": "Enterprise buyer interview synthesis",
+    "artifactRole": "buyer-interview-synthesis"
+  }
+]

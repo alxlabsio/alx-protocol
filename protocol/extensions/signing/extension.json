@@ -1,0 +1,37 @@
+{
+  "id": "signing",
+  "extensionVersion": "1.0.0",
+  "lifecycle": "provisional",
+  "requiredForCore": false,
+  "compatibleProtocolVersions": [
+    "1"
+  ],
+  "deprecated": false,
+  "supersedes": null,
+  "vectors": [
+    {
+      "id": "signed-blocks",
+      "path": "protocol/extensions/signing/test-vectors/signed-blocks.json"
+    },
+    {
+      "id": "alx.signing.ed25519.v1",
+      "path": "protocol/extensions/signing/test-vectors/ed25519-attestations.json"
+    },
+    {
+      "id": "alx.signing.p256.v1",
+      "path": "protocol/extensions/signing/test-vectors/p256-attestations.json"
+    }
+  ],
+  "runner": {
+    "type": "cli",
+    "command": "alx",
+    "args": ["extension-conformance", "signing"]
+  },
+  "schemas": [
+    {
+      "id": "signed-block",
+      "path": "protocol/extensions/signing/schemas/signed-block.schema.json"
+    }
+  ],
+  "errorCodes": "protocol/extensions/signing/error-codes.json"
+}

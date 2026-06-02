@@ -1,0 +1,481 @@
+[
+  {
+    "blockHash": "0x6607ad22c81a1253089c2e4dee9f6f5812af893e67a993fdcdb68760699d6082",
+    "contentHash": "0xd1f2111c76a64133749821c0d580ef4b634f21540087acf8fa00113eba0ad1aa",
+    "parentHashes": [],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "agent.context.user-preferences",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "User communication preference profile",
+        "domain": "agent-context",
+        "contentType": "agent.context.user-preferences",
+        "concepts": [
+          "preferences",
+          "formatting",
+          "accessibility",
+          "tone"
+        ],
+        "entities": [
+          "user-profile-alex"
+        ],
+        "status": "active"
+      },
+      "data": {
+        "artifactRole": "user-preference-profile",
+        "summary": "Durable communication preferences for agent-generated responses.",
+        "subject": {
+          "profileId": "user-profile-alex",
+          "appliesTo": "assistant-responses"
+        },
+        "preferences": [
+          {
+            "id": "pref-001",
+            "category": "tone",
+            "value": "direct-but-warm",
+            "status": "active"
+          },
+          {
+            "id": "pref-002",
+            "category": "verbosity",
+            "value": "concise-by-default",
+            "status": "active"
+          },
+          {
+            "id": "pref-003",
+            "category": "format",
+            "value": "use-bullets-for-action-items",
+            "status": "active"
+          },
+          {
+            "id": "pref-004",
+            "category": "accessibility",
+            "value": "avoid-unexplained-acronyms",
+            "status": "active"
+          }
+        ],
+        "actions": [],
+        "risks": []
+      }
+    }
+  },
+  {
+    "blockHash": "0xd203f5b464cf38ef7555c6afe7c5c685e4c3d640565170605fcc25832c36b4d8",
+    "contentHash": "0x36d0a6540c6e2b2ebf8bd5c36546f153fecd6ac17d7224b9c24d34d5006f6d09",
+    "parentHashes": [],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "agent.context.brand-voice",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "Xandr Labs brand voice profile",
+        "domain": "agent-context",
+        "contentType": "agent.context.brand-voice",
+        "concepts": [
+          "brand-voice",
+          "terminology",
+          "banned-words"
+        ],
+        "entities": [
+          "Xandr Labs"
+        ],
+        "status": "active"
+      },
+      "data": {
+        "artifactRole": "brand-voice-profile",
+        "summary": "Portable brand behavior constraints for generated communications.",
+        "subject": {
+          "brand": "Xandr Labs",
+          "profileVersion": "2026.1"
+        },
+        "approvedTerms": [
+          {
+            "id": "term-001",
+            "term": "verified lineage",
+            "status": "preferred"
+          },
+          {
+            "id": "term-002",
+            "term": "portable verification receipt",
+            "status": "preferred"
+          }
+        ],
+        "restrictedTerms": [
+          {
+            "id": "term-003",
+            "term": "trustless AI",
+            "status": "banned",
+            "reason": "overclaim"
+          },
+          {
+            "id": "term-004",
+            "term": "revolutionary",
+            "status": "banned",
+            "reason": "marketing inflation"
+          }
+        ],
+        "voiceRules": [
+          {
+            "id": "voice-001",
+            "rule": "Use precise language before advocacy.",
+            "status": "active"
+          },
+          {
+            "id": "voice-002",
+            "rule": "Explain boundaries explicitly when discussing optional integrations.",
+            "status": "active"
+          }
+        ],
+        "actions": [],
+        "risks": []
+      }
+    }
+  },
+  {
+    "blockHash": "0x65fda53426aad131da4262943667d7ff245819290d8106077385f2e3c5fbd664",
+    "contentHash": "0xd8853f8478a2e22d8988349789e11f3259c6a82c146c2cb98dc8b0563277d87f",
+    "parentHashes": [],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "agent.context.restricted-language-policy",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "Restricted language policy for public responses",
+        "domain": "agent-context",
+        "contentType": "agent.context.restricted-language-policy",
+        "concepts": [
+          "restricted-language",
+          "claim-control",
+          "publication-policy"
+        ],
+        "entities": [
+          "Xandr Labs"
+        ],
+        "status": "active"
+      },
+      "data": {
+        "artifactRole": "restricted-language-policy",
+        "summary": "Explicit language constraints for public-facing agent outputs.",
+        "subject": {
+          "policy": "public-response-language",
+          "profileVersion": "2026.1"
+        },
+        "restrictedTerms": [
+          {
+            "id": "term-001",
+            "term": "trustless AI",
+            "status": "banned",
+            "reason": "overstates the verification guarantee",
+            "replacement": "independently verifiable artifacts"
+          },
+          {
+            "id": "term-002",
+            "term": "revolutionary",
+            "status": "banned",
+            "reason": "adds marketing inflation without product meaning",
+            "replacement": "new"
+          },
+          {
+            "id": "term-003",
+            "term": "fully autonomous",
+            "status": "restricted",
+            "reason": "requires human-oversight qualification",
+            "replacement": "agent-assisted"
+          }
+        ],
+        "claimRules": [
+          {
+            "id": "claim-001",
+            "rule": "State that IPFS is optional storage infrastructure, not a requirement for Block validity.",
+            "status": "active"
+          },
+          {
+            "id": "claim-002",
+            "rule": "Do not claim full verification when declared external parents remain unresolved.",
+            "status": "active"
+          }
+        ],
+        "actions": [],
+        "risks": []
+      }
+    }
+  },
+  {
+    "blockHash": "0x94c1d46d5db6c4b56429bad1d173bc258da6adf664ef365d9a59bd68284524d1",
+    "contentHash": "0xbb30d553984b6d099de5e0b777d6ec70cf51c97bf7813592773cd2df619f04e0",
+    "parentHashes": [],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "agent.context.workflow-state",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "Security review follow-up workspace state",
+        "domain": "agent-context",
+        "contentType": "agent.context.workflow-state",
+        "concepts": [
+          "workflow-state",
+          "security-review",
+          "open-actions",
+          "prioritization"
+        ],
+        "entities": [
+          "Northlake Analytics"
+        ],
+        "status": "action-required"
+      },
+      "data": {
+        "artifactRole": "workflow-state",
+        "summary": "Current workspace state for a security review that still requires production-readiness evidence.",
+        "subject": {
+          "workspaceId": "workspace-sec-review-2026-001",
+          "sourceDecisionId": "sec-review-2026-001",
+          "subjectEntity": "Northlake Analytics"
+        },
+        "state": {
+          "phase": "pre-production-evidence-collection",
+          "status": "action-required",
+          "nextMilestone": "production-release-review"
+        },
+        "openActions": [
+          {
+            "id": "action-001",
+            "type": "collect-evidence",
+            "label": "Collect 90-day retention configuration export",
+            "owner": "vendor-security",
+            "priority": "high",
+            "status": "open"
+          },
+          {
+            "id": "action-002",
+            "type": "verify-control",
+            "label": "Verify administrator multi-factor authentication",
+            "owner": "identity-security",
+            "priority": "high",
+            "status": "open"
+          },
+          {
+            "id": "action-003",
+            "type": "review-permissions",
+            "label": "Confirm approved-field permissions",
+            "owner": "application-security",
+            "priority": "medium",
+            "status": "open"
+          }
+        ],
+        "risks": [
+          {
+            "id": "risk-001",
+            "risk": "Production release could proceed without complete evidence if open actions are not surfaced clearly.",
+            "severity": "medium",
+            "status": "active",
+            "mitigation": "Keep required-before-release actions visible until resolved."
+          }
+        ],
+        "actions": []
+      }
+    }
+  },
+  {
+    "blockHash": "0x1fc2ca87dfb4b942ef0dc4ce420b46198451c56f5c8a1353e8b320bfa33ff4f4",
+    "contentHash": "0x0913c0226a40a65ab73908cb243e9d7300471ab008386f0c33e9d2c168d2f1e9",
+    "parentHashes": [
+      "0x65fda53426aad131da4262943667d7ff245819290d8106077385f2e3c5fbd664",
+      "0x6607ad22c81a1253089c2e4dee9f6f5812af893e67a993fdcdb68760699d6082",
+      "0x94c1d46d5db6c4b56429bad1d173bc258da6adf664ef365d9a59bd68284524d1",
+      "0xd203f5b464cf38ef7555c6afe7c5c685e4c3d640565170605fcc25832c36b4d8"
+    ],
+    "content": {
+      "definitionLevel": "indexed",
+      "contentType": "agent.interface.adaptive-state",
+      "schemaVersion": "1.0",
+      "index": {
+        "title": "Adaptive security review workspace state",
+        "domain": "agent-interface",
+        "contentType": "agent.interface.adaptive-state",
+        "concepts": [
+          "adaptive-interface",
+          "verified-context",
+          "workflow-prioritization",
+          "policy-aware-ui"
+        ],
+        "entities": [
+          "user-profile-alex",
+          "Northlake Analytics",
+          "Xandr Labs"
+        ],
+        "status": "ready-to-render"
+      },
+      "data": {
+        "artifactRole": "adaptive-interface-state",
+        "summary": "Workspace state generated from verified user preferences, brand guidance, language policy, and current workflow state.",
+        "subject": {
+          "interfaceId": "security-review-workspace-home",
+          "audienceProfile": "user-profile-alex",
+          "workflowId": "workspace-sec-review-2026-001"
+        },
+        "rationale": {
+          "summary": "The interface prioritizes unresolved release blockers, uses the user's preferred presentation style, and applies public-language constraints before rendering guidance.",
+          "basis": [
+            {
+              "artifactRole": "user-preference-profile",
+              "usedFor": [
+                "tone",
+                "verbosity",
+                "action-item formatting",
+                "language clarity"
+              ]
+            },
+            {
+              "artifactRole": "brand-voice-profile",
+              "usedFor": [
+                "preferred terminology",
+                "voice rules"
+              ]
+            },
+            {
+              "artifactRole": "restricted-language-policy",
+              "usedFor": [
+                "banned terms",
+                "claim boundaries"
+              ]
+            },
+            {
+              "artifactRole": "workflow-state",
+              "usedFor": [
+                "open actions",
+                "priority ordering",
+                "next milestone"
+              ]
+            }
+          ]
+        },
+        "appliedContext": [
+          {
+            "id": "context-001",
+            "sourceRole": "user-preference-profile",
+            "appliedValues": [
+              "direct-but-warm",
+              "concise-by-default",
+              "use-bullets-for-action-items",
+              "avoid-unexplained-acronyms"
+            ]
+          },
+          {
+            "id": "context-002",
+            "sourceRole": "brand-voice-profile",
+            "appliedValues": [
+              "verified lineage",
+              "clear claim boundaries"
+            ]
+          },
+          {
+            "id": "context-003",
+            "sourceRole": "restricted-language-policy",
+            "appliedValues": [
+              "avoid trustless AI",
+              "avoid revolutionary",
+              "qualify autonomy claims"
+            ]
+          },
+          {
+            "id": "context-004",
+            "sourceRole": "workflow-state",
+            "appliedValues": [
+              "surface high-priority blockers first",
+              "keep release milestone visible"
+            ]
+          }
+        ],
+        "interfaceState": {
+          "headline": "Three security actions remain before production review.",
+          "layout": "action-first-summary",
+          "defaultView": "open-actions",
+          "collapsedSections": [
+            "background",
+            "resolved-controls"
+          ],
+          "visibleSections": [
+            "release-blockers",
+            "next-actions",
+            "verification-status"
+          ],
+          "verificationBadge": "verified-context",
+          "primaryAction": {
+            "id": "ui-action-001",
+            "label": "Review release blockers",
+            "target": "release-blockers"
+          },
+          "cards": [
+            {
+              "id": "card-001",
+              "type": "release-blocker",
+              "title": "Retention evidence required",
+              "priority": "high",
+              "sourceActionId": "action-001"
+            },
+            {
+              "id": "card-002",
+              "type": "release-blocker",
+              "title": "Administrator MFA verification required",
+              "priority": "high",
+              "sourceActionId": "action-002"
+            },
+            {
+              "id": "card-003",
+              "type": "release-blocker",
+              "title": "Permission review still open",
+              "priority": "medium",
+              "sourceActionId": "action-003"
+            }
+          ]
+        },
+        "findings": [
+          {
+            "id": "finding-001",
+            "finding": "High-priority blockers are shown before lower-priority work.",
+            "status": "supported"
+          },
+          {
+            "id": "finding-002",
+            "finding": "The rendered language avoids restricted public claims.",
+            "status": "supported"
+          },
+          {
+            "id": "finding-003",
+            "finding": "The layout matches the user's concise, action-oriented preferences.",
+            "status": "supported"
+          }
+        ],
+        "conditions": [
+          {
+            "id": "condition-001",
+            "requirement": "Do not hide unresolved release blockers while workflow state remains action-required.",
+            "status": "required-while-open",
+            "owner": "workspace-renderer",
+            "evidenceRequired": "current workflow-state Block"
+          }
+        ],
+        "risks": [
+          {
+            "id": "risk-001",
+            "risk": "A stale workflow-state Block could render outdated next actions.",
+            "severity": "medium",
+            "status": "monitor",
+            "mitigation": "Bind each rendered interface state to the workflow-state Block used at generation time."
+          }
+        ],
+        "actions": [
+          {
+            "id": "action-001",
+            "type": "render-interface",
+            "description": "Render the action-first workspace view using the verified interface state.",
+            "owner": "workspace-renderer",
+            "requiredBefore": "user-session-display",
+            "status": "ready"
+          }
+        ]
+      }
+    }
+  }
+]

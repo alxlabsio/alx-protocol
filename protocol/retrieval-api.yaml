@@ -1,0 +1,353 @@
+openapi: 3.1.0
+info:
+  title: ALX Protocol Block Retrieval API
+  version: 1.0.0
+  description: |
+    Informative specification for Block storage and retrieval over HTTP.
+
+    This specification defines how ALX Protocol implementations MAY expose
+    Block persistence and lookup. It is not normative — protocol validity
+    (blockHash matching content + parentHashes) is defined in protocol/spec.md.
+
+    ## Key distinction: blockHash vs. CID
+
+    ALX blockHash is keccak-256 of the canonical Block payload.
+    Content-addressed storage identifiers (e.g., IPFS CIDs) are derived
+    from different hash functions (SHA-256 multihash). They are distinct.
+    Implementations MUST maintain a mapping if both identifiers are used.
+
+    ## Resolution order (recommended)
+
+    1. HTTP retrieval endpoint: GET /block/{blockHash} (shared team store)
+    2. Local registry: ~/.alx/registry.json (blockHash → CID mapping)
+    3. IPFS gateway: https://ipfs.io/ipfs/{cid} if CID is known
+
+    ## Integrity guarantee
+
+    Clients MUST re-derive and verify blockHash after fetching a Block
+    from any source. Fetching from a trusted endpoint does not substitute
+    for local recomputation.
+
+    Published copy: https://xandrlabs.github.io/alx-protocol/protocol/1/retrieval-api.yaml
+
+    Reference server hardening (optional): per-IP rate limits and API key on
+    write operations via environment variables (see CLI retrieval server docs).
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8081
+    description: Local ALX retrieval reference server (alx retrieval serve)
+  - url: https://api.example.com
+    description: Example production deployment
+
+paths:
+  /block/{blockHash}:
+    get:
+      summary: Retrieve a Block by hash
+      description: |
+        Returns the Block with the given blockHash.
+        Implementations SHOULD verify the stored Block's hash before returning it.
+        Clients MUST independently recompute the hash to confirm integrity.
+      operationId: getBlock
+      parameters:
+        - name: blockHash
+          in: path
+          required: true
+          description: "Hex-encoded keccak-256 Block identity hash (0x-prefixed, 64 hex chars)"
+          schema:
+            type: string
+            pattern: "^0x[a-f0-9]{64}$"
+            example: "0xabc123def456..."
+      responses:
+        "200":
+          description: Block found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockResponse"
+              example:
+                block:
+                  blockHash: "0xabc123..."
+                  contentHash: "0xdef456..."
+                  parentHashes: []
+                  content:
+                    type: "ai.response"
+                    text: "Market analysis complete"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+    head:
+      summary: Check Block existence
+      description: |
+        Returns 200 if the Block exists, 404 if not. No body is returned.
+        Use this to check availability before fetching.
+      operationId: headBlock
+      parameters:
+        - name: blockHash
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^0x[a-f0-9]{64}$"
+      responses:
+        "200":
+          description: Block exists
+        "404":
+          description: Block not found
+
+  /block:
+    post:
+      summary: Publish a Block
+      description: |
+        Stores a Block in the implementation's backing store.
+        The implementation MUST validate blockHash before storing.
+        Returns the blockHash of the stored Block on success.
+      operationId: publishBlock
+      security:
+        - ApiKeyAuth: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/Block"
+                - $ref: "#/components/schemas/PublishBlockRequest"
+            examples:
+              blockOnly:
+                summary: Block only
+                value:
+                  blockHash: "0xabc123..."
+                  contentHash: "0xdef456..."
+                  parentHashes: []
+                  content:
+                    type: "ai.response"
+                    text: "Market analysis complete"
+              blockWithCid:
+                summary: Reference envelope with IPFS CID
+                value:
+                  block:
+                    blockHash: "0xabc123..."
+                    contentHash: "0xdef456..."
+                    parentHashes: []
+                    content:
+                      type: "ai.response"
+                      text: "Market analysis complete"
+                  cid: "bafybeihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku"
+      responses:
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "201":
+          description: Block stored successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [blockHash]
+                properties:
+                  blockHash:
+                    type: string
+                    pattern: "^0x[a-f0-9]{64}$"
+                  cid:
+                    type: string
+                    description: Content-addressed storage identifier, if pinned to IPFS
+                    example: "bafybeihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: Write authentication required (reference server when API key is configured)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Block already exists (idempotent stores MAY return 200 instead)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /block/{blockHash}/cid:
+    get:
+      summary: Get IPFS CID for a Block
+      description: |
+        Returns the IPFS CID mapped to a given blockHash, if the Block
+        has been pinned to IPFS. Used to construct gateway URLs for retrieval.
+      operationId: getBlockCid
+      parameters:
+        - name: blockHash
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^0x[a-f0-9]{64}$"
+      responses:
+        "200":
+          description: CID found
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [blockHash, cid]
+                properties:
+                  blockHash:
+                    type: string
+                  cid:
+                    type: string
+                    description: IPFS CIDv1 (base32 encoded)
+                  gatewayUrl:
+                    type: string
+                    description: Ready-to-use IPFS gateway URL
+                    example: "https://ipfs.io/ipfs/bafybei..."
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /blocks:
+    post:
+      summary: Batch retrieve Blocks by hash list
+      description: |
+        Returns all Blocks for the requested hashes. Missing Blocks are omitted
+        from the response rather than causing an error. Clients should check
+        which hashes are absent in the response and handle accordingly.
+      operationId: getBlocks
+      security:
+        - ApiKeyAuth: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [blockHashes]
+              properties:
+                blockHashes:
+                  type: array
+                  items:
+                    type: string
+                    pattern: "^0x[a-f0-9]{64}$"
+                  minItems: 1
+                  maxItems: 256
+                  description: List of blockHashes to retrieve
+      responses:
+        "200":
+          description: Partial or complete set of requested Blocks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  blocks:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Block"
+                  missing:
+                    type: array
+                    items:
+                      type: string
+                    description: blockHashes not found in this store
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-ALX-API-Key
+      description: |
+        Optional write protection on reference deployments. Implementations MAY
+        also accept Authorization Bearer with the same secret.
+
+  schemas:
+    PublishBlockRequest:
+      type: object
+      required: [block]
+      description: |
+        Reference-server convention for publishing a Block with optional IPFS CID
+        metadata. The Block object alone remains sufficient for all implementations.
+      properties:
+        block:
+          $ref: "#/components/schemas/Block"
+        cid:
+          type: string
+          description: IPFS CIDv1 for the stored Block bytes (informative metadata)
+
+    Block:
+      type: object
+      required: [blockHash, contentHash, parentHashes, content]
+      properties:
+        blockHash:
+          type: string
+          pattern: "^0x[a-f0-9]{64}$"
+          description: "keccak256(canonicalize({ content, parentHashes }))"
+        contentHash:
+          type: string
+          pattern: "^0x[a-f0-9]{64}$"
+          description: "keccak256(canonicalize(content))"
+        parentHashes:
+          type: array
+          items:
+            type: string
+            pattern: "^0x[a-f0-9]{64}$"
+          uniqueItems: true
+          description: Sorted, deduplicated dependency set
+        content:
+          description: Opaque JSON-serializable payload — the protocol never inspects it
+
+    BlockResponse:
+      type: object
+      required: [block]
+      properties:
+        block:
+          $ref: "#/components/schemas/Block"
+        cid:
+          type: string
+          description: IPFS CID if the Block is also pinned to content-addressed storage
+        source:
+          type: string
+          enum: [local, ipfs, database, object-store]
+          description: Where the Block was retrieved from (informative)
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+        blockHash:
+          type: string
+          description: The blockHash involved in the error, if applicable
+
+  responses:
+    NotFound:
+      description: Block not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: "Block not found"
+            blockHash: "0xabc123..."
+
+    BadRequest:
+      description: Invalid request — malformed blockHash or Block body
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: "Invalid blockHash format"
+
+    TooManyRequests:
+      description: Rate limit exceeded (reference server)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: "Rate limit exceeded"

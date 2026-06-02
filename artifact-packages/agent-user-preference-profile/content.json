@@ -1,0 +1,56 @@
+{
+  "definitionLevel": "indexed",
+  "contentType": "agent.context.user-preferences",
+  "schemaVersion": "1.0",
+  "index": {
+    "title": "User communication preference profile",
+    "domain": "agent-context",
+    "contentType": "agent.context.user-preferences",
+    "concepts": [
+      "preferences",
+      "formatting",
+      "accessibility",
+      "tone"
+    ],
+    "entities": [
+      "user-profile-alex"
+    ],
+    "status": "active"
+  },
+  "data": {
+    "artifactRole": "user-preference-profile",
+    "summary": "Durable communication preferences for agent-generated responses.",
+    "subject": {
+      "profileId": "user-profile-alex",
+      "appliesTo": "assistant-responses"
+    },
+    "preferences": [
+      {
+        "id": "pref-001",
+        "category": "tone",
+        "value": "direct-but-warm",
+        "status": "active"
+      },
+      {
+        "id": "pref-002",
+        "category": "verbosity",
+        "value": "concise-by-default",
+        "status": "active"
+      },
+      {
+        "id": "pref-003",
+        "category": "format",
+        "value": "use-bullets-for-action-items",
+        "status": "active"
+      },
+      {
+        "id": "pref-004",
+        "category": "accessibility",
+        "value": "avoid-unexplained-acronyms",
+        "status": "active"
+      }
+    ],
+    "actions": [],
+    "risks": []
+  }
+}

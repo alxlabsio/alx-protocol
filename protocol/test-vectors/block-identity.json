@@ -1,0 +1,173 @@
+{
+  "$schema": "../schemas/test-vector.schema.json",
+  "suite": "block-identity",
+  "description": "Block creation and identity derivation vectors",
+  "vectors": [
+    {
+      "id": "B1",
+      "description": "empty block (null content, no parents)",
+      "inputShape": "single",
+      "input": {
+        "content": null,
+        "parentHashes": []
+      },
+      "assertions": [
+        "blockHash == deriveBlockHash(null, [])",
+        "contentHash == deriveContentHash(null)",
+        "parentHashes == []",
+        "content == null",
+        "blockHash != contentHash"
+      ]
+    },
+    {
+      "id": "B2",
+      "description": "simple string content",
+      "inputShape": "single",
+      "input": {
+        "content": "hello",
+        "parentHashes": []
+      },
+      "assertions": [
+        "blockHash == deriveBlockHash(\"hello\", [])"
+      ]
+    },
+    {
+      "id": "B3",
+      "description": "object content with keys — key order must not affect identity",
+      "inputShape": "pair",
+      "input_a": {
+        "content": {
+          "z": 1,
+          "a": 2
+        },
+        "parentHashes": []
+      },
+      "input_b": {
+        "content": {
+          "a": 2,
+          "z": 1
+        },
+        "parentHashes": []
+      },
+      "assertions": [
+        "createBlock(input_a).blockHash == createBlock(input_b).blockHash"
+      ]
+    },
+    {
+      "id": "B4",
+      "description": "parent order does not matter",
+      "inputShape": "pair",
+      "input_a": {
+        "content": "test",
+        "parentHashes": [
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        ]
+      },
+      "input_b": {
+        "content": "test",
+        "parentHashes": [
+          "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "assertions": [
+        "createBlock(input_a).blockHash == createBlock(input_b).blockHash",
+        "createBlock(input_a).parentHashes == createBlock(input_b).parentHashes"
+      ]
+    },
+    {
+      "id": "B5",
+      "description": "duplicate parents are deduplicated",
+      "inputShape": "pair",
+      "input_a": {
+        "content": "test",
+        "parentHashes": [
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "input_b": {
+        "content": "test",
+        "parentHashes": [
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "assertions": [
+        "createBlock(input_a).blockHash == createBlock(input_b).blockHash"
+      ]
+    },
+    {
+      "id": "B6",
+      "description": "different content produces different blockHash",
+      "inputShape": "pair",
+      "input_a": {
+        "content": "alpha",
+        "parentHashes": []
+      },
+      "input_b": {
+        "content": "beta",
+        "parentHashes": []
+      },
+      "assertions": [
+        "createBlock(input_a).blockHash != createBlock(input_b).blockHash",
+        "createBlock(input_a).contentHash != createBlock(input_b).contentHash"
+      ]
+    },
+    {
+      "id": "B7",
+      "description": "same content, different parents = different blockHash, same contentHash",
+      "inputShape": "pair",
+      "input_a": {
+        "content": "same",
+        "parentHashes": [
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "input_b": {
+        "content": "same",
+        "parentHashes": [
+          "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        ]
+      },
+      "assertions": [
+        "createBlock(input_a).blockHash != createBlock(input_b).blockHash",
+        "createBlock(input_a).contentHash == createBlock(input_b).contentHash"
+      ]
+    },
+    {
+      "id": "B8",
+      "description": "heterogeneous nested content preserves identity across object key order",
+      "inputShape": "pair",
+      "input_a": {
+        "content": {
+          "workflow": "multi-agent-review",
+          "approved": true,
+          "scores": [0.92, 0.87, 0.95],
+          "metadata": {
+            "region": "us-east",
+            "reviewed": null
+          }
+        },
+        "parentHashes": []
+      },
+      "input_b": {
+        "content": {
+          "metadata": {
+            "reviewed": null,
+            "region": "us-east"
+          },
+          "scores": [0.92, 0.87, 0.95],
+          "approved": true,
+          "workflow": "multi-agent-review"
+        },
+        "parentHashes": []
+      },
+      "assertions": [
+        "createBlock(input_a).blockHash == createBlock(input_b).blockHash",
+        "createBlock(input_a).contentHash == createBlock(input_b).contentHash"
+      ]
+    }
+  ]
+}

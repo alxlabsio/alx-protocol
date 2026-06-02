@@ -1,0 +1,66 @@
+{
+  "blockHash": "0xb0ad6329495e37df24895045ca86272cabf9298c57cd59b68794b1402d2da978",
+  "contentHash": "0x1f0e6e41847cacc4e9a93c743e6d3172fe06e0f7cead2c16621ba0ff65deaa0d",
+  "parentHashes": [
+    "0x3fee2e462dc1ace27f3ce1a67eef02a80d860b7e299154981bbc2e4ef8d9e3ac"
+  ],
+  "content": {
+    "definitionLevel": "indexed",
+    "contentType": "operations.monitoring.report",
+    "schemaVersion": "1.0",
+    "index": {
+      "title": "Post-rollout incident summary",
+      "domain": "operations",
+      "contentType": "operations.monitoring.report",
+      "concepts": [
+        "monitoring",
+        "incident",
+        "feedback-loop"
+      ],
+      "entities": [
+        "customer-support-automation"
+      ],
+      "status": "requires-review"
+    },
+    "data": {
+      "artifactRole": "post-rollout-monitoring-report",
+      "summary": "Monitoring shows a rise in unresolved edge-case tickets after launch.",
+      "subject": {
+        "system": "customer-support-automation",
+        "reviewWindow": "2026-04-01/2026-04-14"
+      },
+      "findings": [
+        {
+          "id": "finding-002",
+          "finding": "Escalation rate rose from 1.8% to 4.6%.",
+          "status": "observed"
+        },
+        {
+          "id": "finding-003",
+          "finding": "Most failures involve cancellation-policy exceptions.",
+          "status": "observed"
+        }
+      ],
+      "conditions": [],
+      "risks": [
+        {
+          "id": "risk-002",
+          "risk": "Current automation scope may exceed safe operating conditions.",
+          "severity": "high",
+          "status": "open",
+          "mitigation": "Narrow scope pending policy revision."
+        }
+      ],
+      "actions": [
+        {
+          "id": "action-002",
+          "type": "trigger-review",
+          "description": "Trigger rollout review due to elevated escalation rate.",
+          "owner": "operations-analytics",
+          "requiredBefore": "scope-expansion",
+          "status": "completed"
+        }
+      ]
+    }
+  }
+}

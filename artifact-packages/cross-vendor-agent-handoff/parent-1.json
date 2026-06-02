@@ -1,0 +1,55 @@
+{
+  "blockHash": "0x5466cc3adf4a91ea574964e4ab68b71f0d7384114e0b69e04425a0aae5411da3",
+  "contentHash": "0x0545a218ae4b62e9bed8c9a467a6700e75f7f6f29fbaf43879ed28c567d2e467",
+  "parentHashes": [],
+  "content": {
+    "definitionLevel": "indexed",
+    "contentType": "agent.research.summary",
+    "schemaVersion": "1.0",
+    "index": {
+      "title": "Competitor pricing research summary",
+      "domain": "market-research",
+      "contentType": "agent.research.summary",
+      "concepts": [
+        "agent-handoff",
+        "pricing",
+        "source-grounding"
+      ],
+      "entities": [
+        "Vendor-A Research Agent"
+      ],
+      "status": "complete"
+    },
+    "data": {
+      "artifactRole": "vendor-a-research-summary",
+      "summary": "Vendor-A agent summarized public pricing changes across three competitors.",
+      "subject": {
+        "topic": "competitor pricing",
+        "producerSystem": "Vendor-A Research Agent"
+      },
+      "findings": [
+        {
+          "id": "finding-001",
+          "finding": "Two competitors raised enterprise minimums in Q2.",
+          "status": "supported"
+        },
+        {
+          "id": "finding-002",
+          "finding": "One competitor introduced usage-based overages.",
+          "status": "supported"
+        }
+      ],
+      "conditions": [],
+      "risks": [
+        {
+          "id": "risk-001",
+          "risk": "Summary depends on public pages that may change after capture.",
+          "severity": "low",
+          "status": "accepted",
+          "mitigation": "Preserve source lineage and review timestamp."
+        }
+      ],
+      "actions": []
+    }
+  }
+}

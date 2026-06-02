@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/protocol.manifest.json",
+  "id": "alx-protocol",
+  "protocolVersion": "1",
+  "status": "active",
+  "core": {
+    "spec": "./spec.md",
+    "schemas": {
+      "block": "./schemas/block.schema.json",
+      "contentEnvelope": "./schemas/content-envelope.schema.json",
+      "attributionTrace": "./schemas/attribution-trace.schema.json",
+      "verificationContext": "./schemas/verification-context.schema.json",
+      "verificationReceipt": "./schemas/verification-receipt.schema.json",
+      "extensionManifest": "./schemas/extension-manifest.schema.json",
+      "sharedDefinitions": "./schemas/defs.schema.json"
+    },
+    "canonicalization": "./canonicalization.json",
+    "hashing": "./hashing.json",
+    "verification": "./verifier.json",
+    "graphVerification": "./graph-verifier.json",
+    "limits": "./limits.json",
+    "errors": "./error-codes.json",
+    "suites": "./suites.json"
+  },
+  "informative": {
+    "retrievalApi": "./retrieval-api.yaml",
+    "integrations": {
+      "baseMainnet": "./integrations/base-mainnet.json"
+    }
+  },
+  "extensions": [
+    {
+      "id": "merkle",
+      "manifest": "./extensions/merkle/extension.json",
+      "requiredForCore": false
+    },
+    {
+      "id": "signing",
+      "manifest": "./extensions/signing/extension.json",
+      "requiredForCore": false
+    },
+    {
+      "id": "ipfs-artifact-package",
+      "manifest": "./extensions/ipfs-artifact-package/extension.json",
+      "requiredForCore": false
+    }
+  ]
+}

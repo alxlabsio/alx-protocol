@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/extensions/signing/1/error-codes.json",
+  "id": "signing-error-codes",
+  "extensionId": "signing",
+  "extensionVersion": "1.0.0",
+  "documentVersion": "1.0.0",
+  "codes": [
+    {
+      "id": "SERR-001",
+      "code": "ALX_ETHERS_REQUIRED",
+      "category": "dependency",
+      "severity": "fatal",
+      "description": "The ethers library is required for this signing operation but is not installed."
+    },
+    {
+      "id": "SERR-002",
+      "code": "ALX_CRYPTO_REQUIRED",
+      "category": "dependency",
+      "severity": "fatal",
+      "description": "A cryptographic library (e.g. @noble/secp256k1) is required but not available."
+    },
+    {
+      "id": "SERR-003",
+      "code": "ALX_INVALID_BLOCK_HASH",
+      "category": "signing",
+      "severity": "fatal",
+      "description": "blockHash must be a 0x-prefixed 32-byte lowercase hex string for signing operations."
+    },
+    {
+      "id": "SERR-004",
+      "code": "ALX_INVALID_SIGNATURE_FORMAT",
+      "category": "signing",
+      "severity": "fatal",
+      "description": "Signature string does not match the expected format for the declared algorithm."
+    },
+    {
+      "id": "SERR-005",
+      "code": "ALX_INVALID_KEY",
+      "category": "signing",
+      "severity": "fatal",
+      "description": "The provided key material is invalid or in an unsupported format."
+    },
+    {
+      "id": "SERR-101",
+      "code": "ALX_ACTOR_REQUIRED",
+      "category": "payload",
+      "severity": "fatal",
+      "description": "The actor field is required in a signed protocol payload."
+    },
+    {
+      "id": "SERR-102",
+      "code": "ALX_NONCE_REQUIRED",
+      "category": "payload",
+      "severity": "fatal",
+      "description": "The nonce field is required in a signed protocol payload."
+    },
+    {
+      "id": "SERR-103",
+      "code": "ALX_INVALID_EXPIRY",
+      "category": "payload",
+      "severity": "fatal",
+      "description": "expiry must be a non-negative safe integer (Unix epoch seconds)."
+    },
+    {
+      "id": "SERR-104",
+      "code": "ALX_INVALID_CHAIN_ID",
+      "category": "payload",
+      "severity": "fatal",
+      "description": "chainId must be a non-negative safe integer."
+    },
+    {
+      "id": "SERR-105",
+      "code": "ALX_DOMAIN_REQUIRED",
+      "category": "payload",
+      "severity": "fatal",
+      "description": "The domain field is required in a signed protocol payload."
+    },
+    {
+      "id": "SERR-106",
+      "code": "ALX_ACTION_REQUIRED",
+      "category": "payload",
+      "severity": "fatal",
+      "description": "The action field is required in a signed protocol payload."
+    },
+    {
+      "id": "SERR-107",
+      "code": "ALX_INVALID_ADDRESS",
+      "category": "payload",
+      "severity": "fatal",
+      "description": "actor must be a 0x-prefixed 20-byte EIP-55 address."
+    },
+    {
+      "id": "SERR-108",
+      "code": "ALX_INVALID_PAYLOAD_HASH",
+      "category": "payload",
+      "severity": "fatal",
+      "description": "payloadHash must be a 0x-prefixed 32-byte hex value."
+    },
+    {
+      "id": "SERR-109",
+      "code": "ALX_INVALID_CONTRACT",
+      "category": "payload",
+      "severity": "fatal",
+      "description": "verifyingContract must be a 0x-prefixed 20-byte hex address."
+    }
+  ]
+}

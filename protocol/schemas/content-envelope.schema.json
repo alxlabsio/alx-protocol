@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/content-envelope.schema.json",
+  "title": "ALX Content Envelope",
+  "description": "Machine-readable structure for typed content stored inside Block.content. Using this envelope is optional — opaque content remains valid without it.",
+  "$comment": "This schema defines optional content semantics only. It does not change core Block validity, Block identity, or hash derivation.",
+  "type": "object",
+  "properties": {
+    "definitionLevel": {
+      "$ref": "./defs.schema.json#/$defs/definitionLevel",
+      "description": "Content definition tier — determines which additional fields are required in this envelope."
+    },
+    "contentType": {
+      "$ref": "./defs.schema.json#/$defs/contentType",
+      "description": "Application-defined content type for this artifact. Required when definitionLevel is typed or higher."
+    },
+    "schemaVersion": {
+      "$ref": "./defs.schema.json#/$defs/semver",
+      "description": "Version of the content schema governing the data field. Required when definitionLevel is schema-bound or conformance-bound."
+    },
+    "schema": {
+      "type": "string",
+      "format": "uri",
+      "maxLength": 2048,
+      "description": "URI of the JSON Schema governing the data field. Required when definitionLevel is schema-bound or conformance-bound."
+    },
+    "conformanceProfile": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Named conformance profile the content claims to satisfy. Required when definitionLevel is conformance-bound."
+    },
+    "index": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Machine-readable index fields for search and retrieval. Required when definitionLevel is indexed or higher."
+    },
+    "data": {
+      "description": "The artifact payload. Interpreted according to contentType and schema when definitionLevel is typed or higher; opaque otherwise."
+    }
+  },
+  "required": ["definitionLevel", "data"],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "definitionLevel": {
+            "const": "typed"
+          }
+        },
+        "required": ["definitionLevel"]
+      },
+      "then": {
+        "required": ["contentType"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "definitionLevel": {
+            "const": "indexed"
+          }
+        },
+        "required": ["definitionLevel"]
+      },
+      "then": {
+        "required": ["contentType", "index"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "definitionLevel": {
+            "const": "schema-bound"
+          }
+        },
+        "required": ["definitionLevel"]
+      },
+      "then": {
+        "required": ["contentType", "schemaVersion", "schema"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "definitionLevel": {
+            "const": "conformance-bound"
+          }
+        },
+        "required": ["definitionLevel"]
+      },
+      "then": {
+        "required": ["contentType", "schemaVersion", "schema", "conformanceProfile"]
+      }
+    }
+  ],
+  "examples": [
+    {
+      "definitionLevel": "indexed",
+      "contentType": "research.summary",
+      "index": {
+        "title": "Quarterly market synthesis",
+        "domain": "market-research",
+        "concepts": ["pricing", "competition", "demand"]
+      },
+      "data": {
+        "summary": "..."
+      }
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "id": "ipfs-artifact-package-verifier",
+  "extensionVersion": "1.0.0",
+  "steps": [
+    {
+      "id": "IPFS-001",
+      "name": "Validate manifest shape",
+      "schema": "./schemas/ipfs-artifact-package-manifest.schema.json",
+      "onFailure": "reject"
+    },
+    {
+      "id": "IPFS-002",
+      "name": "Parse CIDs",
+      "rule": "All CIDs MUST parse with a real CID implementation.",
+      "onFailure": "reject"
+    },
+    {
+      "id": "IPFS-003",
+      "name": "Validate fetched Block",
+      "rule": "Fetched block.json MUST validate as a core ALX Block.",
+      "onFailure": "reject"
+    },
+    {
+      "id": "IPFS-004",
+      "name": "Match Block identity",
+      "rule": "Fetched block.blockHash MUST equal manifest.blockHash.",
+      "onFailure": "reject"
+    },
+    {
+      "id": "IPFS-005",
+      "name": "Match content identity",
+      "rule": "Fetched block.contentHash MUST equal manifest.contentHash.",
+      "onFailure": "reject"
+    },
+    {
+      "id": "IPFS-006",
+      "name": "Recompute content identity",
+      "rule": "Fetched content MUST recompute to manifest.contentHash.",
+      "onFailure": "reject"
+    },
+    {
+      "id": "IPFS-007",
+      "name": "Resolve parent mappings",
+      "rule": "Each parent CID SHOULD resolve to a Block whose blockHash equals the declared parent blockHash.",
+      "onFailure": "warn"
+    },
+    {
+      "id": "IPFS-008",
+      "name": "Recompute local block CID",
+      "rule": "When block.json is available locally, manifest.blockCid MUST equal the CID computed from the exact block.json bytes.",
+      "onFailure": "reject"
+    },
+    {
+      "id": "IPFS-009",
+      "name": "Recompute local content CID",
+      "rule": "When content.json is available locally, manifest.contentCid MUST equal the CID computed from the exact content.json bytes.",
+      "onFailure": "reject"
+    },
+    {
+      "id": "IPFS-010",
+      "name": "Recompute local parent CIDs",
+      "rule": "When resolved parent Block files are available locally, each manifest parent CID MUST equal the CID computed from that parent file's exact bytes.",
+      "onFailure": "reject"
+    },
+    {
+      "id": "IPFS-011",
+      "name": "Separate local CID verification from live retrieval",
+      "rule": "Local CID verification MUST NOT be presented as proof of live gateway retrieval, provider pinning, or network availability.",
+      "onFailure": "reject"
+    }
+  ]
+}

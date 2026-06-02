@@ -1,0 +1,165 @@
+{
+  "$schema": "../schemas/test-vector.schema.json",
+  "suite": "semantic-integrity",
+  "description": "Verifier-level integrity checks for received Traces and authentic Graphs.",
+  "vectors": [
+    {
+      "id": "SI1",
+      "description": "duplicate exact Trace node is rejected by Trace verification",
+      "operation": "verifyTrace",
+      "input": {
+        "graph": {
+          "0x0000000000000000000000000000000000000000000000000000000000000001": [
+            "0x0000000000000000000000000000000000000000000000000000000000000002"
+          ],
+          "0x0000000000000000000000000000000000000000000000000000000000000002": []
+        },
+        "trace": {
+          "root": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "nodes": [
+            { "hash": "0x0000000000000000000000000000000000000000000000000000000000000001", "minDepth": 0, "maxDepth": 0, "pathCount": 1, "parentCount": 1, "childCount": 0 },
+            { "hash": "0x0000000000000000000000000000000000000000000000000000000000000002", "minDepth": 1, "maxDepth": 1, "pathCount": 1, "parentCount": 0, "childCount": 1 },
+            { "hash": "0x0000000000000000000000000000000000000000000000000000000000000002", "minDepth": 1, "maxDepth": 1, "pathCount": 1, "parentCount": 0, "childCount": 1 }
+          ],
+          "edges": [
+            { "from": "0x0000000000000000000000000000000000000000000000000000000000000001", "to": "0x0000000000000000000000000000000000000000000000000000000000000002" }
+          ],
+          "leaves": ["0x0000000000000000000000000000000000000000000000000000000000000002"],
+          "maxDepth": 1,
+          "cycle": false
+        }
+      },
+      "expected": { "ok": false, "issues": ["duplicate_nodes", "nodes_mismatch"] }
+    },
+    {
+      "id": "SI2",
+      "description": "Trace with inconsistent leaf and pathCount semantics is rejected",
+      "operation": "verifyTrace",
+      "input": {
+        "graph": {
+          "0x0000000000000000000000000000000000000000000000000000000000000001": [
+            "0x0000000000000000000000000000000000000000000000000000000000000002",
+            "0x0000000000000000000000000000000000000000000000000000000000000003"
+          ],
+          "0x0000000000000000000000000000000000000000000000000000000000000002": [
+            "0x0000000000000000000000000000000000000000000000000000000000000004"
+          ],
+          "0x0000000000000000000000000000000000000000000000000000000000000003": [
+            "0x0000000000000000000000000000000000000000000000000000000000000004"
+          ],
+          "0x0000000000000000000000000000000000000000000000000000000000000004": []
+        },
+        "trace": {
+          "root": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "nodes": [
+            { "hash": "0x0000000000000000000000000000000000000000000000000000000000000001", "minDepth": 0, "maxDepth": 0, "pathCount": 1, "parentCount": 2, "childCount": 0 },
+            { "hash": "0x0000000000000000000000000000000000000000000000000000000000000002", "minDepth": 1, "maxDepth": 1, "pathCount": 1, "parentCount": 1, "childCount": 1 },
+            { "hash": "0x0000000000000000000000000000000000000000000000000000000000000003", "minDepth": 1, "maxDepth": 1, "pathCount": 1, "parentCount": 1, "childCount": 1 },
+            { "hash": "0x0000000000000000000000000000000000000000000000000000000000000004", "minDepth": 2, "maxDepth": 2, "pathCount": 1, "parentCount": 0, "childCount": 2 }
+          ],
+          "edges": [
+            { "from": "0x0000000000000000000000000000000000000000000000000000000000000001", "to": "0x0000000000000000000000000000000000000000000000000000000000000002" },
+            { "from": "0x0000000000000000000000000000000000000000000000000000000000000001", "to": "0x0000000000000000000000000000000000000000000000000000000000000003" },
+            { "from": "0x0000000000000000000000000000000000000000000000000000000000000002", "to": "0x0000000000000000000000000000000000000000000000000000000000000004" },
+            { "from": "0x0000000000000000000000000000000000000000000000000000000000000003", "to": "0x0000000000000000000000000000000000000000000000000000000000000004" }
+          ],
+          "leaves": ["0x0000000000000000000000000000000000000000000000000000000000000003"],
+          "maxDepth": 2,
+          "cycle": false
+        }
+      },
+      "expected": { "ok": false, "issues": ["nodes_mismatch", "leaves_mismatch"] }
+    },
+    {
+      "id": "SI3",
+      "description": "Graph authenticity fails when a parent block's content no longer matches its hash",
+      "operation": "verifyGraph",
+      "input": {
+        "blocks": [
+          {
+            "blockHash": "0x01136bbeea6101f890df5ddaed28ead3a6be1fee4e188c675245eb8bc48fb5c1",
+            "contentHash": "0x5a3fc38f1559c4e91562c39db9d37def4324a09a1458759a3481b996fd8be27c",
+            "parentHashes": [],
+            "content": { "type": "tampered-root" }
+          },
+          {
+            "blockHash": "0x27cea078839362fef60488037a347810aaff1be2b7438548244528701fedd0ae",
+            "contentHash": "0xb5a9c01ce8578570041e104338039b736c2acf4cf0e32142e24c334a18ada95c",
+            "parentHashes": ["0x01136bbeea6101f890df5ddaed28ead3a6be1fee4e188c675245eb8bc48fb5c1"],
+            "content": { "type": "child" }
+          }
+        ]
+      },
+      "expected": { "ok": false, "brokenReason": "hash_mismatch" }
+    },
+    {
+      "id": "SI4",
+      "description": "open-world trace with external parent is partial rather than complete",
+      "operation": "traceAttribution",
+      "input": {
+        "graph": {
+          "0x3333333333333333333333333333333333333333333333333333333333333333": [
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          ],
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": []
+        },
+        "rootHash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+        "context": {
+          "validationMode": "open-world",
+          "externalParents": [
+            { "hash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }
+          ]
+        }
+      },
+      "expected": {
+        "validationMode": "open-world",
+        "complete": false,
+        "missingParents": [],
+        "externalParents": [
+          "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        ]
+      }
+    },
+    {
+      "id": "SI5",
+      "description": "Trace verification rejects false-complete open-world result",
+      "operation": "verifyTrace",
+      "input": {
+        "graph": {
+          "0x3333333333333333333333333333333333333333333333333333333333333333": [
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          ],
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": []
+        },
+        "context": {
+          "validationMode": "open-world",
+          "externalParents": [
+            { "hash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }
+          ]
+        },
+        "trace": {
+          "root": "0x3333333333333333333333333333333333333333333333333333333333333333",
+          "validationMode": "open-world",
+          "complete": true,
+          "nodes": [
+            { "hash": "0x3333333333333333333333333333333333333333333333333333333333333333", "minDepth": 0, "maxDepth": 0, "pathCount": 1, "parentCount": 2, "childCount": 0 },
+            { "hash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "minDepth": 1, "maxDepth": 1, "pathCount": 1, "parentCount": 0, "childCount": 1 }
+          ],
+          "edges": [
+            { "from": "0x3333333333333333333333333333333333333333333333333333333333333333", "to": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+            { "from": "0x3333333333333333333333333333333333333333333333333333333333333333", "to": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }
+          ],
+          "leaves": ["0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+          "missingParents": [],
+          "externalParents": ["0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"],
+          "maxDepth": 1,
+          "cycle": false,
+          "precisionLoss": false
+        }
+      },
+      "expected": { "ok": false, "issues": ["complete_mismatch"] }
+    }
+  ]
+}

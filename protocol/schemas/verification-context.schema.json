@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/verification-context.schema.json",
+  "title": "ALX Verification Context",
+  "description": "Validation context passed to graph verification operations. Declares the validation mode, graph root, and any external parent boundaries.",
+  "$comment": "This schema validates context shape only. It does not itself authorize open-world validation, prove Graph validity, or define mixed-version compatibility semantics.",
+  "type": "object",
+  "properties": {
+    "protocolVersion": {
+      "type": "string",
+      "const": "1",
+      "description": "ALX Protocol version. Must be '1' for v1."
+    },
+    "validationMode": {
+      "enum": ["closed-world", "open-world"],
+      "description": "Validation mode: closed-world requires all parentHashes to resolve; open-world permits declared external boundaries."
+    },
+    "graphRoot": {
+      "$ref": "./defs.schema.json#/$defs/hash",
+      "description": "blockHash of the Block at the root of the graph being verified."
+    },
+    "extensions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "uniqueItems": true,
+      "default": [],
+      "description": "Extension identifiers active during this verification run."
+    },
+    "externalParents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "hash": {
+            "$ref": "./defs.schema.json#/$defs/hash",
+            "description": "blockHash of the external parent being declared."
+          },
+          "reason": {
+            "enum": [
+              "external-boundary",
+              "private-boundary",
+              "unavailable-boundary",
+              "unknown-boundary"
+            ],
+            "description": "Boundary classification: external-boundary (outside this system), private-boundary (access-restricted), unavailable-boundary (temporarily unavailable), unknown-boundary (classification unknown)."
+          },
+          "declaredBy": {
+            "const": "verification-context",
+            "description": "Source of this boundary declaration. Always 'verification-context' for context-declared boundaries."
+          },
+          "requiredForFullValidation": {
+            "type": "boolean",
+            "description": "True if resolving this parent would be required for a complete closed-world verification."
+          }
+        },
+        "required": ["hash", "reason", "declaredBy", "requiredForFullValidation"],
+        "additionalProperties": false
+      },
+      "uniqueItems": true,
+      "description": "Parent hashes explicitly declared as external boundaries. Permits open-world verification without treating these as missing parents."
+    }
+  },
+  "required": ["protocolVersion", "validationMode", "graphRoot", "externalParents"],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": { "validationMode": { "const": "closed-world" } },
+        "required": ["validationMode"]
+      },
+      "then": {
+        "properties": { "externalParents": { "maxItems": 0 } }
+      }
+    }
+  ]
+}

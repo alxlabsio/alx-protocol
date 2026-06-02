@@ -1,0 +1,20 @@
+[
+  {
+    "blockHash": "0x3fee2e462dc1ace27f3ce1a67eef02a80d860b7e299154981bbc2e4ef8d9e3ac",
+    "contentType": "operations.decision",
+    "title": "Initial rollout recommendation",
+    "artifactRole": "initial-rollout-decision"
+  },
+  {
+    "blockHash": "0xb0ad6329495e37df24895045ca86272cabf9298c57cd59b68794b1402d2da978",
+    "contentType": "operations.monitoring.report",
+    "title": "Post-rollout incident summary",
+    "artifactRole": "post-rollout-monitoring-report"
+  },
+  {
+    "blockHash": "0x63180c8def14207daa46aad2aceacccfeeb28cad5511825a6c9fc794d2a04037",
+    "contentType": "operations.policy-update",
+    "title": "Revised automation rollout policy",
+    "artifactRole": "revised-rollout-policy"
+  }
+]

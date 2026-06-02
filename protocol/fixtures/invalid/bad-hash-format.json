@@ -1,0 +1,7 @@
+{
+  "$comment": "Invalid: blockHash is not a valid 0x-prefixed 64-char hex string",
+  "blockHash": "not-a-hash",
+  "contentHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "parentHashes": [],
+  "content": "test"
+}

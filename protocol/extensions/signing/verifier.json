@@ -1,0 +1,24 @@
+{
+  "id": "signing-verifier",
+  "extensionVersion": "1.0.0",
+  "steps": [
+    {
+      "id": "SIGN-001",
+      "name": "Validate signed-block wrapper shape",
+      "schema": "./schemas/signed-block.schema.json",
+      "onFailure": "reject"
+    },
+    {
+      "id": "SIGN-002",
+      "name": "Bind attestations to Block identity",
+      "rule": "Each attestation.blockHash MUST equal block.blockHash.",
+      "onFailure": "reject"
+    },
+    {
+      "id": "SIGN-003",
+      "name": "Verify attestation signature",
+      "rule": "Signature MUST verify against the declared attester under the declared algorithm.",
+      "onFailure": "reject"
+    }
+  ]
+}

@@ -1,0 +1,162 @@
+{
+  "$schema": "../schemas/test-vector.schema.json",
+  "suite": "lineage-boundaries",
+  "description": "Boundary behavior for partial availability and out-of-order graph growth.",
+  "vectors": [
+    {
+      "id": "LB1",
+      "description": "partial graph with unresolved parent is invalid when validating known graph",
+      "operation": "validateGraph",
+      "input": {
+        "graph": {
+          "0x0000000000000000000000000000000000000000000000000000000000000021": [
+            "0x0000000000000000000000000000000000000000000000000000000000000022"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "issueCount": 1,
+        "missing": [
+          "0x0000000000000000000000000000000000000000000000000000000000000022"
+        ]
+      }
+    },
+    {
+      "id": "LB2",
+      "description": "out-of-order child arrival is rejected until parent exists",
+      "operation": "validateIncrementalBlock",
+      "input": {
+        "block": {
+          "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000032",
+          "parentHashes": [
+            "0x0000000000000000000000000000000000000000000000000000000000000031"
+          ]
+        },
+        "existingGraph": {}
+      },
+      "expected": {
+        "ok": false,
+        "missing": [
+          "0x0000000000000000000000000000000000000000000000000000000000000031"
+        ],
+        "cycle": false
+      }
+    },
+    {
+      "id": "LB3",
+      "description": "same child becomes valid after parent is available",
+      "operation": "validateIncrementalBlock",
+      "input": {
+        "block": {
+          "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000032",
+          "parentHashes": [
+            "0x0000000000000000000000000000000000000000000000000000000000000031"
+          ]
+        },
+        "existingGraph": {
+          "0x0000000000000000000000000000000000000000000000000000000000000031": []
+        }
+      },
+      "expected": {
+        "ok": true,
+        "missing": [],
+        "cycle": false
+      }
+    },
+    {
+      "id": "LB4",
+      "description": "closed-world validation rejects declared external parent",
+      "operation": "validateGraph",
+      "input": {
+        "graph": {
+          "0x0000000000000000000000000000000000000000000000000000000000000041": [
+            "0x0000000000000000000000000000000000000000000000000000000000000042"
+          ]
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x0000000000000000000000000000000000000000000000000000000000000041",
+          "extensions": [],
+          "externalParents": [
+            {
+              "hash": "0x0000000000000000000000000000000000000000000000000000000000000042",
+              "reason": "external-boundary",
+              "declaredBy": "verification-context",
+              "requiredForFullValidation": true
+            }
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "issueCount": 1,
+        "missing": [
+          "0x0000000000000000000000000000000000000000000000000000000000000042"
+        ],
+        "external": []
+      }
+    },
+    {
+      "id": "LB5",
+      "description": "open-world validation accepts declared external parent",
+      "operation": "validateGraph",
+      "input": {
+        "graph": {
+          "0x0000000000000000000000000000000000000000000000000000000000000051": [
+            "0x0000000000000000000000000000000000000000000000000000000000000052"
+          ]
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "open-world",
+          "graphRoot": "0x0000000000000000000000000000000000000000000000000000000000000051",
+          "extensions": [],
+          "externalParents": [
+            {
+              "hash": "0x0000000000000000000000000000000000000000000000000000000000000052",
+              "reason": "external-boundary",
+              "declaredBy": "verification-context",
+              "requiredForFullValidation": true
+            }
+          ]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "issueCount": 0,
+        "external": [
+          "0x0000000000000000000000000000000000000000000000000000000000000052"
+        ]
+      }
+    },
+    {
+      "id": "LB6",
+      "description": "open-world validation rejects undeclared missing parent",
+      "operation": "validateGraph",
+      "input": {
+        "graph": {
+          "0x0000000000000000000000000000000000000000000000000000000000000061": [
+            "0x0000000000000000000000000000000000000000000000000000000000000062"
+          ]
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "open-world",
+          "graphRoot": "0x0000000000000000000000000000000000000000000000000000000000000061",
+          "extensions": [],
+          "externalParents": []
+        }
+      },
+      "expected": {
+        "ok": false,
+        "issueCount": 1,
+        "missing": [
+          "0x0000000000000000000000000000000000000000000000000000000000000062"
+        ],
+        "external": []
+      }
+    }
+  ]
+}

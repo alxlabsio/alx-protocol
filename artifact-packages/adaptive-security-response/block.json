@@ -1,0 +1,141 @@
+{
+  "blockHash": "0x1b84f6055c9cfafe67278ed1d3a182a26609bc1937b780fa6e3954ac585aa6e7",
+  "contentHash": "0x3964999145a62a4e0fe65771a08784e5a34e98bd0163fdf0a2a82742af45d76c",
+  "parentHashes": [
+    "0x1f176c1c3569b659bef877b38ce79297c7858180990fcabb9cc28b6979fa9521",
+    "0x6607ad22c81a1253089c2e4dee9f6f5812af893e67a993fdcdb68760699d6082"
+  ],
+  "content": {
+    "definitionLevel": "indexed",
+    "contentType": "agent.response.personalized-summary",
+    "schemaVersion": "1.0",
+    "index": {
+      "title": "Personalized security review summary",
+      "domain": "agent-response",
+      "contentType": "agent.response.personalized-summary",
+      "concepts": [
+        "personalization",
+        "verified-context",
+        "security-review",
+        "user-preferences"
+      ],
+      "entities": [
+        "user-profile-alex",
+        "Northlake Analytics"
+      ],
+      "status": "generated"
+    },
+    "data": {
+      "artifactRole": "personalized-response",
+      "summary": "Concise security review summary generated from a verified decision and active user preferences.",
+      "subject": {
+        "sourceDecisionId": "sec-review-2026-001",
+        "audienceProfile": "user-profile-alex"
+      },
+      "rationale": {
+        "summary": "The response uses the verified security decision for facts and the user preference profile for presentation choices.",
+        "basis": [
+          {
+            "artifactRole": "security-review-decision",
+            "usedFor": [
+              "decision outcome",
+              "required conditions",
+              "security context"
+            ]
+          },
+          {
+            "artifactRole": "user-preference-profile",
+            "usedFor": [
+              "tone",
+              "verbosity",
+              "formatting",
+              "language clarity"
+            ]
+          }
+        ]
+      },
+      "preferenceInputs": [
+        {
+          "preferenceId": "pref-001",
+          "category": "tone",
+          "value": "direct-but-warm",
+          "appliedTo": "response tone"
+        },
+        {
+          "preferenceId": "pref-002",
+          "category": "verbosity",
+          "value": "concise-by-default",
+          "appliedTo": "response length"
+        },
+        {
+          "preferenceId": "pref-003",
+          "category": "format",
+          "value": "use-bullets-for-action-items",
+          "appliedTo": "action item formatting"
+        },
+        {
+          "preferenceId": "pref-004",
+          "category": "accessibility",
+          "value": "avoid-unexplained-acronyms",
+          "appliedTo": "language clarity"
+        }
+      ],
+      "response": {
+        "headline": "Northlake Analytics can move forward after three security conditions are met.",
+        "body": "The integration is conditionally approved. Before production, the team needs evidence that retention is limited to 90 days, administrator multi-factor authentication is enabled, and permissions are limited to approved fields.",
+        "actionItems": [
+          {
+            "id": "action-001",
+            "label": "Confirm 90-day retention setting",
+            "owner": "vendor-security"
+          },
+          {
+            "id": "action-002",
+            "label": "Confirm administrator multi-factor authentication",
+            "owner": "identity-security"
+          },
+          {
+            "id": "action-003",
+            "label": "Confirm approved-field permissions",
+            "owner": "application-security"
+          }
+        ]
+      },
+      "explanation": {
+        "whyThisExperience": "This response was shaped by the verified security decision and the user profile active at generation time.",
+        "contextUsed": [
+          "security-review-decision",
+          "user-preference-profile"
+        ]
+      },
+      "conditions": [
+        {
+          "id": "condition-001",
+          "requirement": "Human reviewer should confirm generated summary before sending externally.",
+          "status": "required-before-external-send",
+          "owner": "security-architecture",
+          "evidenceRequired": "review approval"
+        }
+      ],
+      "risks": [
+        {
+          "id": "risk-001",
+          "risk": "If the preference profile changes later, a future response may present the same decision differently.",
+          "severity": "low",
+          "status": "accepted",
+          "mitigation": "Bind each response to the profile used at generation time."
+        }
+      ],
+      "actions": [
+        {
+          "id": "action-001",
+          "type": "request-human-review",
+          "description": "Route personalized summary to security architecture for approval before external use.",
+          "owner": "communications-agent",
+          "requiredBefore": "external-send",
+          "status": "open"
+        }
+      ]
+    }
+  }
+}

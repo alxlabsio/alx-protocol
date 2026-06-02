@@ -1,0 +1,20 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "Analyze the Q4 market report and recommend whether to proceed with the acquisition of Meridian Holdings."
+    }
+  ],
+  "attachments": [
+    {
+      "name": "meridian-q4-2025-report.pdf",
+      "sha256": "0xf72c4a1b9e3d8c5f0a2b7e6d4c1f9a8b3e5d2c7f0a4b1e8d5c2f9a6b3e0d7c4f1",
+      "cid": "bafybeig5xqjzxqjzxqjzxqjzxqjzxqjzxqjzxqjzxqjzxqjzxqjzxqjzx"
+    }
+  ],
+  "context": {
+    "dealCode": "ACQ-2026-MH",
+    "requestedBy": "portfolio-manager-jl",
+    "priority": "high"
+  }
+}

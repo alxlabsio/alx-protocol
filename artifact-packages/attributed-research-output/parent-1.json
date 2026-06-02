@@ -1,0 +1,60 @@
+{
+  "blockHash": "0x817d491f0e5349af9ba2cf968fa45a348081194db3caabaa533fb0902755f993",
+  "contentHash": "0x1691d481e70cccbdbf6608148c70341baf6cab777bbcd8e0c745599ce3e47063",
+  "parentHashes": [
+    "0x75d9475f9612278a7f0fe95aece91883172a16fa98759588df243b06a10878fc",
+    "0xb9c8be502ea54378e312a4ec03d537829ce8c27c53c58d42009dc5c4f99aff94"
+  ],
+  "content": {
+    "type": "agent.findings",
+    "id": "security_findings",
+    "domain": "agent",
+    "source": "xandr",
+    "summary": "Security assessment findings produced by applying agent.security_review rules to blk_auth_session_model_v1.",
+    "assessedPattern": "blk_auth_session_model_v1",
+    "appliedContract": "agent.security_review",
+    "criteriaEvaluated": [
+      {
+        "id": "AC-001",
+        "criterion": "Every selected security-domain block is assessed.",
+        "status": "met",
+        "evidence": "All four failureModes in blk_auth_session_model_v1 were assessed against security block criteria."
+      },
+      {
+        "id": "AC-002",
+        "criterion": "Every finding references a specific block, acceptance criterion, or constraint.",
+        "status": "met",
+        "evidence": "Each finding below references a specific invariant or failureMode from blk_auth_session_model_v1."
+      },
+      {
+        "id": "AC-003",
+        "criterion": "No fabricated vulnerabilities — all findings traceable to block evidence.",
+        "status": "partially-met",
+        "evidence": "All findings are grounded in block failureModes. Test coverage for cross-tenant leakage (failureMode-3) is documented but not verified by automated tests.",
+        "gap": "No automated test asserting that a session from workspace A cannot access workspace B resources."
+      },
+      {
+        "id": "AC-004",
+        "criterion": "Threat surface summary derived from block failureModes.",
+        "status": "met",
+        "evidence": "Threat surface below is derived exclusively from the four failureModes declared in blk_auth_session_model_v1."
+      }
+    ],
+    "findings": [
+      {
+        "id": "FINDING-001",
+        "severity": "medium",
+        "source": "blk_auth_session_model_v1 failureMode-3",
+        "finding": "Cross-tenant session leakage mitigation is documented as a procedure (bind session to workspace ID) but has no corresponding automated test case.",
+        "remediation": "Add integration test asserting that a session for workspace A returns 403 when accessing workspace B resources."
+      }
+    ],
+    "threatSurface": [
+      "Session fixation — mitigated by session ID regeneration on login.",
+      "Refresh token theft — mitigated by rotation-on-use and reuse invalidation.",
+      "Cross-tenant session leakage — procedure documented; test coverage gap identified.",
+      "Session storage failure — mitigated by fail-closed posture."
+    ],
+    "overallStatus": "approved-with-findings"
+  }
+}

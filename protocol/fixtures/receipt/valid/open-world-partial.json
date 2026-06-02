@@ -1,0 +1,23 @@
+{
+  "receiptVersion": "1",
+  "protocolVersion": "1",
+  "verifiedAt": 1710000000,
+  "verifier": { "name": "alx", "version": "1.0.0" },
+  "root": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "validationMode": "open-world",
+  "ok": true,
+  "complete": false,
+  "blockCount": 2,
+  "edgeCount": 2,
+  "externalParents": [
+    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  ],
+  "missingParents": [],
+  "errors": [],
+  "warnings": [
+    {
+      "code": "ALX_PARTIAL_OPEN_WORLD_TRACE",
+      "message": "Open-world verification passed with unresolved declared external parents."
+    }
+  ]
+}
