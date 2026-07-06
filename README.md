@@ -26,6 +26,8 @@ Verification is local. No blockchain, token, hosted service, storage provider, o
 
 ## Install
 
+Install the ALX SDK from npm:
+
 npm install @alx-protocol/sdk
 
 Create and Verify a Block
