@@ -1,4 +1,4 @@
-<h1 align="center">ALX Protocol</h1><p align="center"><strong>An open protocol for composable context</strong></p><p align="center">
+<h1 align="center">ALX Protocol</h1><p align="center"><strong>An open, block-chain enabled protocol for composable context</strong></p><p align="center">
 Package, link, and verify context across AI systems, agents, and applications.
 </p><p align="center">
   <a href="LICENSE">
