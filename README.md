@@ -1,6 +1,6 @@
 <h1 align="center">ALX Protocol</h1>
 
-<p align="center"><strong>Infrastructure for verifiable, intelligent systems</strong></p>
+<p align="center"><strong>An open protocol for composable context</strong></p>
 
 <p align="center">
 Deterministic identity, parent-bound lineage, and locally verifiable structure for any artifact
