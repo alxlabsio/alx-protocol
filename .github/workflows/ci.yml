@@ -59,6 +59,19 @@ jobs:
       - working-directory: reference-implementations/rust
         run: cargo test --all-targets
 
+  contracts:
+    name: Optional contract tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run test:contracts
+
   # Documentation link checker — validates all internal markdown links
   link-check:
     name: Documentation link check
@@ -68,7 +81,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - run: npx markdown-link-check --config .markdown-link-check.json $(find docs/ -name '*.md') README.md CONTRIBUTING.md SECURITY.md MAINTAINERS.md
+      - run: npx --yes markdown-link-check@3.13.7 --config .markdown-link-check.json $(find docs/ -name '*.md') README.md CONTRIBUTING.md SECURITY.md MAINTAINERS.md
 
   # Cross-implementation conformance — proves all 3 languages produce identical outputs
   cross-impl-conformance:

@@ -69,6 +69,7 @@ desktop.ini
 *.plan.md
 
 # Local / scratch (do not commit)
+.codex-tools/
 _computed_hashes.txt
 
 # Local maintainer layer (rubrics, audit tooling — not required for conformance)
@@ -90,14 +91,17 @@ _site/
 # Internal / team-only documents
 internal/
 
-# On-chain contracts (not required for ALX core)
-contracts/
+# Public scripts referenced by package commands. Other local scripts remain untracked.
+/scripts/*
+!/scripts/run-node-tests.js
+!/scripts/build-protocol-site.js
+!/scripts/docs/
+/scripts/docs/*
+!/scripts/docs/export-whitepaper-diagrams.js
+!/scripts/docs/generate-alx-logo.js
+!/scripts/docs/__tests__/
+!/scripts/docs/__tests__/generate-alx-logo.test.js
 
-# Maintainer build and tooling scripts (not required for integrators)
-/scripts/
-
-# Local CLI state files inside artifact packages
-artifact-packages/**/.alx/
 
 # Nested npm lockfiles (pnpm monorepo uses pnpm-lock.yaml)
 **/package-lock.json
@@ -130,10 +134,17 @@ index.html
 components/
 demo/
 api/
-# Local-only artifact package editorial guide
-artifact-packages/STYLE.md
 # Local editorial scratch files
 .docs-scratch/
 docs/**/*.local.md
 docs/**/*.scratch.md
 docs/**/~$*
+
+# Point-in-time cross-repository handoffs (local coordination only)
+docs/community/alx-pro-website-sync-handoff.md
+docs/community/xandr-app-protocol-code-sync-handoff.md
+
+# Superseded whitepaper diagram filenames (renumbered canonical exports are retained).
+docs/assets/whitepaper-figures/figure-06-sdk-mediated-block-creation*
+docs/assets/whitepaper-figures/figure-07-composable-context-across-prompts-repositories-and-agent-outputs*
+.alx/

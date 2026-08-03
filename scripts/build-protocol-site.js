@@ -3,7 +3,8 @@
 /**
  * Build GitHub Pages _site/ from:
  *   1. Protocol JSON artifacts (by $id URL path)
- *   2. docs/whitepaper.md → _site/whitepaper/index.html
+ *   2. docs/playground.html → _site/index.html
+ *   3. docs/whitepaper.md → _site/whitepaper/index.html
  *
  * Zero npm dependencies — pure Node built-ins.
  */
@@ -17,11 +18,11 @@ import {
   copyFileSync,
   existsSync,
 } from "node:fs";
-import { join, dirname, resolve } from "node:path";
+import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const SCHEMA_HOST = "https://xandrlabs.github.io/alx-protocol";
+import { REPO_ROOT } from "../conformance/lib/repo-root.js";
+export const SCHEMA_HOST = "https://xandrlabs.github.io/alx-protocol";
 const SITE_ROOT = join(REPO_ROOT, "_site");
 const PROTOCOL_ROOT = join(REPO_ROOT, "protocol");
 
@@ -41,7 +42,25 @@ function ensureDir(filePath) {
   mkdirSync(dirname(filePath), { recursive: true });
 }
 
-mkdirSync(SITE_ROOT, { recursive: true });
+function copyWhitepaperFigures() {
+  const sourceDir = join(REPO_ROOT, "docs/assets/whitepaper-figures");
+  const destinationDir = join(SITE_ROOT, "whitepaper/assets/whitepaper-figures");
+  if (!existsSync(sourceDir)) return;
+  mkdirSync(destinationDir, { recursive: true });
+  for (const name of readdirSync(sourceDir)) {
+    const source = join(sourceDir, name);
+    if (statSync(source).isFile()) copyFileSync(source, join(destinationDir, name));
+  }
+}
+
+export function buildProtocolSite() {
+  mkdirSync(SITE_ROOT, { recursive: true });
+
+  const playgroundSrc = join(REPO_ROOT, "docs/playground.html");
+  const playgroundDest = join(SITE_ROOT, "index.html");
+  if (existsSync(playgroundSrc)) {
+    copyFileSync(playgroundSrc, playgroundDest);
+  }
 
 // retrieval-api.yaml (no $id — copy by known path)
 const retrievalApiSrc = join(PROTOCOL_ROOT, "retrieval-api.yaml");
@@ -86,7 +105,17 @@ if (existsSync(whitepaperSrc)) {
   const dest = join(SITE_ROOT, "whitepaper/index.html");
   ensureDir(dest);
   writeFileSync(dest, html);
+  copyWhitepaperFigures();
   console.log("  rendered docs/whitepaper.md → whitepaper/index.html");
+}
+
+  return {
+    artifactCount: count,
+    siteRoot: SITE_ROOT,
+    publishedRetrievalApi: existsSync(retrievalApiDest),
+    publishedPlayground: existsSync(playgroundDest),
+    publishedWhitepaper: existsSync(join(SITE_ROOT, "whitepaper/index.html")),
+  };
 }
 
 // ── Markdown renderer (no deps) ───────────────────────────────────────────────
@@ -100,13 +129,19 @@ function inlineFormat(s) {
   return escHtml(s)
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 }
 
 function renderMarkdown(src) {
-  const lines = src.split("\n");
+  const lines = src.replace(/\r\n?/g, "\n").split("\n");
   let out = "";
   let i = 0;
+  if (lines[0]?.trim() === "---") {
+    i = 1;
+    while (i < lines.length && lines[i].trim() !== "---") i++;
+    if (i < lines.length) i++;
+  }
 
   const CSS = `
     :root { --accent: #1a3f6f; --text: #1c1c1c; --muted: #555; --bg: #fff; --rule: #ddd; }
@@ -134,6 +169,7 @@ function renderMarkdown(src) {
     tr:nth-child(even) td { background: #f9f9f9; }
     strong { font-weight: 700; }
     a { color: var(--accent); }
+    img { display: block; max-width: 100%; height: auto; margin: 1.25rem auto; }
     .meta { color: var(--muted); font-size: .88rem; font-style: italic;
             border-left: 3px solid var(--rule); padding-left: .8rem; margin: 1rem 0; }
   `;
@@ -250,6 +286,7 @@ function renderMarkdown(src) {
       i++;
     }
     if (para) out += `<p>${inlineFormat(para)}</p>\n`;
+    else throw new Error(`Unsupported Markdown line ${i + 1}: ${line}`);
   }
 
   return `<!DOCTYPE html>
@@ -264,4 +301,8 @@ function renderMarkdown(src) {
 ${out}
 </body>
 </html>`;
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  buildProtocolSite();
 }

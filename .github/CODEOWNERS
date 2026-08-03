@@ -1,11 +1,12 @@
 # ALX Protocol Code Owners
 # These owners are automatically requested for review on PRs.
+# Review routing does not confer protocol authority; governance is defined in GOVERNANCE.md.
 
 # Protocol specification — requires maintainer review
 /protocol/ @xandrlabs/protocol-maintainers
 
 # Reference implementations
-/reference-implementations/typescript/ @xandrlabs/sdk-maintainers
+/sdk/ @xandrlabs/sdk-maintainers
 /reference-implementations/python/ @xandrlabs/sdk-maintainers
 /reference-implementations/rust/ @xandrlabs/sdk-maintainers
 
