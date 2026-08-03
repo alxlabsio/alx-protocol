@@ -3,7 +3,9 @@
 import re
 import time
 from typing import Any, Dict, List, Optional
+
 from eth_hash.auto import keccak
+
 from alx_protocol.canonical import canonicalize
 from alx_protocol.signatures import BlockAttestation, Signer, Verifier
 

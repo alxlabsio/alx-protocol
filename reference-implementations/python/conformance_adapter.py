@@ -23,21 +23,21 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from alx_protocol import (
-    canonicalize,
-    derive_block_hash,
-    derive_content_hash,
-    create_block,
-    validate_block,
-    validate_signed_block,
-    normalize_hashes,
-    validate_lineage,
-    trace_attribution,
-    validate_graph,
-    validate_incremental_block,
-    verify_graph,
-    verify_trace,
     Ed25519Verifier,
     P256Verifier,
+    canonicalize,
+    create_block,
+    derive_block_hash,
+    derive_content_hash,
+    normalize_hashes,
+    trace_attribution,
+    validate_block,
+    validate_graph,
+    validate_incremental_block,
+    validate_lineage,
+    validate_signed_block,
+    verify_graph,
+    verify_trace,
 )
 from alx_protocol.extensions import build_merkle_tree, verify_merkle_proof
 

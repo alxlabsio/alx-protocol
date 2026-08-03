@@ -24,11 +24,18 @@ interface Ed25519Lib {
   verify(signature: Uint8Array, message: Uint8Array, publicKey: Uint8Array): Promise<boolean> | boolean;
 }
 
+interface Ed25519Module extends Ed25519Lib {
+  etc?: {
+    sha512Sync?: (...messages: Uint8Array[]) => Uint8Array;
+  };
+}
+
 /** Lazily resolve @noble/ed25519. */
 async function loadEd25519(): Promise<Ed25519Lib> {
   // Try @noble/ed25519 (standalone, v3 has SHA-512 built-in)
   try {
-    const ed = await (Function('return import("@noble/ed25519")')()) as any;
+    const importEd25519 = Function('return import("@noble/ed25519")') as () => Promise<Ed25519Module>;
+    const ed = await importEd25519();
     // v2 needs SHA-512 setup; v3 has it built-in
     if (ed.etc && !ed.etc.sha512Sync) {
       const { createHash } = await import("node:crypto");

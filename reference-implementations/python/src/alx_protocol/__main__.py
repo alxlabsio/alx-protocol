@@ -13,9 +13,9 @@ from pathlib import Path
 from alx_protocol import (
     __version__,
     build_graph,
-    validate_graph,
-    validate_block,
     trace_attribution,
+    validate_block,
+    validate_graph,
 )
 
 

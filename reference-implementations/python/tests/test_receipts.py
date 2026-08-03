@@ -1,7 +1,7 @@
 """Tests for verification receipt construction and validation."""
 
 import time
-import pytest
+
 from alx_protocol import build_receipt, validate_receipt
 
 ROOT = "0x" + "a" * 64

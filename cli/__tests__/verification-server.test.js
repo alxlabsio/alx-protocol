@@ -37,7 +37,7 @@ describe("verification server routes", () => {
     const openApi = await openApiResponse.text();
     assert.match(openApi, /\/block\/create:/);
     assert.match(openApi, /\/block\/validate:/);
-    assert.doesNotMatch(openApi, /^  \/validate:/m);
+    assert.doesNotMatch(openApi, /^ {2}\/validate:/m);
     assert.doesNotMatch(openApi, /\/test-vectors\/run:/);
   });
 

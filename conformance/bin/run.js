@@ -21,12 +21,11 @@
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { parseCommand, createExternalImpl, createRunner, green, red, bold, dim } from "../lib/impl.js";
+import { createExternalImpl, createRunner, green, red, bold, dim } from "../lib/impl.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SUITES_MANIFEST = JSON.parse(readFileSync(resolve(__dirname, "../../protocol/suites.json"), "utf-8"));
 const LIB_DIR = resolve(__dirname, "../../sdk/dist");
-const ADAPTER_PATH = resolve(__dirname, "../../sdk/conformance-adapter.js");
 
 
 function loadVectors(suiteId) {

@@ -174,10 +174,6 @@ function renderMarkdown(src) {
             border-left: 3px solid var(--rule); padding-left: .8rem; margin: 1rem 0; }
   `;
 
-  function flush(tag, content) {
-    out += `<${tag}>${content}</${tag}>\n`;
-  }
-
   while (i < lines.length) {
     const line = lines[i];
 

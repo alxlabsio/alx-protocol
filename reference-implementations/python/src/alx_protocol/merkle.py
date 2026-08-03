@@ -1,6 +1,7 @@
 """ALX Protocol — Sorted-pair Merkle tree for checkpoint proofs."""
 
-from typing import List, Optional, Dict
+from typing import Dict, List, Optional
+
 from eth_hash.auto import keccak
 
 

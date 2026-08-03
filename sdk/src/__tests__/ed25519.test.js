@@ -6,7 +6,7 @@ import { resolve, dirname } from "node:path";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 function dist(name) { return pathToFileURL(resolve(__dirname, "../../dist", name)).href; }
 
-const { createBlock, createSignedBlock, validateSignedBlock } = await import(dist("block.js"));
+const { createSignedBlock, validateSignedBlock } = await import(dist("block.js"));
 
 // Check if @noble/ed25519 is available
 let ed25519Available = false;

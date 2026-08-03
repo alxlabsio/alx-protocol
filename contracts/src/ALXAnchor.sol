@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 /// @title ALXAnchor
+/// @author Xandr Labs
 /// @notice Trustless existence-time registry for ALX Protocol Blocks and hash batches on Base.
 /// @dev Admin-free, upgrade-free, permissionless.
 ///      Content opacity (ADR-002): accepts bytes32 only — Block content stays opaque.
@@ -27,7 +28,7 @@ contract ALXAnchor {
     /// @param maximum  Maximum allowed (256, aligned with protocol parent limit).
     error BatchTooLarge(uint256 provided, uint256 maximum);
 
-    /// @dev Application batch ceiling matching the v1 parent-count maximum.
+    /// @notice Application batch ceiling matching the v1 parent-count maximum.
     uint256 public constant MAX_BATCH_SIZE = 256;
 
     // ── State ─────────────────────────────────────────────────────────────────
@@ -77,12 +78,12 @@ contract ALXAnchor {
         }
         uint256 newlyAnchored = 0;
         uint256 len = blockHashes.length;
-        for (uint256 i = 0; i < len; i++) {
+        for (uint256 i = 0; i < len; ++i) {
             bytes32 h = blockHashes[i];
             if (anchors[h] == 0) {
                 _record(h);
                 emit Anchored(h, msg.sender, block.timestamp);
-                newlyAnchored++;
+                ++newlyAnchored;
             }
         }
         emit BatchAnchored(batchId, msg.sender, block.timestamp, newlyAnchored);
@@ -98,11 +99,13 @@ contract ALXAnchor {
     }
 
     /// @notice Timestamp at which a blockHash was first anchored (0 = unanchored).
+    /// @param blockHash The ALX Protocol blockHash to inspect.
     function anchoredAt(bytes32 blockHash) external view returns (uint256) {
         return uint64(anchors[blockHash]);
     }
 
     /// @notice Address that first anchored a given blockHash.
+    /// @param blockHash The ALX Protocol blockHash to inspect.
     function anchoredBy(bytes32 blockHash) external view returns (address) {
         return address(uint160(anchors[blockHash] >> 64));
     }

@@ -9,13 +9,13 @@ from alx_protocol import (
     canonicalize,
     create_block,
     normalize_hashes,
+    trace_attribution,
     validate_block,
+    validate_graph,
+    validate_incremental_block,
     validate_lineage,
     verify_graph,
     verify_trace,
-    trace_attribution,
-    validate_graph,
-    validate_incremental_block,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -156,7 +156,10 @@ def test_parent_normalization_vectors():
         if vector.get("inputMode") == "omitted":
             action = normalize_hashes
         else:
-            action = lambda value=vector.get("input"): normalize_hashes(value)
+            input_value = vector.get("input")
+
+            def action():
+                return normalize_hashes(input_value)
         if vector["expected"]["ok"]:
             assert action() == vector["expected"]["normalized"], vector["id"]
         else:

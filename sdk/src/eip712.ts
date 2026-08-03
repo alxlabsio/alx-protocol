@@ -95,8 +95,7 @@ async function loadRecoverFn(): Promise<RecoverFn> {
 
   // Try @noble/secp256k1 first (4KB, zero-dep)
   try {
-    // @ts-ignore — optional peer dependency; not listed in package.json types
-    const secp = await import("@noble/secp256k1") as any;
+    const secp = await import("@noble/secp256k1");
     cachedRecoverFn = (hash: Uint8Array, signature: string): string => {
       const sigBytes = hexToBytes(signature);
       const r = sigBytes.slice(0, 32);
@@ -106,9 +105,10 @@ async function loadRecoverFn(): Promise<RecoverFn> {
       const sig = new secp.Signature(
         BigInt("0x" + bytesToHex(r)),
         BigInt("0x" + bytesToHex(s)),
-      ).addRecoveryBit(recovery);
-      const pubkey = sig.recoverPublicKey(hash);
-      const uncompressed = pubkey.toRawBytes(false).slice(1); // remove 0x04 prefix
+        recovery,
+      ).toBytes("recovered");
+      const pubkey = secp.recoverPublicKey(sig, hash, { prehash: false });
+      const uncompressed = secp.Point.fromBytes(pubkey).toBytes(false).slice(1); // remove 0x04 prefix
       const addrBytes = keccak256Bytes(uncompressed).slice(12);
       return "0x" + bytesToHex(addrBytes);
     };
@@ -117,8 +117,7 @@ async function loadRecoverFn(): Promise<RecoverFn> {
 
   // Try @noble/curves (alternative)
   try {
-    // @ts-ignore — optional peer dependency; not listed in package.json types
-    const curves = await import("@noble/curves/secp256k1.js") as any;
+    const curves = await import("@noble/curves/secp256k1");
     const secp = curves.secp256k1;
     cachedRecoverFn = (hash: Uint8Array, signature: string): string => {
       const sigBytes = hexToBytes(signature);
@@ -135,8 +134,7 @@ async function loadRecoverFn(): Promise<RecoverFn> {
 
   // Fallback to ethers (40MB but works)
   try {
-    // @ts-ignore — optional peer dependency; not listed in package.json types
-    const ethers = await import("ethers") as any;
+    const ethers = await import("ethers");
     cachedRecoverFn = (hash: Uint8Array, signature: string): string => {
       // Use ethers' built-in recovery via recoverAddress
       const digest = "0x" + bytesToHex(hash);

@@ -10,7 +10,7 @@
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { parseCommand, createExternalImpl, createRunner, green, red, bold, dim } from "../lib/impl.js";
+import { createExternalImpl, createRunner, green, red, bold, dim } from "../lib/impl.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const VECTORS_FILE = resolve(__dirname, "../../protocol/extensions/merkle/test-vectors/merkle.json");
