@@ -1,7 +1,7 @@
 //! ALX Protocol — Attribution trace resolution.
 
-use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 use serde_json::{json, Value};
+use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 
 #[derive(Debug, Clone)]
 pub struct TraceNode {
@@ -39,20 +39,38 @@ pub struct TraceVerification {
     pub issues: Vec<String>,
 }
 
-pub fn trace_attribution(root_hash: &str, graph: &HashMap<String, Vec<String>>, mode: Option<&str>, declared_external: Option<&HashSet<String>>) -> Result<AttributionTrace, String> {
+pub fn trace_attribution(
+    root_hash: &str,
+    graph: &HashMap<String, Vec<String>>,
+    mode: Option<&str>,
+    declared_external: Option<&HashSet<String>>,
+) -> Result<AttributionTrace, String> {
     let root = root_hash.trim().to_lowercase();
-    if root.is_empty() { return Err("rootHash is required".into()); }
+    if root.is_empty() {
+        return Err("rootHash is required".into());
+    }
 
     // Cycle pre-check
     let cycle_detected = {
         let mut visiting = HashSet::new();
         let mut visited = HashSet::new();
-        fn check(node: &str, graph: &HashMap<String, Vec<String>>, visiting: &mut HashSet<String>, visited: &mut HashSet<String>) -> bool {
-            if visited.contains(node) { return false; }
-            if visiting.contains(node) { return true; }
+        fn check(
+            node: &str,
+            graph: &HashMap<String, Vec<String>>,
+            visiting: &mut HashSet<String>,
+            visited: &mut HashSet<String>,
+        ) -> bool {
+            if visited.contains(node) {
+                return false;
+            }
+            if visiting.contains(node) {
+                return true;
+            }
             visiting.insert(node.to_string());
             for p in graph.get(node).unwrap_or(&vec![]) {
-                if check(&p.trim().to_lowercase(), graph, visiting, visited) { return true; }
+                if check(&p.trim().to_lowercase(), graph, visiting, visited) {
+                    return true;
+                }
             }
             visiting.remove(node);
             visited.insert(node.to_string());
@@ -78,12 +96,21 @@ pub fn trace_attribution(root_hash: &str, graph: &HashMap<String, Vec<String>>, 
         if let Some(data) = node_data.get_mut(&h) {
             data.0 = data.0.min(depth);
             data.1 = data.1.max(depth);
-            if depth > global_max_depth { global_max_depth = depth; }
+            if depth > global_max_depth {
+                global_max_depth = depth;
+            }
             continue;
         }
-        let parents: Vec<String> = graph.get(&h).unwrap_or(&vec![]).iter().map(|p| p.trim().to_lowercase()).collect();
+        let parents: Vec<String> = graph
+            .get(&h)
+            .unwrap_or(&vec![])
+            .iter()
+            .map(|p| p.trim().to_lowercase())
+            .collect();
         node_data.insert(h.clone(), (depth, depth, parents.len()));
-        if depth > global_max_depth { global_max_depth = depth; }
+        if depth > global_max_depth {
+            global_max_depth = depth;
+        }
 
         for p in &parents {
             let key = (h.clone(), p.clone());
@@ -115,8 +142,15 @@ pub fn trace_attribution(root_hash: &str, graph: &HashMap<String, Vec<String>>, 
     for (_, parent) in &edge_set {
         *in_degree.entry(parent.clone()).or_insert(0) += 1;
     }
-    let mut ready: Vec<String> = in_degree.iter()
-        .filter_map(|(hash, degree)| if *degree == 0 { Some(hash.clone()) } else { None })
+    let mut ready: Vec<String> = in_degree
+        .iter()
+        .filter_map(|(hash, degree)| {
+            if *degree == 0 {
+                Some(hash.clone())
+            } else {
+                None
+            }
+        })
         .collect();
     ready.sort();
     let mut topo_queue: VecDeque<String> = VecDeque::from(ready);
@@ -155,11 +189,16 @@ pub fn trace_attribution(root_hash: &str, graph: &HashMap<String, Vec<String>>, 
             parent_count: *pc,
             child_count: *child_counts.get(h).unwrap_or(&0),
         });
-        if *pc == 0 { leaves.push(h.clone()); }
+        if *pc == 0 {
+            leaves.push(h.clone());
+        }
     }
     nodes.sort_by(|a, b| a.min_depth.cmp(&b.min_depth).then(a.hash.cmp(&b.hash)));
     leaves.sort();
-    let edges: Vec<TraceEdge> = edge_set.into_iter().map(|(f, t)| TraceEdge { from: f, to: t }).collect();
+    let edges: Vec<TraceEdge> = edge_set
+        .into_iter()
+        .map(|(f, t)| TraceEdge { from: f, to: t })
+        .collect();
 
     let max_depth = max_depths.values().copied().max().unwrap_or(0);
 
@@ -177,57 +216,130 @@ pub fn trace_attribution(root_hash: &str, graph: &HashMap<String, Vec<String>>, 
     })
 }
 
-
-pub fn verify_trace(trace: &Value, graph: &HashMap<String, Vec<String>>, mode: Option<&str>, declared_external: Option<&HashSet<String>>) -> Result<TraceVerification, String> {
-    let root = trace.get("root").and_then(Value::as_str).ok_or("trace.root is required")?;
+pub fn verify_trace(
+    trace: &Value,
+    graph: &HashMap<String, Vec<String>>,
+    mode: Option<&str>,
+    declared_external: Option<&HashSet<String>>,
+) -> Result<TraceVerification, String> {
+    let root = trace
+        .get("root")
+        .and_then(Value::as_str)
+        .ok_or("trace.root is required")?;
     let expected = trace_attribution(root, graph, mode, declared_external)?;
-    let expected_nodes: Vec<Value> = expected.nodes.iter().map(|node| json!({
-        "hash": node.hash,
-        "minDepth": node.min_depth,
-        "maxDepth": node.max_depth,
-        "pathCount": node.path_count,
-        "parentCount": node.parent_count,
-        "childCount": node.child_count,
-    })).collect();
-    let expected_edges: Vec<Value> = expected.edges.iter().map(|edge| json!({
-        "from": edge.from,
-        "to": edge.to,
-    })).collect();
-    let expected_leaves: Vec<Value> = expected.leaves.iter().map(|leaf| Value::String(leaf.clone())).collect();
-    let expected_missing: Vec<Value> = expected.missing_parents.iter().map(|item| Value::String(item.clone())).collect();
-    let expected_external: Vec<Value> = expected.external_parents.iter().map(|item| Value::String(item.clone())).collect();
+    let expected_nodes: Vec<Value> = expected
+        .nodes
+        .iter()
+        .map(|node| {
+            json!({
+                "hash": node.hash,
+                "minDepth": node.min_depth,
+                "maxDepth": node.max_depth,
+                "pathCount": node.path_count,
+                "parentCount": node.parent_count,
+                "childCount": node.child_count,
+            })
+        })
+        .collect();
+    let expected_edges: Vec<Value> = expected
+        .edges
+        .iter()
+        .map(|edge| {
+            json!({
+                "from": edge.from,
+                "to": edge.to,
+            })
+        })
+        .collect();
+    let expected_leaves: Vec<Value> = expected
+        .leaves
+        .iter()
+        .map(|leaf| Value::String(leaf.clone()))
+        .collect();
+    let expected_missing: Vec<Value> = expected
+        .missing_parents
+        .iter()
+        .map(|item| Value::String(item.clone()))
+        .collect();
+    let expected_external: Vec<Value> = expected
+        .external_parents
+        .iter()
+        .map(|item| Value::String(item.clone()))
+        .collect();
     let mut issues = vec![];
     if let Some(nodes) = trace.get("nodes").and_then(Value::as_array) {
         let mut seen = HashSet::new();
         for node in nodes {
             if let Some(hash) = node.get("hash").and_then(Value::as_str) {
-                if !seen.insert(hash.to_string()) { issues.push("duplicate_nodes".into()); break; }
+                if !seen.insert(hash.to_string()) {
+                    issues.push("duplicate_nodes".into());
+                    break;
+                }
             }
         }
-        if *nodes != expected_nodes { issues.push("nodes_mismatch".into()); }
-    } else { issues.push("nodes_mismatch".into()); }
+        if *nodes != expected_nodes {
+            issues.push("nodes_mismatch".into());
+        }
+    } else {
+        issues.push("nodes_mismatch".into());
+    }
     if let Some(edges) = trace.get("edges").and_then(Value::as_array) {
         let mut seen = HashSet::new();
         for edge in edges {
-            let key = format!("{}\0{}", edge.get("from").and_then(Value::as_str).unwrap_or(""), edge.get("to").and_then(Value::as_str).unwrap_or(""));
-            if !seen.insert(key) { issues.push("duplicate_edges".into()); break; }
+            let key = format!(
+                "{}\0{}",
+                edge.get("from").and_then(Value::as_str).unwrap_or(""),
+                edge.get("to").and_then(Value::as_str).unwrap_or("")
+            );
+            if !seen.insert(key) {
+                issues.push("duplicate_edges".into());
+                break;
+            }
         }
-        if *edges != expected_edges { issues.push("edges_mismatch".into()); }
-    } else { issues.push("edges_mismatch".into()); }
+        if *edges != expected_edges {
+            issues.push("edges_mismatch".into());
+        }
+    } else {
+        issues.push("edges_mismatch".into());
+    }
     if let Some(leaves) = trace.get("leaves").and_then(Value::as_array) {
         let mut seen = HashSet::new();
         for leaf in leaves {
             if let Some(hash) = leaf.as_str() {
-                if !seen.insert(hash.to_string()) { issues.push("duplicate_leaves".into()); break; }
+                if !seen.insert(hash.to_string()) {
+                    issues.push("duplicate_leaves".into());
+                    break;
+                }
             }
         }
-        if *leaves != expected_leaves { issues.push("leaves_mismatch".into()); }
-    } else { issues.push("leaves_mismatch".into()); }
-    if trace.get("validationMode").and_then(Value::as_str) != Some(expected.validation_mode.as_str()) { issues.push("validation_mode_mismatch".into()); }
-    if trace.get("complete").and_then(Value::as_bool) != Some(expected.complete) { issues.push("complete_mismatch".into()); }
-    if trace.get("missingParents").and_then(Value::as_array) != Some(&expected_missing) { issues.push("missing_parents_mismatch".into()); }
-    if trace.get("externalParents").and_then(Value::as_array) != Some(&expected_external) { issues.push("external_parents_mismatch".into()); }
-    if trace.get("maxDepth").and_then(Value::as_u64) != Some(expected.max_depth as u64) { issues.push("max_depth_mismatch".into()); }
-    if trace.get("cycle").and_then(Value::as_bool) != Some(expected.cycle) { issues.push("cycle_mismatch".into()); }
-    Ok(TraceVerification { ok: issues.is_empty(), issues })
+        if *leaves != expected_leaves {
+            issues.push("leaves_mismatch".into());
+        }
+    } else {
+        issues.push("leaves_mismatch".into());
+    }
+    if trace.get("validationMode").and_then(Value::as_str)
+        != Some(expected.validation_mode.as_str())
+    {
+        issues.push("validation_mode_mismatch".into());
+    }
+    if trace.get("complete").and_then(Value::as_bool) != Some(expected.complete) {
+        issues.push("complete_mismatch".into());
+    }
+    if trace.get("missingParents").and_then(Value::as_array) != Some(&expected_missing) {
+        issues.push("missing_parents_mismatch".into());
+    }
+    if trace.get("externalParents").and_then(Value::as_array) != Some(&expected_external) {
+        issues.push("external_parents_mismatch".into());
+    }
+    if trace.get("maxDepth").and_then(Value::as_u64) != Some(expected.max_depth as u64) {
+        issues.push("max_depth_mismatch".into());
+    }
+    if trace.get("cycle").and_then(Value::as_bool) != Some(expected.cycle) {
+        issues.push("cycle_mismatch".into());
+    }
+    Ok(TraceVerification {
+        ok: issues.is_empty(),
+        issues,
+    })
 }

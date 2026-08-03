@@ -28,7 +28,9 @@ fn hash_pair(a: &str, b: &str) -> String {
 }
 
 pub fn build_merkle_tree(leaves: &[String]) -> Result<MerkleTree, String> {
-    if leaves.is_empty() { return Err("leaves must be non-empty".into()); }
+    if leaves.is_empty() {
+        return Err("leaves must be non-empty".into());
+    }
     let mut layer: Vec<String> = leaves.iter().map(|h| h.to_lowercase()).collect();
     layer.sort();
     let mut layers = vec![layer.clone()];
@@ -44,7 +46,10 @@ pub fn build_merkle_tree(leaves: &[String]) -> Result<MerkleTree, String> {
         layer = next;
         layers.push(layer.clone());
     }
-    Ok(MerkleTree { root: layer[0].clone(), layers })
+    Ok(MerkleTree {
+        root: layer[0].clone(),
+        layers,
+    })
 }
 
 pub fn get_merkle_proof(leaves: &[String], leaf: &str) -> Result<Option<MerkleProof>, String> {
@@ -63,7 +68,12 @@ pub fn get_merkle_proof(leaves: &[String], leaf: &str) -> Result<Option<MerklePr
         }
         idx /= 2;
     }
-    Ok(Some(MerkleProof { proof, root: tree.root.clone(), leaf: target, index }))
+    Ok(Some(MerkleProof {
+        proof,
+        root: tree.root.clone(),
+        leaf: target,
+        index,
+    }))
 }
 
 pub fn verify_merkle_proof(root: &str, leaf: &str, proof: &[String]) -> bool {

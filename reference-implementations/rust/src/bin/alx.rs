@@ -4,17 +4,25 @@
 //!   cargo run --bin alx -- validate protocol/graph.json
 //!   cargo run --bin alx -- trace 0x5981da5f... --file protocol/graph.json
 
+use serde_json::Value;
 use std::collections::HashMap;
 use std::fs;
 use std::process;
-use serde_json::Value;
 
-use alx_protocol::{validate_graph, trace_attribution};
+use alx_protocol::{trace_attribution, validate_graph};
 
-fn bold(s: &str)  -> String { format!("\x1b[1m{}\x1b[0m", s) }
-fn green(s: &str) -> String { format!("\x1b[32m{}\x1b[0m", s) }
-fn red(s: &str)   -> String { format!("\x1b[31m{}\x1b[0m", s) }
-fn dim(s: &str)   -> String { format!("\x1b[2m{}\x1b[0m", s) }
+fn bold(s: &str) -> String {
+    format!("\x1b[1m{}\x1b[0m", s)
+}
+fn green(s: &str) -> String {
+    format!("\x1b[32m{}\x1b[0m", s)
+}
+fn red(s: &str) -> String {
+    format!("\x1b[31m{}\x1b[0m", s)
+}
+fn dim(s: &str) -> String {
+    format!("\x1b[2m{}\x1b[0m", s)
+}
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -58,28 +66,49 @@ fn cmd_validate(file: &str) {
         Value::Array(arr) => parse_graph_array(arr),
         Value::Object(_) => {
             // Single block — wrap in array for uniform handling
-            parse_graph_array(&[data.clone()])
+            parse_graph_array(std::slice::from_ref(&data))
         }
         _ => {
-            eprintln!("{}  unrecognised file format (expected JSON array or object)", red("✗"));
+            eprintln!(
+                "{}  unrecognised file format (expected JSON array or object)",
+                red("✗")
+            );
             process::exit(1);
         }
     };
 
     let result = validate_graph(&graph, None, None);
     if result.ok {
-        println!("  {}  {}", green("✓"), bold(&format!("{} blocks valid", result.blocks)));
-        println!("  {}  DAG structure valid ({} blocks, {} edges)",
-            green("✓"), result.blocks, result.edges);
-        println!("  {}  {}", green("✓"), dim(&format!("alx-protocol Rust v{}", VERSION)));
+        println!(
+            "  {}  {}",
+            green("✓"),
+            bold(&format!("{} blocks valid", result.blocks))
+        );
+        println!(
+            "  {}  DAG structure valid ({} blocks, {} edges)",
+            green("✓"),
+            result.blocks,
+            result.edges
+        );
+        println!(
+            "  {}  {}",
+            green("✓"),
+            dim(&format!("alx-protocol Rust v{}", VERSION))
+        );
     } else {
-        println!("  {}  validation failed ({} issue(s))", red("✗"), result.issues.len());
+        println!(
+            "  {}  validation failed ({} issue(s))",
+            red("✗"),
+            result.issues.len()
+        );
         for issue in &result.issues {
-            println!("       {}...  duplicates={:?} missing={:?} self_ref={}",
+            println!(
+                "       {}...  duplicates={:?} missing={:?} self_ref={}",
                 &issue.block_hash[..18.min(issue.block_hash.len())],
                 issue.duplicates,
                 issue.missing,
-                issue.self_ref);
+                issue.self_ref
+            );
         }
         process::exit(1);
     }
@@ -110,8 +139,7 @@ fn cmd_trace(hash_prefix: &str, file: &str) {
     let prefix = hash_prefix.trim_start_matches("0x").to_lowercase();
     let matches: Vec<&String> = graph
         .keys()
-        .filter(|h| h.trim_start_matches("0x").starts_with(&prefix)
-                  || h.starts_with(hash_prefix))
+        .filter(|h| h.trim_start_matches("0x").starts_with(&prefix) || h.starts_with(hash_prefix))
         .collect();
 
     if matches.is_empty() {
@@ -119,7 +147,11 @@ fn cmd_trace(hash_prefix: &str, file: &str) {
         process::exit(1);
     }
     if matches.len() > 1 {
-        eprintln!("{}  ambiguous prefix matches {} blocks", red("✗"), matches.len());
+        eprintln!(
+            "{}  ambiguous prefix matches {} blocks",
+            red("✗"),
+            matches.len()
+        );
         process::exit(1);
     }
 
@@ -149,9 +181,16 @@ fn cmd_trace(hash_prefix: &str, file: &str) {
     println!();
     let has_multi = result.nodes.iter().any(|n| n.path_count > 1);
     if has_multi {
-        println!("{}", dim("  pathCount = independent causal paths from root to that ancestor"));
+        println!(
+            "{}",
+            dim("  pathCount = independent causal paths from root to that ancestor")
+        );
     }
-    println!("  {}  {}", green("✓"), dim(&format!("alx-protocol Rust v{}", VERSION)));
+    println!(
+        "  {}  {}",
+        green("✓"),
+        dim(&format!("alx-protocol Rust v{}", VERSION))
+    );
 }
 
 fn main() {

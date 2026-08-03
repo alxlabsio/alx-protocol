@@ -9,43 +9,35 @@
 //! Reads one JSON operation per line from stdin, executes it,
 //! writes one JSON result per line to stdout.
 
-use std::io::{self, BufRead, Write};
-use std::collections::HashMap;
 use serde::Deserialize;
 use serde_json::{json, Value};
+use std::collections::HashMap;
+use std::io::{self, BufRead, Write};
 
-use alx_protocol::{
-    canonicalize,
-    derive_block_hash,
-    derive_content_hash,
-    create_block,
-    validate_block_detailed,
-    validate_signed_block,
-    normalize_hashes,
-    validate_lineage,
-    validate_graph,
-    validate_incremental_block,
-    verify_graph,
-    trace_attribution,
-    verify_trace,
-    Block,
-    SignedBlock,
-    BlockAttestation,
-    Verifier,
-    Ed25519Verifier,
-    P256Verifier,
-};
 use alx_protocol::extensions::{build_merkle_tree, verify_merkle_proof};
-
+use alx_protocol::{
+    canonicalize, create_block, derive_block_hash, derive_content_hash, normalize_hashes,
+    trace_attribution, validate_block_detailed, validate_graph, validate_incremental_block,
+    validate_lineage, validate_signed_block, verify_graph, verify_trace, Block, BlockAttestation,
+    Ed25519Verifier, P256Verifier, SignedBlock, Verifier,
+};
 
 struct FixtureVerifier;
 impl Verifier for FixtureVerifier {
-    fn verify(&self, data: &[u8], signature: &str, expected_signer: Option<&str>) -> Result<(bool, String), String> {
+    fn verify(
+        &self,
+        data: &[u8],
+        signature: &str,
+        expected_signer: Option<&str>,
+    ) -> Result<(bool, String), String> {
         let signer = signature.split(':').next().unwrap_or("").to_string();
-        let ok = signature == format!("{}:{}", signer, hex::encode(data)) && expected_signer.map_or(true, |expected| expected == signer);
+        let ok = signature == format!("{}:{}", signer, hex::encode(data))
+            && expected_signer.is_none_or(|expected| expected == signer);
         Ok((ok, signer))
     }
-    fn algorithm(&self) -> &str { "fixture" }
+    fn algorithm(&self) -> &str {
+        "fixture"
+    }
 }
 
 fn parse_attestation(value: &Value) -> Option<BlockAttestation> {
@@ -64,7 +56,10 @@ fn parse_block(value: &Value) -> Option<Block> {
         content_hash: value.get("contentHash")?.as_str()?.to_string(),
         parent_hashes: extract_string_array(value.get("parentHashes")),
         content: value.get("content").cloned().unwrap_or(Value::Null),
-        protocol_version: value.get("protocolVersion").and_then(Value::as_str).map(str::to_string),
+        protocol_version: value
+            .get("protocolVersion")
+            .and_then(Value::as_str)
+            .map(str::to_string),
     })
 }
 
@@ -72,12 +67,18 @@ fn parse_signed_block(value: &Value) -> Option<SignedBlock> {
     Some(SignedBlock {
         block: parse_block(value.get("block")?)?,
         attestation: value.get("attestation").and_then(parse_attestation),
-        attestations: value.get("attestations").and_then(|v| v.as_array()).map(|items| items.iter().filter_map(parse_attestation).collect()).unwrap_or_default(),
+        attestations: value
+            .get("attestations")
+            .and_then(|v| v.as_array())
+            .map(|items| items.iter().filter_map(parse_attestation).collect())
+            .unwrap_or_default(),
     })
 }
 
 fn parse_parent_hashes(value: Option<&Value>) -> Result<Vec<String>, String> {
-    let Some(value) = value else { return Ok(vec![]); };
+    let Some(value) = value else {
+        return Ok(vec![]);
+    };
     let Some(items) = value.as_array() else {
         return Err("[ALX_INVALID_HASH] parentHashes must be an array".into());
     };
@@ -96,16 +97,17 @@ fn handle(op: &Value) -> Value {
     let input = op.get("input").cloned().unwrap_or(Value::Null);
 
     match operation {
-        "canonicalize" => {
-            match canonicalize(&input) {
-                Ok(result) => json!({"output": result}),
-                Err(e) => json!({"error": e}),
-            }
-        }
+        "canonicalize" => match canonicalize(&input) {
+            Ok(result) => json!({"output": result}),
+            Err(e) => json!({"error": e}),
+        },
 
         "canonicalizeGeneratedDepth" => {
             let mut value = input.get("leaf").cloned().unwrap_or(Value::Null);
-            let depth = input.get("generatedDepth").and_then(|v| v.as_u64()).unwrap_or(0);
+            let depth = input
+                .get("generatedDepth")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
             for _ in 0..depth {
                 value = json!({"nested": value});
             }
@@ -153,7 +155,9 @@ fn handle(op: &Value) -> Value {
         }
 
         "validateBlock" => {
-            let Some(block) = parse_block(&input) else { return json!({"error": "invalid block"}); };
+            let Some(block) = parse_block(&input) else {
+                return json!({"error": "invalid block"});
+            };
             match validate_block_detailed(&block) {
                 Ok(result) => json!({"output": {
                     "ok": result.ok,
@@ -183,16 +187,43 @@ fn handle(op: &Value) -> Value {
         "validateLineage" => {
             let block_hash = input.get("blockHash").and_then(Value::as_str).unwrap_or("");
             let parent_hashes = extract_string_array(input.get("parentHashes"));
-            let known_hashes: Option<std::collections::HashSet<String>> = input.get("knownHashes")
+            let known_hashes: Option<std::collections::HashSet<String>> = input
+                .get("knownHashes")
                 .and_then(Value::as_array)
-                .map(|items| items.iter().filter_map(Value::as_str).map(str::to_string).collect());
-            let mode = input.get("context").and_then(|context| context.get("validationMode")).and_then(Value::as_str);
-            let external_parents: std::collections::HashSet<String> = input.get("context")
+                .map(|items| {
+                    items
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .map(str::to_string)
+                        .collect()
+                });
+            let mode = input
+                .get("context")
+                .and_then(|context| context.get("validationMode"))
+                .and_then(Value::as_str);
+            let external_parents: std::collections::HashSet<String> = input
+                .get("context")
                 .and_then(|context| context.get("externalParents"))
                 .and_then(Value::as_array)
-                .map(|parents| parents.iter().filter_map(|parent| parent.get("hash").and_then(Value::as_str).map(str::to_string)).collect())
+                .map(|parents| {
+                    parents
+                        .iter()
+                        .filter_map(|parent| {
+                            parent
+                                .get("hash")
+                                .and_then(Value::as_str)
+                                .map(str::to_string)
+                        })
+                        .collect()
+                })
                 .unwrap_or_default();
-            let result = validate_lineage(block_hash, &parent_hashes, known_hashes.as_ref(), mode, Some(&external_parents));
+            let result = validate_lineage(
+                block_hash,
+                &parent_hashes,
+                known_hashes.as_ref(),
+                mode,
+                Some(&external_parents),
+            );
             json!({"output": {
                 "ok": result.ok,
                 "blockHash": result.block_hash,
@@ -206,7 +237,9 @@ fn handle(op: &Value) -> Value {
         }
 
         "validateSignedBlockFixture" => {
-            let Some(signed_block) = parse_signed_block(&input) else { return json!({"error": "invalid signed block"}); };
+            let Some(signed_block) = parse_signed_block(&input) else {
+                return json!({"error": "invalid signed block"});
+            };
             match validate_signed_block(&signed_block, &[&FixtureVerifier]) {
                 Ok(result) => json!({"output": {
                     "ok": result.ok,
@@ -236,7 +269,10 @@ fn handle(op: &Value) -> Value {
 
         "traceAttribution" => {
             let root_hash = input.get("rootHash").and_then(|v| v.as_str()).unwrap_or("");
-            let graph_val = input.get("graph").cloned().unwrap_or(Value::Object(Default::default()));
+            let graph_val = input
+                .get("graph")
+                .cloned()
+                .unwrap_or(Value::Object(Default::default()));
 
             // Convert JSON object to HashMap<String, Vec<String>>
             let mut graph: HashMap<String, Vec<String>> = HashMap::new();
@@ -246,30 +282,56 @@ fn handle(op: &Value) -> Value {
                 }
             }
 
-            let mode = input.get("context").and_then(|context| context.get("validationMode")).and_then(Value::as_str);
-            let external_parents: std::collections::HashSet<String> = input.get("context")
+            let mode = input
+                .get("context")
+                .and_then(|context| context.get("validationMode"))
+                .and_then(Value::as_str);
+            let external_parents: std::collections::HashSet<String> = input
+                .get("context")
                 .and_then(|context| context.get("externalParents"))
                 .and_then(Value::as_array)
-                .map(|parents| parents.iter().filter_map(|parent| parent.get("hash").and_then(Value::as_str).map(|hash| hash.to_string())).collect())
+                .map(|parents| {
+                    parents
+                        .iter()
+                        .filter_map(|parent| {
+                            parent
+                                .get("hash")
+                                .and_then(Value::as_str)
+                                .map(|hash| hash.to_string())
+                        })
+                        .collect()
+                })
                 .unwrap_or_default();
             let trace = match trace_attribution(root_hash, &graph, mode, Some(&external_parents)) {
                 Ok(t) => t,
                 Err(e) => return json!({"error": e}),
             };
 
-            let nodes: Vec<Value> = trace.nodes.iter().map(|n| json!({
-                "hash": n.hash,
-                "minDepth": n.min_depth,
-                "maxDepth": n.max_depth,
-                "pathCount": n.path_count,
-                "parentCount": n.parent_count,
-                "childCount": n.child_count,
-            })).collect();
+            let nodes: Vec<Value> = trace
+                .nodes
+                .iter()
+                .map(|n| {
+                    json!({
+                        "hash": n.hash,
+                        "minDepth": n.min_depth,
+                        "maxDepth": n.max_depth,
+                        "pathCount": n.path_count,
+                        "parentCount": n.parent_count,
+                        "childCount": n.child_count,
+                    })
+                })
+                .collect();
 
-            let edges: Vec<Value> = trace.edges.iter().map(|e| json!({
-                "from": e.from,
-                "to": e.to,
-            })).collect();
+            let edges: Vec<Value> = trace
+                .edges
+                .iter()
+                .map(|e| {
+                    json!({
+                        "from": e.from,
+                        "to": e.to,
+                    })
+                })
+                .collect();
 
             json!({"output": {
                 "root": trace.root,
@@ -286,18 +348,35 @@ fn handle(op: &Value) -> Value {
         }
 
         "validateGraph" => {
-            let graph_val = input.get("graph").cloned().unwrap_or(Value::Object(Default::default()));
+            let graph_val = input
+                .get("graph")
+                .cloned()
+                .unwrap_or(Value::Object(Default::default()));
             let mut graph: HashMap<String, Vec<String>> = HashMap::new();
             if let Value::Object(obj) = graph_val {
                 for (k, v) in obj {
                     graph.insert(k, extract_string_array(Some(&v)));
                 }
             }
-            let mode = input.get("context").and_then(|context| context.get("validationMode")).and_then(Value::as_str);
-            let external_parents: std::collections::HashSet<String> = input.get("context")
+            let mode = input
+                .get("context")
+                .and_then(|context| context.get("validationMode"))
+                .and_then(Value::as_str);
+            let external_parents: std::collections::HashSet<String> = input
+                .get("context")
                 .and_then(|context| context.get("externalParents"))
                 .and_then(Value::as_array)
-                .map(|parents| parents.iter().filter_map(|parent| parent.get("hash").and_then(Value::as_str).map(|hash| hash.to_string())).collect())
+                .map(|parents| {
+                    parents
+                        .iter()
+                        .filter_map(|parent| {
+                            parent
+                                .get("hash")
+                                .and_then(Value::as_str)
+                                .map(|hash| hash.to_string())
+                        })
+                        .collect()
+                })
                 .unwrap_or_default();
             let result = validate_graph(&graph, mode, Some(&external_parents));
             json!({"output": {
@@ -322,22 +401,48 @@ fn handle(op: &Value) -> Value {
 
         "validateIncrementalBlock" => {
             let block = input.get("block").cloned().unwrap_or(Value::Null);
-            let block_hash = block.get("blockHash").and_then(|v| v.as_str()).unwrap_or("");
+            let block_hash = block
+                .get("blockHash")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
             let parent_hashes = extract_string_array(block.get("parentHashes"));
-            let graph_val = input.get("existingGraph").cloned().unwrap_or(Value::Object(Default::default()));
+            let graph_val = input
+                .get("existingGraph")
+                .cloned()
+                .unwrap_or(Value::Object(Default::default()));
             let mut graph: HashMap<String, Vec<String>> = HashMap::new();
             if let Value::Object(obj) = graph_val {
                 for (k, v) in obj {
                     graph.insert(k, extract_string_array(Some(&v)));
                 }
             }
-            let mode = input.get("context").and_then(|context| context.get("validationMode")).and_then(Value::as_str);
-            let external_parents: std::collections::HashSet<String> = input.get("context")
+            let mode = input
+                .get("context")
+                .and_then(|context| context.get("validationMode"))
+                .and_then(Value::as_str);
+            let external_parents: std::collections::HashSet<String> = input
+                .get("context")
                 .and_then(|context| context.get("externalParents"))
                 .and_then(Value::as_array)
-                .map(|parents| parents.iter().filter_map(|parent| parent.get("hash").and_then(Value::as_str).map(|hash| hash.to_string())).collect())
+                .map(|parents| {
+                    parents
+                        .iter()
+                        .filter_map(|parent| {
+                            parent
+                                .get("hash")
+                                .and_then(Value::as_str)
+                                .map(|hash| hash.to_string())
+                        })
+                        .collect()
+                })
                 .unwrap_or_default();
-            let result = validate_incremental_block(block_hash, &parent_hashes, &graph, mode, Some(&external_parents));
+            let result = validate_incremental_block(
+                block_hash,
+                &parent_hashes,
+                &graph,
+                mode,
+                Some(&external_parents),
+            );
             json!({"output": {
                 "ok": result.ok,
                 "blockHash": result.block_hash,
@@ -351,12 +456,20 @@ fn handle(op: &Value) -> Value {
         }
 
         "validatePortableSignedBlock" => {
-            let Some(signed_block) = parse_signed_block(&input) else { return json!({"error": "invalid signed block"}); };
-            let algorithm = signed_block.attestation.as_ref().map(|att| att.algorithm.as_str()).unwrap_or("");
+            let Some(signed_block) = parse_signed_block(&input) else {
+                return json!({"error": "invalid signed block"});
+            };
+            let algorithm = signed_block
+                .attestation
+                .as_ref()
+                .map(|att| att.algorithm.as_str())
+                .unwrap_or("");
             let result = match algorithm {
                 "ed25519" => validate_signed_block(&signed_block, &[&Ed25519Verifier]),
                 "p256" => validate_signed_block(&signed_block, &[&P256Verifier]),
-                _ => return json!({"error": format!("Unsupported portable signing algorithm: {}", algorithm)}),
+                _ => {
+                    return json!({"error": format!("Unsupported portable signing algorithm: {}", algorithm)})
+                }
             };
             match result {
                 Ok(result) => json!({"output": {
@@ -379,33 +492,71 @@ fn handle(op: &Value) -> Value {
         }
 
         "verifyTrace" => {
-            let graph_val = input.get("graph").cloned().unwrap_or(Value::Object(Default::default()));
+            let graph_val = input
+                .get("graph")
+                .cloned()
+                .unwrap_or(Value::Object(Default::default()));
             let mut graph: HashMap<String, Vec<String>> = HashMap::new();
             if let Value::Object(obj) = graph_val {
                 for (k, v) in obj {
                     graph.insert(k, extract_string_array(Some(&v)));
                 }
             }
-            let mode = input.get("context").and_then(|context| context.get("validationMode")).and_then(Value::as_str);
-            let external_parents: std::collections::HashSet<String> = input.get("context")
+            let mode = input
+                .get("context")
+                .and_then(|context| context.get("validationMode"))
+                .and_then(Value::as_str);
+            let external_parents: std::collections::HashSet<String> = input
+                .get("context")
                 .and_then(|context| context.get("externalParents"))
                 .and_then(Value::as_array)
-                .map(|parents| parents.iter().filter_map(|parent| parent.get("hash").and_then(Value::as_str).map(|hash| hash.to_string())).collect())
+                .map(|parents| {
+                    parents
+                        .iter()
+                        .filter_map(|parent| {
+                            parent
+                                .get("hash")
+                                .and_then(Value::as_str)
+                                .map(|hash| hash.to_string())
+                        })
+                        .collect()
+                })
                 .unwrap_or_default();
-            match verify_trace(input.get("trace").unwrap_or(&Value::Null), &graph, mode, Some(&external_parents)) {
+            match verify_trace(
+                input.get("trace").unwrap_or(&Value::Null),
+                &graph,
+                mode,
+                Some(&external_parents),
+            ) {
                 Ok(result) => json!({"output": { "ok": result.ok, "issues": result.issues }}),
                 Err(e) => json!({"error": e}),
             }
         }
 
         "verifyGraph" => {
-            let blocks_val = input.get("blocks").and_then(Value::as_array).cloned().unwrap_or_default();
-            let parsed: Vec<(String, Value, Vec<String>)> = blocks_val.iter().map(|block| (
-                block.get("blockHash").and_then(Value::as_str).unwrap_or("").to_string(),
-                block.get("content").cloned().unwrap_or(Value::Null),
-                extract_string_array(block.get("parentHashes")),
-            )).collect();
-            let refs: Vec<(&str, &Value, &[String])> = parsed.iter().map(|(hash, content, parents)| (hash.as_str(), content, parents.as_slice())).collect();
+            let blocks_val = input
+                .get("blocks")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            let parsed: Vec<(String, Value, Vec<String>)> = blocks_val
+                .iter()
+                .map(|block| {
+                    (
+                        block
+                            .get("blockHash")
+                            .and_then(Value::as_str)
+                            .unwrap_or("")
+                            .to_string(),
+                        block.get("content").cloned().unwrap_or(Value::Null),
+                        extract_string_array(block.get("parentHashes")),
+                    )
+                })
+                .collect();
+            let refs: Vec<(&str, &Value, &[String])> = parsed
+                .iter()
+                .map(|(hash, content, parents)| (hash.as_str(), content, parents.as_slice()))
+                .collect();
             match verify_graph(&refs, derive_block_hash) {
                 Ok(result) => json!({"output": {
                     "ok": result.ok,
@@ -445,9 +596,11 @@ fn handle(op: &Value) -> Value {
 
 fn extract_string_array(val: Option<&Value>) -> Vec<String> {
     val.and_then(|v| v.as_array())
-        .map(|arr| arr.iter()
-            .filter_map(|v| v.as_str().map(String::from))
-            .collect())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
         .unwrap_or_default()
 }
 

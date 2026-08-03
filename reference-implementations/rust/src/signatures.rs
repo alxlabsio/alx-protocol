@@ -1,4 +1,4 @@
-﻿//! ALX Protocol — algorithm-agnostic signing interfaces.
+//! ALX Protocol — algorithm-agnostic signing interfaces.
 
 #[derive(Debug, Clone)]
 pub struct BlockAttestation {
@@ -16,6 +16,11 @@ pub trait Signer {
 }
 
 pub trait Verifier {
-    fn verify(&self, data: &[u8], signature: &str, expected_signer: Option<&str>) -> Result<(bool, String), String>;
+    fn verify(
+        &self,
+        data: &[u8],
+        signature: &str,
+        expected_signer: Option<&str>,
+    ) -> Result<(bool, String), String>;
     fn algorithm(&self) -> &str;
 }

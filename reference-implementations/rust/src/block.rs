@@ -1,10 +1,10 @@
 //! ALX Protocol — Block primitive.
 
-use serde_json::Value;
-use sha3::{Digest, Keccak256};
 use crate::canonical::canonicalize;
 use crate::signatures::{BlockAttestation, Signer, Verifier};
 use regex::Regex;
+use serde_json::Value;
+use sha3::{Digest, Keccak256};
 use std::collections::BTreeSet;
 use std::sync::LazyLock;
 
@@ -55,12 +55,18 @@ pub fn derive_block_hash(content: &Value, parent_hashes: &[String]) -> Result<St
     let parents_val: Vec<Value> = parents.iter().map(|s| Value::String(s.clone())).collect();
     let input = serde_json::json!({"content": content, "parentHashes": parents_val});
     let canonical = canonicalize(&input)?;
-    Ok(format!("0x{}", hex::encode(Keccak256::digest(canonical.as_bytes()))))
+    Ok(format!(
+        "0x{}",
+        hex::encode(Keccak256::digest(canonical.as_bytes()))
+    ))
 }
 
 pub fn derive_content_hash(content: &Value) -> Result<String, String> {
     let canonical = canonicalize(content)?;
-    Ok(format!("0x{}", hex::encode(Keccak256::digest(canonical.as_bytes()))))
+    Ok(format!(
+        "0x{}",
+        hex::encode(Keccak256::digest(canonical.as_bytes()))
+    ))
 }
 
 pub fn create_block(content: Value, parent_hashes: &[String]) -> Result<Block, String> {
@@ -74,22 +80,49 @@ pub fn create_block(content: Value, parent_hashes: &[String]) -> Result<Block, S
     })
 }
 
-fn build_attestation(block_hash: &str, signer: &dyn Signer, timestamp: u64) -> Result<BlockAttestation, String> {
-    if signer.algorithm().is_empty() { return Err("signer.algorithm must be a non-empty string".into()); }
+fn build_attestation(
+    block_hash: &str,
+    signer: &dyn Signer,
+    timestamp: u64,
+) -> Result<BlockAttestation, String> {
+    if signer.algorithm().is_empty() {
+        return Err("signer.algorithm must be a non-empty string".into());
+    }
     let bytes = hex::decode(block_hash.trim_start_matches("0x")).map_err(|e| e.to_string())?;
-    Ok(BlockAttestation { block_hash: block_hash.into(), attester: signer.get_id()?, algorithm: signer.algorithm().into(), timestamp, signature: signer.sign(&bytes)? })
+    Ok(BlockAttestation {
+        block_hash: block_hash.into(),
+        attester: signer.get_id()?,
+        algorithm: signer.algorithm().into(),
+        timestamp,
+        signature: signer.sign(&bytes)?,
+    })
 }
 
-pub fn create_signed_block(content: Value, parent_hashes: &[String], signer: &dyn Signer, timestamp: u64) -> Result<SignedBlock, String> {
+pub fn create_signed_block(
+    content: Value,
+    parent_hashes: &[String],
+    signer: &dyn Signer,
+    timestamp: u64,
+) -> Result<SignedBlock, String> {
     let block = create_block(content, parent_hashes)?;
     let att = build_attestation(&block.block_hash, signer, timestamp)?;
-    Ok(SignedBlock { block, attestation: Some(att.clone()), attestations: vec![att] })
+    Ok(SignedBlock {
+        block,
+        attestation: Some(att.clone()),
+        attestations: vec![att],
+    })
 }
 
-pub fn add_attestation(mut signed_block: SignedBlock, signer: &dyn Signer, timestamp: u64) -> Result<SignedBlock, String> {
+pub fn add_attestation(
+    mut signed_block: SignedBlock,
+    signer: &dyn Signer,
+    timestamp: u64,
+) -> Result<SignedBlock, String> {
     let att = build_attestation(&signed_block.block.block_hash, signer, timestamp)?;
     if signed_block.attestations.is_empty() {
-        if let Some(existing) = signed_block.attestation.clone() { signed_block.attestations.push(existing); }
+        if let Some(existing) = signed_block.attestation.clone() {
+            signed_block.attestations.push(existing);
+        }
     }
     signed_block.attestations.push(att);
     signed_block.attestation = signed_block.attestations.first().cloned();
@@ -109,7 +142,10 @@ pub fn validate_block_detailed(block: &Block) -> Result<BlockValidation, String>
     let actual_content_hash = normalize_hash(&block.content_hash)?;
     let parents_canonical = block.parent_hashes == canonical_parents;
     let self_ref = canonical_parents.contains(&actual);
-    let ok = expected == actual && expected_content_hash == actual_content_hash && parents_canonical && !self_ref;
+    let ok = expected == actual
+        && expected_content_hash == actual_content_hash
+        && parents_canonical
+        && !self_ref;
     Ok(BlockValidation {
         ok,
         expected,
@@ -130,12 +166,24 @@ pub fn validate_block(block: &Block) -> Result<(bool, String, String), String> {
     Ok((result.ok, result.expected, result.actual))
 }
 
-pub fn validate_signed_block(signed_block: &SignedBlock, verifiers: &[&dyn Verifier]) -> Result<BlockValidation, String> {
+pub fn validate_signed_block(
+    signed_block: &SignedBlock,
+    verifiers: &[&dyn Verifier],
+) -> Result<BlockValidation, String> {
     let block = &signed_block.block;
     let mut result = validate_block_detailed(block)?;
-    let attestations = if !signed_block.attestations.is_empty() { signed_block.attestations.clone() } else { signed_block.attestation.clone().into_iter().collect() };
+    let attestations = if !signed_block.attestations.is_empty() {
+        signed_block.attestations.clone()
+    } else {
+        signed_block.attestation.clone().into_iter().collect()
+    };
     if attestations.is_empty() {
-        let v = AttestationValidation { ok: false, attester: "".into(), algorithm: "".into(), reason: Some("no attestation present".into()) };
+        let v = AttestationValidation {
+            ok: false,
+            attester: "".into(),
+            algorithm: "".into(),
+            reason: Some("no attestation present".into()),
+        };
         result.ok = false;
         result.attestation = Some(v.clone());
         result.attestations = vec![];
@@ -145,15 +193,34 @@ pub fn validate_signed_block(signed_block: &SignedBlock, verifiers: &[&dyn Verif
     let mut validations = vec![];
     for att in attestations {
         if att.block_hash != block.block_hash {
-            validations.push(AttestationValidation { ok: false, attester: att.attester, algorithm: att.algorithm, reason: Some("attestation.blockHash does not match block.blockHash".into()) });
+            validations.push(AttestationValidation {
+                ok: false,
+                attester: att.attester,
+                algorithm: att.algorithm,
+                reason: Some("attestation.blockHash does not match block.blockHash".into()),
+            });
             continue;
         }
         let Some(verifier) = verifiers.iter().find(|v| v.algorithm() == att.algorithm) else {
-            validations.push(AttestationValidation { ok: false, attester: att.attester, algorithm: att.algorithm, reason: Some("no verifier for algorithm".into()) });
+            validations.push(AttestationValidation {
+                ok: false,
+                attester: att.attester,
+                algorithm: att.algorithm,
+                reason: Some("no verifier for algorithm".into()),
+            });
             continue;
         };
         let (ok, signer) = verifier.verify(&data, &att.signature, Some(&att.attester))?;
-        validations.push(AttestationValidation { ok, attester: signer, algorithm: att.algorithm, reason: if ok { None } else { Some("signature verification failed".into()) } });
+        validations.push(AttestationValidation {
+            ok,
+            attester: signer,
+            algorithm: att.algorithm,
+            reason: if ok {
+                None
+            } else {
+                Some("signature verification failed".into())
+            },
+        });
     }
     result.ok = result.ok && validations.iter().all(|v| v.ok);
     result.attestation = validations.first().cloned();
@@ -163,7 +230,9 @@ pub fn validate_signed_block(signed_block: &SignedBlock, verifiers: &[&dyn Verif
 
 pub fn normalize_hash(h: &str) -> Result<String, String> {
     let s = h.trim().to_lowercase();
-    if !HASH_RE.is_match(&s) { return Err(format!("[ALX_INVALID_HASH] invalid hash: {h}")); }
+    if !HASH_RE.is_match(&s) {
+        return Err(format!("[ALX_INVALID_HASH] invalid hash: {h}"));
+    }
     Ok(s)
 }
 
@@ -186,19 +255,33 @@ mod tests {
 
     struct FakeSigner(&'static str);
     impl Signer for FakeSigner {
-        fn get_id(&self) -> Result<String, String> { Ok(self.0.into()) }
-        fn sign(&self, data: &[u8]) -> Result<String, String> { Ok(format!("{}:{}", self.0, hex::encode(data))) }
-        fn algorithm(&self) -> &str { "fake" }
+        fn get_id(&self) -> Result<String, String> {
+            Ok(self.0.into())
+        }
+        fn sign(&self, data: &[u8]) -> Result<String, String> {
+            Ok(format!("{}:{}", self.0, hex::encode(data)))
+        }
+        fn algorithm(&self) -> &str {
+            "fake"
+        }
     }
 
     struct FakeVerifier;
     impl Verifier for FakeVerifier {
-        fn verify(&self, data: &[u8], signature: &str, expected_signer: Option<&str>) -> Result<(bool, String), String> {
+        fn verify(
+            &self,
+            data: &[u8],
+            signature: &str,
+            expected_signer: Option<&str>,
+        ) -> Result<(bool, String), String> {
             let signer = signature.split(':').next().unwrap_or("").to_string();
-            let ok = signature == format!("{}:{}", signer, hex::encode(data)) && expected_signer.map_or(true, |expected| expected == signer);
+            let ok = signature == format!("{}:{}", signer, hex::encode(data))
+                && expected_signer.is_none_or(|expected| expected == signer);
             Ok((ok, signer))
         }
-        fn algorithm(&self) -> &str { "fake" }
+        fn algorithm(&self) -> &str {
+            "fake"
+        }
     }
 
     #[test]
@@ -250,7 +333,9 @@ mod tests {
         block.attestations[0].block_hash = format!("0x{}", "0".repeat(64));
         let result = validate_signed_block(&block, &[&FakeVerifier]).unwrap();
         assert!(!result.ok);
-        assert_eq!(result.attestation.unwrap().reason.unwrap(), "attestation.blockHash does not match block.blockHash");
+        assert_eq!(
+            result.attestation.unwrap().reason.unwrap(),
+            "attestation.blockHash does not match block.blockHash"
+        );
     }
 }
-

@@ -6,27 +6,37 @@
 //! One primitive: Block = { blockHash, contentHash, parentHashes, content }
 //! Four operations: canonicalize, hash, validate, trace
 
-mod canonical;
 mod block;
-mod lineage;
-mod trace;
-mod merkle;
-mod signatures;
+mod canonical;
 mod ed25519;
+pub mod extensions;
+mod lineage;
+mod merkle;
 mod p256_backend;
 mod replay;
+mod signatures;
+mod trace;
 mod verification_context;
 mod verification_receipt;
-pub mod extensions;
 
+pub use block::{
+    add_attestation, create_block, create_signed_block, derive_block_hash, derive_content_hash,
+    normalize_hash, normalize_hashes, validate_block, validate_block_detailed,
+    validate_signed_block, AttestationValidation, Block, BlockValidation, SignedBlock, MAX_PARENTS,
+};
 pub use canonical::canonicalize;
-pub use block::{derive_block_hash, derive_content_hash, create_block, create_signed_block, add_attestation, validate_block, validate_block_detailed, validate_signed_block, normalize_hash, normalize_hashes, MAX_PARENTS, Block, SignedBlock, AttestationValidation, BlockValidation};
-pub use lineage::{validate_lineage, validate_graph, build_graph, verify_graph, add_block_to_graph, validate_incremental_block, LineageResult, GraphResult, VerifyIssue, VerifyResult};
-pub use trace::{trace_attribution, verify_trace, AttributionTrace, TraceNode, TraceEdge, TraceVerification};
-pub use signatures::{BlockAttestation, Signer, Verifier};
 pub use ed25519::{Ed25519Signer, Ed25519Verifier};
+pub use lineage::{
+    add_block_to_graph, build_graph, validate_graph, validate_incremental_block, validate_lineage,
+    verify_graph, GraphResult, LineageResult, VerifyIssue, VerifyResult,
+};
 pub use p256_backend::{P256Signer, P256Verifier};
 pub use replay::{build_replay_scope_key, validate_replay_window, ReplayResult};
+pub use signatures::{BlockAttestation, Signer, Verifier};
+pub use trace::{
+    trace_attribution, verify_trace, AttributionTrace, TraceEdge, TraceNode, TraceVerification,
+};
 pub use verification_context::{ExternalParentBoundary, ValidationMode, VerificationContext};
-pub use verification_receipt::{VerificationReceipt, VerifierInfo, ReceiptError, ReceiptBuilder, validate_receipt};
-
+pub use verification_receipt::{
+    validate_receipt, ReceiptBuilder, ReceiptError, VerificationReceipt, VerifierInfo,
+};

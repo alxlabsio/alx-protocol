@@ -227,8 +227,15 @@ mod tests {
     const EXTERNAL: &str = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
     fn base_builder() -> ReceiptBuilder {
-        ReceiptBuilder::new(ROOT.to_string(), "closed-world".to_string(), true, true, 2, 1)
-            .verified_at(1710000000)
+        ReceiptBuilder::new(
+            ROOT.to_string(),
+            "closed-world".to_string(),
+            true,
+            true,
+            2,
+            1,
+        )
+        .verified_at(1710000000)
     }
 
     #[test]
@@ -257,30 +264,51 @@ mod tests {
 
     #[test]
     fn test_validate_open_world_partial() {
-        let r = ReceiptBuilder::new(ROOT.to_string(), "open-world".to_string(), true, false, 2, 2)
-            .verified_at(1710000000)
-            .external_parents(vec![EXTERNAL.to_string()])
-            .build();
+        let r = ReceiptBuilder::new(
+            ROOT.to_string(),
+            "open-world".to_string(),
+            true,
+            false,
+            2,
+            2,
+        )
+        .verified_at(1710000000)
+        .external_parents(vec![EXTERNAL.to_string()])
+        .build();
         assert!(validate_receipt(&r).is_ok());
     }
 
     #[test]
     fn test_validate_failed_with_errors() {
-        let r = ReceiptBuilder::new(ROOT.to_string(), "closed-world".to_string(), false, false, 1, 0)
-            .verified_at(1710000000)
-            .errors(vec![ReceiptError {
-                code: "ALX_BLOCK_HASH_MISMATCH".to_string(),
-                message: "Hash mismatch.".to_string(),
-            }])
-            .build();
+        let r = ReceiptBuilder::new(
+            ROOT.to_string(),
+            "closed-world".to_string(),
+            false,
+            false,
+            1,
+            0,
+        )
+        .verified_at(1710000000)
+        .errors(vec![ReceiptError {
+            code: "ALX_BLOCK_HASH_MISMATCH".to_string(),
+            message: "Hash mismatch.".to_string(),
+        }])
+        .build();
         assert!(validate_receipt(&r).is_ok());
     }
 
     #[test]
     fn test_rejects_ok_false_without_errors() {
-        let r = ReceiptBuilder::new(ROOT.to_string(), "closed-world".to_string(), false, false, 1, 0)
-            .verified_at(1710000000)
-            .build();
+        let r = ReceiptBuilder::new(
+            ROOT.to_string(),
+            "closed-world".to_string(),
+            false,
+            false,
+            1,
+            0,
+        )
+        .verified_at(1710000000)
+        .build();
         let result = validate_receipt(&r);
         assert!(result.is_err());
         let problems = result.unwrap_err();
@@ -289,9 +317,16 @@ mod tests {
 
     #[test]
     fn test_rejects_closed_world_ok_true_incomplete() {
-        let r = ReceiptBuilder::new(ROOT.to_string(), "closed-world".to_string(), true, false, 1, 0)
-            .verified_at(1710000000)
-            .build();
+        let r = ReceiptBuilder::new(
+            ROOT.to_string(),
+            "closed-world".to_string(),
+            true,
+            false,
+            1,
+            0,
+        )
+        .verified_at(1710000000)
+        .build();
         let result = validate_receipt(&r);
         assert!(result.is_err());
         let problems = result.unwrap_err();
@@ -310,9 +345,16 @@ mod tests {
 
     #[test]
     fn test_rejects_bad_root() {
-        let r = ReceiptBuilder::new("not-a-hash".to_string(), "closed-world".to_string(), true, true, 1, 0)
-            .verified_at(1710000000)
-            .build();
+        let r = ReceiptBuilder::new(
+            "not-a-hash".to_string(),
+            "closed-world".to_string(),
+            true,
+            true,
+            1,
+            0,
+        )
+        .verified_at(1710000000)
+        .build();
         let result = validate_receipt(&r);
         assert!(result.is_err());
     }

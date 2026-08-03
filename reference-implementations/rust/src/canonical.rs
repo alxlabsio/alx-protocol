@@ -13,7 +13,9 @@ pub fn canonicalize(value: &Value) -> Result<String, String> {
 
 fn canonicalize_inner(value: &Value, depth: usize) -> Result<String, String> {
     if depth > MAX_DEPTH {
-        return Err(format!("[ALX_CANONICALIZATION_DEPTH] Canonicalization depth exceeded {MAX_DEPTH}"));
+        return Err(format!(
+            "[ALX_CANONICALIZATION_DEPTH] Canonicalization depth exceeded {MAX_DEPTH}"
+        ));
     }
     match value {
         Value::Null => Ok("null".into()),
@@ -21,7 +23,8 @@ fn canonicalize_inner(value: &Value, depth: usize) -> Result<String, String> {
         Value::Number(n) => canonicalize_number(n),
         Value::String(s) => serde_json::to_string(s).map_err(|e| e.to_string()),
         Value::Array(a) => {
-            let parts: Result<Vec<String>, String> = a.iter().map(|v| canonicalize_inner(v, depth + 1)).collect();
+            let parts: Result<Vec<String>, String> =
+                a.iter().map(|v| canonicalize_inner(v, depth + 1)).collect();
             Ok(format!("[{}]", parts?.join(",")))
         }
         Value::Object(map) => {
@@ -42,14 +45,18 @@ fn canonicalize_inner(value: &Value, depth: usize) -> Result<String, String> {
 
 fn canonicalize_number(n: &Number) -> Result<String, String> {
     if let Some(i) = n.as_i64() {
-        if i > MAX_SAFE_INTEGER || i < MIN_SAFE_INTEGER {
-            return Err(format!("[ALX_CANONICALIZATION_UNSAFE_INTEGER] Integer out of safe range: {i}"));
+        if !(MIN_SAFE_INTEGER..=MAX_SAFE_INTEGER).contains(&i) {
+            return Err(format!(
+                "[ALX_CANONICALIZATION_UNSAFE_INTEGER] Integer out of safe range: {i}"
+            ));
         }
         return Ok(i.to_string());
     }
     if let Some(u) = n.as_u64() {
         if u > MAX_SAFE_INTEGER as u64 {
-            return Err(format!("[ALX_CANONICALIZATION_UNSAFE_INTEGER] Integer out of safe range: {u}"));
+            return Err(format!(
+                "[ALX_CANONICALIZATION_UNSAFE_INTEGER] Integer out of safe range: {u}"
+            ));
         }
         return Ok(u.to_string());
     }
@@ -84,7 +91,7 @@ fn format_float_js(f: f64) -> String {
     let abs = f.abs();
 
     // If serde_json produced scientific but JS would use decimal (1e-6 <= |f| < 1e21)
-    if (s.contains('e') || s.contains('E')) && abs >= 1e-6 && abs < 1e21 {
+    if (s.contains('e') || s.contains('E')) && (1e-6..1e21).contains(&abs) {
         // Convert to decimal: use enough precision to round-trip
         // Format with 20 decimal places then strip trailing zeros
         let decimal = format!("{f:.20}");
@@ -108,7 +115,10 @@ mod tests {
 
     #[test]
     fn keys_sorted() {
-        assert_eq!(canonicalize(&json!({"b": 1, "a": 2})).unwrap(), r#"{"a":2,"b":1}"#);
+        assert_eq!(
+            canonicalize(&json!({"b": 1, "a": 2})).unwrap(),
+            r#"{"a":2,"b":1}"#
+        );
     }
 
     #[test]
