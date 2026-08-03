@@ -82,10 +82,8 @@
             "docs/integrators/storage",
             "docs/integrators/extensions",
             "docs/integrators/adapters",
-            "docs/integrators/artifact-package-manifest",
-            "docs/integrators/on-chain-base",
-            "docs/integrators/index-blocks",
-            "docs/integrators/registry-blocks"
+            "docs/verification-receipts",
+            "docs/integrators/on-chain-base"
           ]
         },
         {
@@ -93,14 +91,12 @@
           "pages": [
             "docs/integrators/deployment-checklist",
             "docs/integrators/performance",
-            "docs/integrators/database-guide",
-            "docs/integrators/workflows"
+            "docs/integrators/database-guide"
           ]
         },
         {
           "group": "Reference",
           "pages": [
-            "docs/integrators/glossary",
             "docs/integrators/comparison",
             "docs/integrators/providers",
             "docs/integrators/settlement"
@@ -115,10 +111,10 @@
           "group": "Overview",
           "pages": [
             "docs/architecture",
+            "docs/whitepaper-diagrams",
             "docs/trust-model",
             "docs/data-model",
-            "docs/operations",
-            "docs/verification-receipts"
+            "docs/operations"
           ]
         },
         {
@@ -194,7 +190,8 @@
             "docs/decisions/004-attestation-orthogonality",
             "docs/decisions/005-incremental-validation",
             "docs/decisions/006-algorithm-agnostic-signing",
-            "docs/decisions/007-threat-model-depth"
+            "docs/decisions/007-threat-model-depth",
+            "docs/decisions/008-storage-and-discovery-boundaries"
           ]
         },
         {
@@ -216,6 +213,6 @@
   },
   "footerSocials": {
     "github": "https://github.com/xandrlabs/alx-protocol",
-    "website": "https://xandrlabs.ai"
+    "website": "https://github.com/xandrlabs/alx-protocol"
   }
 }

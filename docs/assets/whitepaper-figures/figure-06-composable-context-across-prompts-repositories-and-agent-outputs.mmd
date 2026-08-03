@@ -1,0 +1,20 @@
+%%{init: {"theme":"base","themeVariables":{"darkMode":false,"background":"#ffffff","primaryColor":"#F8FAFC","primaryBorderColor":"#334155","primaryTextColor":"#0F172A","secondaryColor":"#F1F5F9","secondaryBorderColor":"#475569","secondaryTextColor":"#1E293B","tertiaryColor":"#E2E8F0","tertiaryBorderColor":"#64748B","tertiaryTextColor":"#334155","lineColor":"#475569","mainBkg":"#FFFFFF","nodeBorder":"#334155","nodeTextColor":"#0F172A","clusterBkg":"#F8FAFC","clusterBorder":"#64748B","titleColor":"#0F172A","edgeLabelBackground":"#FFFFFF"}}}%%
+flowchart TB
+  subgraph promptBranch ["Applied Example — Prompt Branch"]
+    PROMPT(["Prompt Block"])
+    MODEL(["Output Block"])
+    REVIEW(["Review Block"])
+    PROMPT --> MODEL --> REVIEW
+  end
+
+  subgraph repoBranch ["Applied Example — Repository Branch"]
+    COMMIT(["Repo Block"])
+    SOURCE(["Source Block"])
+    BUILD(["Build Block"])
+    COMMIT --> SOURCE --> BUILD
+  end
+
+  FINAL(["Final Artifact Block"])
+
+  REVIEW --> FINAL
+  BUILD --> FINAL

@@ -1,6 +1,6 @@
 # ALX Repository Surfaces
 
-The document maps the current ALX Protocol repository surfaces available for local review, integration, and implementation. The repository includes reference implementations, developer tooling, canonical artifact examples, and product extension surfaces that demonstrate how ALX Protocol supports verifiable digital artifacts in product and developer workflows.
+The document maps the current ALX Protocol repository surfaces available for local review, integration, and implementation. The repository includes reference implementations, developer tooling, and optional extension surfaces.
 
 Reviewers, implementers, and integrators can use the document to quickly locate working ALX Protocol surfaces across the repository. Protocol behavior, conformance requirements, and core Block validity remain defined by the normative protocol documents.
 
@@ -18,24 +18,17 @@ Reviewers, implementers, and integrators can use the document to quickly locate 
 
 | Project | Description |
 |---|---|
-| [`@alx-protocol/cli`](../../cli/) | Command-line interface for creating, validating, inspecting, tracing, packaging, verifying, and testing ALX Blocks — use `alx package verify <dir>` for artifact package validation |
+| [`@alx-protocol/cli`](../../cli/) | Command-line interface for creating, validating, inspecting, tracing, retrieving, anchoring, and testing ALX Blocks |
 | [`ALX HTTP Server`](../../cli/server/server.js) | Local JSON API server that exposes Block operations for developer integrations, product prototypes, and service-oriented testing |
-| [`Conformance Runner`](../../conformance/) | Test harness that checks implementations against canonical ALX test vectors and expected protocol behavior |
-
-## Canonical Examples
-
-| Surface | Description |
-|---|---|
-| [`artifact-packages/`](../../artifact-packages/) | Portable example packages containing Blocks, traces, receipts, manifests, and verification materials for reviewer and integrator workflows |
-| [`artifact-packages/START-HERE.md`](../../artifact-packages/START-HERE.md) | Reviewer-oriented guide that walks through canonical artifact package examples in a clear inspection order |
+| [`conformance Runner`](../../conformance/) | Test harness that checks implementations against canonical ALX test vectors and expected protocol behavior |
 
 ## Optional Extensions
 
 | Extension | Description |
 |---|---|
+| [`content-profile`](../../protocol/extensions/content-profile/) | Optional typed structure inside `Block.content` while opaque content remains valid |
 | [`signing`](../../protocol/extensions/signing/) | Optional attestation layer for signing Blocks while preserving stable core Block identity |
 | [`merkle`](../../protocol/extensions/merkle/) | Optional checkpoint and inclusion-proof surface for batch verification, audit trails, and integrity proofs |
-| [`ipfs-artifact-package`](../../protocol/extensions/ipfs-artifact-package/) | Optional package manifest schema for mapping ALX Protocol artifact packages to content-addressed storage systems |
 
 ---
 

@@ -42,7 +42,7 @@ npm list @alx-protocol/sdk
 
 2. **Run the conformance test suite:**
    ```bash
-   npx alx test-vectors run
+   npx @alx-protocol/cli test-vectors run
    ```
    All core vectors must pass. If any fail, the upgrade introduced a regression - file an issue.
 
@@ -121,7 +121,7 @@ If an upgrade causes issues:
 
 2. **Verify conformance:**
    ```bash
-   npx alx test-vectors run
+   npx @alx-protocol/cli test-vectors run
    ```
 
 3. **Verify existing data:**

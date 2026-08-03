@@ -79,28 +79,80 @@ normalizeHash("invalid");                  // throws Error
 function normalizeHashLenient(hash: string): string
 ```
 
-Lowercases and trims without validation. Graph and Trace layers filter invalid hashes downstream.
+Lowercases and trims a string without validating its hash format. Non-string values throw `ALX_INVALID_HASH`.
 
-### `normalizeHashes(hashes-)`
+### `normalizeHashes(hashes?)`
 
 ```ts
-function normalizeHashes(hashes-: string[]): string[]
+function normalizeHashes(hashes?: string[]): string[]
 ```
 
-Normalizes, deduplicates, and lexicographically sorts an array of hashes. Silently drops entries failing `HASH_PATTERN`.
+Normalizes, deduplicates, and lexicographically sorts an array of hashes. Omitted input returns an empty array. A supplied non-array or invalid entry throws `ALX_INVALID_HASH` without returning a partial set.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `hashes` | `string[]` (optional) | Raw hash array |
 
-**Returns:** Sorted, deduplicated array of valid hashes. Empty array when input is invalid or non-array.
+**Returns:** Sorted, deduplicated array of valid hashes.
 
 ```js
 const p1 = "0x" + "a".repeat(64);
 const p2 = "0x" + "b".repeat(64);
 normalizeHashes([p2, p1, p1]); // [p1, p2] - sorted, deduplicated
-normalizeHashes(["invalid"]);  // [] - dropped
+normalizeHashes(["invalid"]);  // throws ALX_INVALID_HASH
 ```
+
+### `sanitizeImportedParentHashes(hashes?)`
+
+```ts
+type RejectedParentHashReason =
+  | "not_array"
+  | "invalid_type"
+  | "invalid_format";
+
+interface SanitizedParentHashes {
+  ok: boolean;
+  parentHashes: string[];
+  rejected: Array<{
+    index: number | null;
+    value: unknown;
+    reason: RejectedParentHashReason;
+  }>;
+  duplicates: Array<{
+    index: number;
+    hash: string;
+  }>;
+  collectionErrors: Array<{
+    reason: "too_many_parents";
+    count: number;
+    maximum: number;
+  }>;
+}
+
+function sanitizeImportedParentHashes(
+  hashes?: unknown,
+): SanitizedParentHashes
+```
+
+Inspects parent hashes at an untrusted import boundary without changing core Block behavior.
+
+`parentHashes` contains the sorted unique valid subset. `rejected` preserves original indexes and values for malformed entries. `duplicates` records duplicate indexes and normalized hashes. `collectionErrors` reports a normalized set exceeding 256 entries.
+
+`ok` is `false` when entries are rejected or the normalized collection exceeds `MAX_PARENTS`. Duplicate-only input remains usable. Callers pass `parentHashes` to core operations only when `ok` is `true`.
+
+```ts
+const imported = [
+  "0x" + "A".repeat(64),
+  "invalid",
+];
+const result = sanitizeImportedParentHashes(imported);
+
+result.ok;                 // false
+result.parentHashes;       // one normalized hash
+result.rejected[0].reason; // "invalid_format"
+```
+
+`createBlock()`, `deriveBlockHash()`, and `normalizeHashes()` call strict normalization directly and reject malformed input.
 
 ---
 
@@ -179,7 +231,7 @@ interface BlockValidation {
 ### `createBlock(content, parentHashes-)`
 
 ```ts
-function createBlock(content: unknown, parentHashes-: string[]): Block
+function createBlock(content: unknown, parentHashes?: string[]): Block
 ```
 
 Create a Block. Normalizes parent hashes (lowercase, deduplicate, sort), computes `blockHash` and `contentHash`.
@@ -187,7 +239,7 @@ Create a Block. Normalizes parent hashes (lowercase, deduplicate, sort), compute
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `content` | `unknown` | Any JSON-serializable value. `undefined` converts to `null`. |
-| `parentHashes` | `string[]` (optional) | Dependency hashes. Invalid entries are silently dropped. |
+| `parentHashes` | `string[]` (optional) | Dependency hashes. Malformed collections or entries throw `ALX_INVALID_HASH`. |
 
 **Returns:** Complete `Block` object with computed hashes.
 

@@ -60,7 +60,7 @@ Trust boundaries of ALX Protocol: what ALX Protocol verifies, what ALX Protocol 
 
 4. **Signing proves key control** — an EIP-712 signature proves the signer controlled a private key. Signer identity requires linkage to an external identity system.
 
-5. **On-chain anchoring proves existence** — **ALXAnchor** on Base records a `blockHash` at chain time (optional). Merkle proofs remain an off-chain SDK extension unless an operator chooses a separate legacy checkpoint integration. On-chain anchoring excludes proof that underlying Blocks are correct.
+5. **On-chain anchoring proves existence** — **ALXAnchor** on Base records a `blockHash` at chain time (optional). Merkle proofs remain an off-chain SDK extension and may be consumed by application-owned adapters. On-chain anchoring excludes proof that underlying Blocks are correct.
 
 ## Threat Model Summary
 

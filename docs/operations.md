@@ -1,6 +1,6 @@
 # Operations
 
-ALX operations defined by the specification and machine-readable verifier files. New protocol behavior remains outside the scope of the operations document.
+ALX operations defined by the specification, schemas, and canonical test vectors. New protocol behavior remains outside the scope of the operations document.
 
 ---
 
@@ -10,7 +10,7 @@ Complete reference for core protocol operations plus optional extension operatio
 
 ---
 
-All operations defined by ALX Protocol. Each operation is deterministic: identical inputs MUST produce identical outputs across all conformant implementations.
+Core operations are defined by ALX Protocol. SDK import utilities and optional extension operations are classified separately. Deterministic operations return identical outputs for identical inputs.
 
 ## Summary
 
@@ -22,7 +22,8 @@ All operations defined by ALX Protocol. Each operation is deterministic: identic
 | `createBlock` | 2 | content + parentHashes | Block object | Yes | canonicalization errors |
 | `validateBlock` | 2 | Block object | `{ ok, expected, actual }` | Yes | invalid hash format |
 | `normalizeHash` | 2 | string | lowercase hash | Yes | invalid format |
-| `normalizeHashes` | 2 | string[] | sorted unique hashes | Yes | none (drops invalid) |
+| `normalizeHashes` | 2 | string[] or omitted | sorted unique hashes | Yes | `ALX_INVALID_HASH`; `ALX_TOO_MANY_PARENTS` |
+| `sanitizeImportedParentHashes` | SDK import boundary | unknown | normalized subset and diagnostics | Yes | none |
 | `validateLineage` | 3 | blockHash + parents + known | LineageResult | Yes | none |
 | `validateGraph` | 3 | graph | GraphResult | Yes | none |
 | `verifyGraph` | 3 | blocks + hashFn | VerifyResult | Yes | missing computeHash |
@@ -68,7 +69,7 @@ Convert any JSON-compatible value to its canonical string representation.
 - `Integer out of safe range` - integer exceeds safe range
 - `Canonicalization depth exceeded 128` - nesting too deep
 
-**Conformance vectors:** `protocol/test-vectors/canonicalization.json` (C1-C13), `canonicalization-negative.json` (CN1-CN6)
+**conformance vectors:** `protocol/test-vectors/canonicalization.json` (C1-C13), `canonicalization-negative.json` (CN1-CN6)
 
 ---
 
@@ -95,10 +96,10 @@ Where `parentHashes` normalizes (lowercase, deduplicated, sorted) before canonic
 
 **Constraints:**
 - parentHashes MUST be normalized before hashing
-- Invalid parent hashes MUST be silently dropped
+- Invalid parent collections or entries MUST reject hash derivation with `ALX_INVALID_HASH`
 - `null` and `undefined` content MUST be treated as equivalent
 
-**Conformance vectors:** `protocol/test-vectors/block-identity.json` (B1-B7)
+**conformance vectors:** `protocol/test-vectors/block-identity.json` (B1-B7)
 
 ---
 
@@ -185,7 +186,21 @@ Normalize, deduplicate, and sort an array of hashes.
 
 **Input:** Array of strings.
 
-**Output:** Sorted array of valid, unique, lowercase hashes. Invalid entries are silently dropped.
+**Output:** Sorted array of unique lowercase hashes.
+
+**Errors:**
+- `ALX_INVALID_HASH` - the supplied value must be an array and every entry must be a valid hash string
+- `ALX_TOO_MANY_PARENTS` - normalization produces more than 256 distinct hashes
+
+### `sanitizeImportedParentHashes(hashes): SanitizedParentHashes`
+
+Inspect untrusted parent-hash data before a caller selects an import policy.
+
+**Input:** An unknown value from an import boundary.
+
+**Output:** A sorted unique valid subset plus rejected-entry, duplicate, and collection-overflow diagnostics.
+
+The `ok` field is true when every entry is accepted and the normalized set contains at most 256 distinct hashes. Duplicate-only input remains usable after normalization. Core Block creation calls strict normalization directly.
 
 ---
 
@@ -220,7 +235,7 @@ Validate a single block's lineage within an optional known set.
 - Duplicate parents MUST be detected
 - Missing parents SHOULD be reported when knownHashes is present
 
-**Conformance vectors:** `protocol/test-vectors/lineage-negative.json` (LN1-LN6)
+**conformance vectors:** `protocol/test-vectors/lineage-negative.json` (LN1-LN6)
 
 ---
 
@@ -306,7 +321,7 @@ Resolve the full lineage structure from a root block through a graph.
 - Leaves MUST be sorted lexicographically
 - Cycles MUST be detected and reported; traversal of cycles remains excluded
 
-**Conformance vectors:** `protocol/test-vectors/attribution-trace.json` (T1-T6)
+**conformance vectors:** `protocol/test-vectors/attribution-trace.json` (T1-T6)
 
 ---
 
@@ -493,6 +508,7 @@ Verify a signed protocol request including replay, expiry, and signature checks.
 | `validateBlock` | Core | Yes |
 | `normalizeHash` | Core | Yes |
 | `normalizeHashes` | Core | Yes |
+| `sanitizeImportedParentHashes` | SDK import utility | No |
 | `validateLineage` | Core | Yes |
 | `validateGraph` | Core | Yes |
 | `verifyGraph` | Core | Yes |
@@ -514,6 +530,5 @@ Verify a signed protocol request including replay, expiry, and signature checks.
 
 - [`data-model.md`](./data-model.md) — data structures referenced by the operations above
 - [`implementers/conformance.md`](./implementers/conformance.md) — operations required for conformance
-- [`protocol/verifier.json`](../protocol/verifier.json) — machine-readable core verifier operations
-- [`protocol/graph-verifier.json`](../protocol/graph-verifier.json) — graph verification operations
+- [`protocol/test-vectors/`](../protocol/test-vectors/) — canonical operation inputs and expected outcomes
 - [`protocol/spec.md`](../protocol/spec.md) — normative protocol behavior

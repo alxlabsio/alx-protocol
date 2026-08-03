@@ -4,7 +4,7 @@ The document explains versioning policy. Versioning policy remains outside the p
 
 ---
 
-This document defines the versioning policy for the ALX Protocol, its test vectors, and conforming implementations.
+This document defines the versioning policy for the ALX Protocol, its test vectors, and conformant implementations.
 
 ## Protocol Version
 

@@ -116,9 +116,8 @@ DFS traversal computing `pathCount` per node. Same complexity class as graph val
 
 | Limit | Value | Defined in |
 |---|---|---|
-| Max canonicalization depth | 128 levels | `protocol/limits.json` LIMIT-002 |
-| Max canonical output size | 16 MB | `protocol/limits.json` LIMIT-101 |
-| Max parents per Block | 256 (post-dedup) | `protocol/limits.json` LIMIT-001 |
+| Max canonicalization depth | 128 levels | [`protocol/spec.md`](../protocol/spec.md#2-canonicalization) and canonical depth vectors |
+| Max parents per Block | 256 (post-dedup) | [`protocol/spec.md`](../protocol/spec.md) and canonical parent-limit vectors |
 
 A Block at the theoretical maximum (128-level nesting, 256 parents) represents the worst-case input for any implementation. Conformance depth vectors are in `protocol/test-vectors/canonicalization-depth.json`.
 
@@ -138,6 +137,5 @@ A Block at the theoretical maximum (128-level nesting, 256 parents) represents t
 ## Related Documents
 
 - `[scripts/bench/run.js](../scripts/bench/run.js)` — benchmark harness source
-- `[protocol/limits.json](../protocol/limits.json)` — normative protocol limits
 - `[protocol/test-vectors/canonicalization-depth.json](../protocol/test-vectors/canonicalization-depth.json)` — depth boundary vectors
 - `[docs/operations.md](operations.md)` — operation reference

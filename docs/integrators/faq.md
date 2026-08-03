@@ -112,7 +112,7 @@ Wrap agent output as Blocks. The universal pattern: after an agent produces outp
 
 All conformant implementations produce byte-identical output for the same input across the core protocol surface. Verify core conformance with `alx test-vectors run` or the conformance runner. When the implementation also supports optional extensions, verify the extensions separately with `alx extension-conformance merkle` and `alx extension-conformance signing`.
 
-### Conformance Test Suite
+### Protocol conformance test suite
 
 A set of canonical vectors for the core protocol surface: canonicalization, block identity, attribution tracing, lineage validation, and rejection tests. Optional extensions such as Merkle and signing have separate suites and leave the core conformance claim unchanged. See [`../implementers/conformance.md`](../implementers/conformance.md).
 

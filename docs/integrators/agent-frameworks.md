@@ -716,7 +716,7 @@ console.log("\nPipeline verification complete. All Blocks valid, Graph intact, a
 
 ## Related Documents
 
-- [Real-World Workflows](./workflows.md) -- three production scenarios: research pipeline, compliance audit, multi-vendor marketplace
+- [Attributed Outputs](./attributed-outputs.md) -- application-facing lineage and receipt patterns
 - [Quickstart](./quickstart.md) -- five-minute introduction to the SDK
 - [API Reference](./api-reference.md) -- complete SDK function and type reference
 - [Agent Integration](./agent-integration.md) -- core patterns for wrapping agent outputs as Blocks

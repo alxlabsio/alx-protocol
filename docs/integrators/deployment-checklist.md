@@ -29,7 +29,7 @@ Production readiness concerns for systems that create, store, retrieve, and vali
 - [ ] Record the pinned version and its corresponding `ALX_PROTOCOL_VERSION` value.
 - [ ] Verify the SDK version matches across all services that exchange Blocks.
 
-### Conformance Test Suite
+### Protocol conformance test suite
 
 - [ ] Run the full conformance test suite against the integration (`npm test` or equivalent).
 - [ ] Confirm all test vectors from `protocol/test-vectors/` pass.
@@ -121,7 +121,7 @@ ALX inspects no content. PII, regulated data, and policy violations inside a Blo
 
 ### Graph Integrity Checks
 
-- [ ] Schedule periodic `validateGraph` runs against stored Block sets.
+- [ ] Schedule periodic `validateGraph` runs against stored Block collections.
 - [ ] Alert on any orphaned references (parentHashes pointing to missing Blocks).
 - [ ] Track Graph size (total Block count, maximum depth) over time.
 

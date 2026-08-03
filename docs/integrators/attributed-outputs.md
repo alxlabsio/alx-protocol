@@ -4,11 +4,9 @@ The document describes the attribution-first workflow for producing outputs with
 
 ---
 
-## The Problem
+## Attribution Model
 
-Outputs produced by pipelines, agents, and teams carry no verifiable record of contributing inputs. When a downstream consumer receives an output — a recommendation, a report, a generated response — the sources, proportions, and post-production integrity are unverifiable.
-
-ALX Protocol addresses attribution through a three-block workflow: root blocks for sources, parent blocks for derivations, output blocks with full attribution.
+An attribution workflow represents source material as root Blocks, intermediate derivations as parent Blocks, and a produced artifact as an output Block. The resulting Graph records declared inputs and supports local identity and lineage verification.
 
 ---
 
@@ -173,11 +171,10 @@ A verification receipt captures the attribution result in a portable JSON docume
 ```ts
 // The receipt records: block identity, validation mode, completeness,
 // missing parents, external parents, and whether CID was verified.
-// Use the CLI to generate and verify receipts:
-// alx package verify artifact-packages/security-review-decision --json
+// Receipt creation is optional application behavior after Graph verification.
 ```
 
-See [`verification-receipts.md`](./verification-receipts.md) for the receipt format.
+See [`verification-receipts.md`](../verification-receipts.md) for the receipt format.
 
 ---
 
@@ -235,4 +232,3 @@ for (const node of trace.nodes) {
 - [`agent-integration.md`](./agent-integration.md) — attribution in agent workflows
 - [`verification-receipts.md`](../verification-receipts.md) — portable receipt format
 - [`../../protocol/spec.md`](../../protocol/spec.md) — normative specification
-- [`../../artifact-packages/START-HERE.md`](../../artifact-packages/START-HERE.md) — canonical package examples

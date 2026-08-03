@@ -59,7 +59,7 @@ Blocks map naturally to content-addressed storage because both use content-addre
 Blocks are JSON objects. Store Blocks in any database with `blockHash` as the primary key. The four Block fields are the only schema requirement.
 
 ### Filesystems
-One file per Block, named by hash: `0xabc123...def.block.json`. The canonical artifact packages demonstrate the same storage boundary with `block.json`, `content.json`, `blocks.json`, and `manifest.json`.
+One file per Block, named by hash: `0xabc123...def.block.json`.
 
 ### External Checkpoints
 
@@ -153,17 +153,23 @@ All four produce `{ ok: true }`. The storage backend is irrelevant to validity.
 
 ## Recommended Adapter Interface
 
-Applications that need pluggable storage SHOULD implement a `BlockStore` interface:
+Applications that need pluggable local storage can use `@alx-protocol/adapters` or implement its `BlockStore` interface:
 
 ```typescript
 interface BlockStore {
   put(block: Block): Promise<void>;
-  get(hash: string): Promise<Block | null>;
-  has(hash: string): Promise<boolean>;
+  get(blockHash: string): Promise<Block | null>;
+  list(): Promise<BlockSummary[]>;
+  has(blockHash: string): Promise<boolean>;
+  remove(blockHash: string): Promise<void>;
 }
 ```
 
-See [`extensions.md`](./extensions.md) for detailed adapter patterns.
+The package provides `MemoryBlockStore` for ephemeral processes, `BrowserBlockStore` backed by IndexedDB, and `FileBlockStore` for local files. A database-backed application can implement the same interface around its chosen database.
+
+Storage writes change local availability while preserving Block identity. Store listings report local availability only; `parentHashes` define Graph relationships.
+
+See [`../../adapters/README.md`](../../adapters/README.md) for package usage.
 
 ---
 
@@ -179,7 +185,7 @@ See [`extensions.md`](./extensions.md) for detailed adapter patterns.
 
 IPFS is a recommended storage backend for Blocks that need decentralized availability. ALX and IPFS share the content-addressing principle but use different hash functions — complementary primitives, each with distinct identity schemes.
 
-### blockHash vs. CID
+### `blockHash` And CID
 
 | Property | ALX `blockHash` | IPFS CID |
 |---|---|---|
@@ -193,22 +199,22 @@ The identifiers differ. A Block pinned to IPFS carries a `blockHash` (for ALX pr
 ### Publishing a Block to IPFS
 
 ```bash
-# Pin a Block to a local Kubo node and register the CID
+# Pin a Block to a local Kubo node and record the CID mapping
 alx block publish research.block.json --ipfs http://localhost:5001
 
 # Output:
 #   ✓ Pinned to IPFS
 #     CID:      bafybeihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku
 #     Gateway:  https://ipfs.io/ipfs/bafybei...
-#     Registry: updated ~/.alx/registry.json
+#     CID map:  updated ~/.alx/cid-map.json
 ```
 
-The local registry (`~/.alx/registry.json`) stores the `blockHash → CID` mapping. `alx block resolve` uses this registry to look up the CID and fetch via the gateway.
+The local CID map (`~/.alx/cid-map.json`) stores the `blockHash → CID` mapping. `alx block resolve` uses the application-owned cache to look up a CID and fetch through the configured gateway. Local Block Stores persist complete Blocks, while public discovery belongs to network services.
 
 ### Resolving a Block by blockHash
 
 ```bash
-# Resolve using the local registry and default IPFS gateway
+# Resolve using the local CID map and default IPFS gateway
 alx block resolve 0xabc123...
 
 # Use a custom gateway or a direct HTTP endpoint
@@ -221,18 +227,18 @@ alx block resolve 0xabc123... --json
 
 Resolution order:
 1. HTTP retrieval endpoint (`GET /block/{blockHash}`) if `--endpoint` appears in the call
-2. Local registry (`~/.alx/registry.json`) → IPFS gateway
+2. Local CID map (`~/.alx/cid-map.json`) → IPFS gateway
 
 The CLI verifies every fetched Block against the requested `blockHash` before returning the Block. Local recomputation is required; fetching from a trusted source is insufficient alone.
 
 ### Programmatic resolution
 
 ```javascript
-import { resolveBlock, publishToIpfs, registerCid } from "@alx-protocol/cli/lib/resolve.js";
+import { resolveBlock, publishToIpfs, recordCidMapping } from "@alx-protocol/cli/lib/resolve.js";
 
 // Publish a Block to a Kubo node
 const cid = await publishToIpfs(block, "http://localhost:5001");
-registerCid(block.blockHash, cid, "ipfs");
+recordCidMapping(block.blockHash, cid, "ipfs");
 
 // Resolve later
 const result = await resolveBlock(block.blockHash, {
@@ -246,24 +252,24 @@ if (result) {
 }
 ```
 
-### Registry format
+### CID map format
 
-`~/.alx/registry.json` stores the mapping between ALX block hashes and IPFS CIDs:
+`~/.alx/cid-map.json` stores the application-local mapping between ALX block hashes and IPFS CIDs:
 
 ```json
 {
   "version": "1",
-  "entries": {
+  "mappings": {
     "0xabc123...": {
       "cid": "bafybeihdwdcefgh4...",
       "source": "ipfs",
-      "registeredAt": "2026-05-30T12:00:00.000Z"
+      "recordedAt": "2026-05-30T12:00:00.000Z"
     }
   }
 }
 ```
 
-A custom registry path can be specified with `--registry <path>` on any `alx block publish` or `alx block resolve` call.
+A custom CID-map path can be specified with `--cid-map <path>` on any `alx block publish` or `alx block resolve` call.
 
 ### Pinning services
 
@@ -276,7 +282,7 @@ Kubo is optional. Any IPFS pinning service that exposes a Kubo-compatible HTTP A
 | web3.storage | `https://api.web3.storage` |
 | Infura IPFS | `https://ipfs.infura.io:5001` |
 
-For services that require authentication, set the appropriate authorization headers in a proxy or use the service's SDK before passing the CID to `registerCid`.
+For services that require authentication, set the appropriate authorization headers in a proxy or use the service's SDK before passing the CID to `recordCidMapping`.
 
 ### Retrieval API
 
@@ -290,11 +296,11 @@ POST /blocks               → { blocks, missing }
 GET  /block/{blockHash}/cid → { blockHash, cid, gatewayUrl }
 ```
 
-The API is advisory (marked non-normative in `protocol/retrieval-api.yaml`). The reference CLI implements the interface via `alx retrieval start` (default port **8081**), separate from the verification API (`alx server start` on port **8080**). This pattern is a **developer convenience** for trusted team networks—not a production trustless multi-party resolution layer. Unrelated parties need **`alx.index`**, shared **`alx.registry`** catalogs, or optional **ALX anchor** on Base—not HTTP retrieval alone.
+The advisory, non-normative API is available through `alx retrieval start` on port 8081, separate from the verification API on port 8080. The reference service supports controlled team networks. Production multi-party discovery belongs to the planned XNDR.network layer.
 
 ### Team resolution (shared retrieval server)
 
-For multi-developer workflows before an on-chain anchor exists, run a shared retrieval server instead of relying on per-machine `~/.alx/registry.json`:
+For multi-developer use before an on-chain anchor exists, run a shared retrieval server instead of relying on per-machine `~/.alx/cid-map.json` files:
 
 ```bash
 # Alice — host the shared store
@@ -305,32 +311,31 @@ alx block publish research.block.json \
   --endpoint http://alice:8081 \
   --ipfs http://localhost:5001
 
-# Bob — resolve by blockHash only (no local registry required)
+# Bob — resolve by blockHash only (no local CID map required)
 alx block resolve 0xabc123... --endpoint http://alice:8081
 ```
 
-The retrieval server validates Blocks on write (`validateBlock`) and clients re-verify `blockHash` after fetch. The pattern suits trusted team networks (VPN, localhost, staging). Cross-party lookup without manual CID sharing uses off-chain **`alx.registry`** / **`alx.index`** Blocks or optional **ALX anchor** on Base; the HTTP retrieval server alone is insufficient for this purpose.
+The retrieval server validates Blocks on write (`validateBlock`), and clients re-verify `blockHash` after fetch. The pattern suits controlled team networks such as localhost, VPN, and staging environments.
 
 Reference-only publish envelope (informative): the reference server also accepts `{ "block": { ... }, "cid": "bafy..." }` on `POST /block` so IPFS CIDs can be indexed for `GET /block/{blockHash}/cid`. The OpenAPI spec documents this as `PublishBlockRequest` in [`protocol/retrieval-api.yaml`](../../protocol/retrieval-api.yaml) (also published at `https://xandrlabs.github.io/alx-protocol/protocol/1/retrieval-api.yaml`).
 
-### Resolution layers (minimal chain)
+### Resolution Layers
 
-Default integration uses **no blockchain**:
+Default integration uses no blockchain:
 
-1. **Registry Block** (`alx.registry`) — what exists; entries carry `blockHash` and `cid`
-2. **IPFS + local registry / `alx block publish`** — where bytes live
-3. **`alx retrieval start`** — shared team host (staging/VPN)
-
-Use chain **only** when step 3 is insufficient for unrelated parties that have only a `blockHash`:
+1. A Local Block Store persists application-owned Blocks.
+2. IPFS or another storage provider makes bytes available.
+3. `alx retrieval start` exposes a controlled team endpoint.
+4. The planned XNDR.network layer handles public discovery when implemented.
 
 | Layer | Default? | Role |
-| --- | --- | --- |
-| **Registry Block** | Yes | Off-chain catalog and discovery |
-| **Retrieval API / local registry** | Yes | Team fetch and publish |
-| **ALX anchor (ALXAnchor)** | No — opt-in | Rare existence-time or blockset commit on Base |
-| **Optional Base CID pointer read** | No — opt-in | `alx block resolve --chain base` only; see [Optional Base reads](on-chain-base.md#optional-base-reads-reference) |
+|---|---|---|
+| Local Block Store | Yes | Application persistence |
+| Retrieval API | Optional | Controlled team fetch and publish |
+| XNDR.network discovery | Planned | Cross-party discovery |
+| ALXAnchor | No | Rare public existence-time evidence for one hash or transaction batch |
 
-Block validation never depends on chain availability. See [`on-chain-base.md`](on-chain-base.md).
+Block validation never depends on storage, discovery, or chain availability. See [`on-chain-base.md`](on-chain-base.md).
 
 Reference retrieval server environment (writes optional, reads open by default):
 
@@ -341,3 +346,8 @@ Reference retrieval server environment (writes optional, reads open by default):
 | `ALX_RETRIEVAL_RATE_WINDOW_MS` | Window length in ms (default `60000`) |
 
 TLS and high availability are deployment concerns (reverse proxy, load balancer), outside protocol core.
+
+## Related Documents
+
+- [Protocol specification](../../protocol/spec.md)
+- [Integration adapters](./adapters.md)

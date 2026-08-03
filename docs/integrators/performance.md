@@ -73,7 +73,7 @@ const blocks = items.map(item => createBlock(item, parents));
 
 ### Graph Caching
 
-`buildGraph` creates a `Map` from an array of Blocks. When the Block set changes incrementally, maintain the `Map` directly instead of rebuilding:
+`buildGraph` creates a `Map` from an array of Blocks. When the Block collection changes incrementally, maintain the `Map` directly instead of rebuilding:
 
 ```js
 const graph = new Map();
@@ -137,7 +137,7 @@ Deep linear chains (each Block with one parent) can exceed the default JavaScrip
 
 ### Streaming Patterns For Bulk Operations
 
-When processing large Block sets from a database, stream rather than loading all at once:
+When processing large Block collections from a database, stream rather than loading all at once:
 
 ```js
 const graph = new Map();

@@ -1,0 +1,146 @@
+{
+  "status": "exploration",
+  "authority": "Non-normative publication asset; does not define ALX Protocol behavior.",
+  "source": "scripts/docs/generate-alx-logo.js",
+  "referenceRaster": "exec-077f28c2-15c2-4bbc-9f45-001aef71a6b0.png",
+  "specification": {
+    "viewBox": 1024,
+    "unit": 8,
+    "edge": 352,
+    "band": 96,
+    "gap": 32,
+    "counter": 96,
+    "notchWidth": 80,
+    "notchDepth": 128,
+    "targetExtent": 760,
+    "opticalNudge": 2,
+    "diamondDepthRatio": 0.68
+  },
+  "candidates": [
+    {
+      "id": "alx-isometric-integrated",
+      "axis": "isometric",
+      "angle": 30,
+      "connection": "integrated",
+      "svg": "alx-isometric-integrated.svg",
+      "altText": "ALX cube logo candidate using 30-degree axes and a-l + l-x joined / a-x open."
+    },
+    {
+      "id": "alx-isometric-seamed",
+      "axis": "isometric",
+      "angle": 30,
+      "connection": "seamed",
+      "svg": "alx-isometric-seamed.svg",
+      "altText": "ALX cube logo candidate using 30-degree axes and equal face seams."
+    },
+    {
+      "id": "alx-isometric-closed",
+      "axis": "isometric",
+      "angle": 30,
+      "connection": "closed",
+      "svg": "alx-isometric-closed.svg",
+      "altText": "ALX cube logo candidate using 30-degree axes and closed perimeter."
+    },
+    {
+      "id": "alx-diamond45-integrated",
+      "axis": "diamond45",
+      "angle": 45,
+      "connection": "integrated",
+      "svg": "alx-diamond45-integrated.svg",
+      "altText": "ALX cube logo candidate using 45-degree axes and a-l + l-x joined / a-x open."
+    },
+    {
+      "id": "alx-diamond45-seamed",
+      "axis": "diamond45",
+      "angle": 45,
+      "connection": "seamed",
+      "svg": "alx-diamond45-seamed.svg",
+      "altText": "ALX cube logo candidate using 45-degree axes and equal face seams."
+    },
+    {
+      "id": "alx-diamond45-closed",
+      "axis": "diamond45",
+      "angle": 45,
+      "connection": "closed",
+      "svg": "alx-diamond45-closed.svg",
+      "altText": "ALX cube logo candidate using 45-degree axes and closed perimeter."
+    }
+  ],
+  "reviewAssets": [
+    {
+      "svg": "comparison-black-on-white.svg",
+      "png": "comparison-black-on-white.png",
+      "altText": "Six black ALX geometric logo candidates on white, arranged by axis system and connection treatment."
+    },
+    {
+      "svg": "comparison-white-on-black.svg",
+      "png": "comparison-white-on-black.png",
+      "altText": "Six white ALX geometric logo candidates on black, arranged by axis system and connection treatment."
+    },
+    {
+      "svg": "construction-isometric.svg",
+      "png": "construction-isometric.png",
+      "altText": "True-isometric ALX logo construction view with modular face grid and sharp filled geometry."
+    },
+    {
+      "svg": "construction-diamond45.svg",
+      "png": "construction-diamond45.png",
+      "altText": "Forty-five-degree ALX logo construction view with modular face grid and sharp filled geometry."
+    },
+    {
+      "svg": "small-size-test.svg",
+      "png": "small-size-test.png",
+      "altText": "Six ALX logo candidates displayed from sixteen through one hundred twenty-eight pixels."
+    }
+  ],
+  "isolatedComponents": [
+    {
+      "id": "alx-a-isolated",
+      "axis": "isometric",
+      "master": "alx-a-isolated.svg",
+      "transparent": {
+        "black": {
+          "svg": "alx-a-isolated-black.svg",
+          "png": "alx-a-isolated-black.png"
+        },
+        "white": {
+          "svg": "alx-a-isolated-white.svg",
+          "png": "alx-a-isolated-white.png"
+        }
+      },
+      "blackOnWhite": {
+        "svg": "alx-a-isolated-black-on-white.svg",
+        "png": "alx-a-isolated-black-on-white.png"
+      },
+      "whiteOnBlack": {
+        "svg": "alx-a-isolated-white-on-black.svg",
+        "png": "alx-a-isolated-white-on-black.png"
+      },
+      "altText": "The sharp geometric A from the top face of the isometric ALX cube, isolated as a standalone mark."
+    },
+    {
+      "id": "alx-lowercase-a",
+      "master": "alx-lowercase-a.svg",
+      "transparent": {
+        "black": {
+          "svg": "alx-lowercase-a-black.svg",
+          "png": "alx-lowercase-a-black.png"
+        },
+        "white": {
+          "svg": "alx-lowercase-a-white.svg",
+          "png": "alx-lowercase-a-white.png"
+        }
+      },
+      "blackOnWhite": {
+        "svg": "alx-lowercase-a-black-on-white.svg",
+        "png": "alx-lowercase-a-black-on-white.png"
+      },
+      "whiteOnBlack": {
+        "svg": "alx-lowercase-a-white-on-black.svg",
+        "png": "alx-lowercase-a-white-on-black.png"
+      },
+      "altText": "A sharp geometric lowercase a logo with a rectangular counter and a symmetric triangular terminal."
+    }
+  ],
+  "selection": null
+}

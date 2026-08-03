@@ -1,9 +1,9 @@
 <h1 align="center">ALX Protocol</h1>
 
-<p align="center"><strong>Infrastructure for verifiable, intelligent systems</strong></p>
+<p align="center"><strong>An open protocol for composable digital artifacts</strong></p>
 
 <p align="center">
-Deterministic identity, parent-bound lineage, and locally verifiable structure for any artifact
+Deterministic Block identity, declared parent relationships, and locally verifiable Graph structure
 </p>
 
 <p align="center">
@@ -13,18 +13,18 @@ Deterministic identity, parent-bound lineage, and locally verifiable structure f
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT">
   </a>
-  <a href="docs/integrators/on-chain-base.md" title="Optional pointer registry on Base; not required for ALX core">
+  <a href="docs/integrators/on-chain-base.md" title="Optional anchoring on Base; not required for ALX core">
     <img src="https://img.shields.io/badge/Chain-optional-0052FF" alt="Blockchain optional">
   </a>
 </p>
 
 ---
 
-> v1.0.0 · 14 artifact packages · 3 reference implementations (TypeScript, Rust, Python) · conformance suite with hash test vectors
+> Protocol v1 · 3 reference implementations (TypeScript, Rust, Python) · conformance suite with canonical test vectors
 
-A **Block** seals any JSON artifact and its declared parent Blocks into a single deterministic `blockHash`. The same content with the same parents always produces the same hash — on any machine, in any language, across any conformant implementation. Any modification to content or parent references produces a different hash. Verification is local recomputation: no network call, no vendor service, no chain required. Chained Blocks form a derivation graph where lineage is encoded into identity, not inferred from logs.
+A **Block** binds opaque JSON-serializable `content` and normalized parent Block identities into deterministic `contentHash` and `blockHash` values. The same content with the same parents produces the same identities on any machine, in any language, across any conformant implementation. Changing content requires both identities to be recomputed; changing only parent references preserves `contentHash` and produces a different `blockHash`. Verification is local recomputation: no network call, vendor service, or blockchain is required. Declared parent relationships form a Graph that conformant implementations can verify and traverse when the required Block data is available.
 
-Full documentation at [docs.xandrlabs.ai](https://docs.xandrlabs.ai).
+Full documentation is available in the [documentation hub](docs/README.md). Canonical public documentation domains will be announced after publication infrastructure is active.
 
 ## Install
 
@@ -89,4 +89,9 @@ See [Getting Started](docs/integrators/quickstart.md) for the full walkthrough.
 
 ## License
 
-MIT © Xandr Labs
+MIT-licensed. ALX Protocol is maintained by ALX Foundation. Xandr Labs is the founding contributor.
+
+## Related Documents
+
+- [Contribution guide](./CONTRIBUTING.md)
+- [Governance](./GOVERNANCE.md)

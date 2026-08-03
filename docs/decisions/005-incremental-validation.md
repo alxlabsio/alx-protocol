@@ -60,12 +60,11 @@ The incremental validation result MUST be equivalent to the result produced by `
 
 - The invariant `incremental result === full result` MUST be verified in the test suite.
 
-- Conformance and regression tests should include equivalent full-validation and incremental-validation cases across valid graphs, missing-parent cases, duplicate-parent cases, and cycle attempts.
+- conformance and regression tests should include equivalent full-validation and incremental-validation cases across valid graphs, missing-parent cases, duplicate-parent cases, and cycle attempts.
 
 ## Related Documents
 
-- [`../protocol/spec.md`](../protocol/spec.md)
+- [`../../protocol/spec.md`](../../protocol/spec.md)
 - [`../deep-dives/lineage.md`](../deep-dives/lineage.md)
 - [`../implementers/conformance.md`](../implementers/conformance.md)
 - [`../integrators/agent-integration.md`](../integrators/agent-integration.md)
-- [`../integrators/workflows.md`](../integrators/workflows.md)

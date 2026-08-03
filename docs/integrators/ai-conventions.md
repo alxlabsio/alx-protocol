@@ -153,5 +153,4 @@ The protocol makes grounding **structurally visible** rather than enforcing grou
 
 - [`./extensions.md`](./extensions.md) - content schema conventions and adapter patterns
 - [`./agent-frameworks.md`](./agent-frameworks.md) - framework-specific integration
-- [`./workflows.md`](./workflows.md) - real-world pipeline examples
-- [`../../artifact-packages/START-HERE.md`](../../artifact-packages/START-HERE.md) - canonical package examples for AI and machine-authored artifacts
+- [`./attributed-outputs.md`](./attributed-outputs.md) - application-facing lineage patterns

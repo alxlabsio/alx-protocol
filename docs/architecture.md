@@ -60,19 +60,16 @@ alx-protocol/
     spec.md                    Normative specification
     schemas/                   JSON Schema definitions
     fixtures/                  Valid and invalid examples
-    test-vectors/              Conformance vectors
+    test-vectors/              conformance vectors
     extensions/                Optional extension specs
 
   reference-implementations/   TypeScript, Python, and Rust implementations
   conformance/                 Cross-implementation suite runner and repo verification gates
     bin/                         verify-* gates, differential-core-check
   cli/                         Developer verification tooling
-    lib/                         Artifact package validator (alx package verify)
-  artifact-packages/           Canonical artifact packages
+    lib/                         Imperative shell adapters and retrieval helpers
   docs/                        Explanatory documentation
 ```
-
-Maintainer-only regen scripts may live locally under `scripts/` (gitignored); regen scripts remain optional for conformance and `alx package verify`.
 
 The repository structure keeps protocol truth, implementation code, examples, and explanatory documentation separate.
 
@@ -99,12 +96,11 @@ The principles above make ALX suitable as shared verification infrastructure: an
 | `protocol/schemas/` | **Canonical** - structural constraints | No |
 | `reference-implementations/*` | **Reference** - one correct way | Implementation details may vary |
 | `cli/` | **Tooling** - convenience | Outside conformance requirements |
-| `artifact-packages/` | **Examples** - complete package artifacts | Non-normative |
 | `protocol/extensions/` | **Extensions** - optional capabilities | Core conformance excludes extension requirements |
 
 ---
 
-## Conformance Boundary
+## Protocol conformance boundary
 
 An implementation is **conformant** if the implementation produces byte-identical outputs for the canonical test vectors. Specifically:
 
@@ -118,7 +114,7 @@ Everything else (CLI, HTTP API, storage, signing) is outside the conformance bou
 
 ## Optional Ecosystem Layers
 
-Services above the protocol layer—hosted indexing, external parent references in open-world validation mode, and economic coordination (XAN)—are optional and remain outside influence on Block validity or conformance. See [Part VII — Ecosystem Coordination](./whitepaper.md#part-vii--ecosystem-coordination) in the whitepaper and the [Settlement pattern](./integrators/settlement.md) for product-level patterns.
+Services above the protocol layer—hosted indexing, external parent references in open-world validation mode, and economic coordination through XNDR—are optional and remain outside Block validity and protocol conformance. See [Part VII — Ecosystem Coordination](./whitepaper.md#part-vii--ecosystem-coordination) in the whitepaper and the [Settlement pattern](./integrators/settlement.md) for application-level patterns.
 
 ---
 

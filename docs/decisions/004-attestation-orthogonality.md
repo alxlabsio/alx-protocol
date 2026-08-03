@@ -60,12 +60,12 @@ Signing adds trust context around a Block and preserves the Block’s determinis
 
 - Multi-attestation support can be added through extension surfaces, external registries, package manifests, or product-specific trust layers.
 
-- Conformance tests should verify that `attestation` remains outside the hash envelope and that Block identity remains stable across signing states.
+- conformance tests should verify that `attestation` remains outside the hash envelope and that Block identity remains stable across signing states.
 
 ## Related Documents
 
-- [`../protocol/spec.md`](../protocol/spec.md)
-- [`../protocol/extensions/signing/`](../protocol/extensions/signing/)
+- [`../../protocol/spec.md`](../../protocol/spec.md)
+- [`../../protocol/extensions/signing/`](../../protocol/extensions/signing/)
 - [`006-algorithm-agnostic-signing.md`](./006-algorithm-agnostic-signing.md)
 - [`../deep-dives/core-contract.md`](../deep-dives/core-contract.md)
 - [`../integrators/extensions.md`](../integrators/extensions.md)

@@ -6,7 +6,7 @@ The document reports cross-language implementation status. Cross-language status
 
 Cross-implementation conformance status for ALX Protocol v1.
 
-## Core Conformance Matrix
+## Core conformance matrix
 
 | Implementation | Language | Role | Version | Vectors Passed | Status | Adapter |
 |---|---|---|---|---|---|---|
@@ -84,3 +84,8 @@ node conformance/bin/run.js --impl "<path-to-rust-binary>"
 4. Report core-suite results for the core conformance claim
 5. When Merkle support is claimed, also run `alx extension-conformance merkle`
 6. When signing support is claimed, also run `alx extension-conformance signing`
+
+## Related Documents
+
+- [Reference implementation parity](../../reference-implementations/PARITY.md)
+- [Conformance guide](./conformance.md)

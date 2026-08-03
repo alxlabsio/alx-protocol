@@ -225,3 +225,8 @@ Include:
 | Replay protection | Nonce + expiry |
 | Graph integrity | Graph validation |
 | Attribution integrity | Deterministic traversal |
+
+## Related Documents
+
+- [Repository security policy](../../SECURITY.md)
+- [Protocol specification](../../protocol/spec.md)

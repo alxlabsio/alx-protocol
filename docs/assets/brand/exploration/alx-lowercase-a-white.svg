@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc" shape-rendering="geometricPrecision">
+  <title id="title">ALX lowercase a logo</title>
+  <desc id="desc">A production-ready geometric lowercase a mark with a rectangular counter, symmetric triangular terminal, sharp corners, and transparent negative space.</desc>
+  <metadata>{&quot;system&quot;:&quot;ALX geometric mark&quot;,&quot;component&quot;:&quot;lowercase-a&quot;,&quot;source&quot;:&quot;alx logo.svg and drawing.svg&quot;,&quot;viewBox&quot;:1024,&quot;unit&quot;:8,&quot;construction&quot;:{&quot;outer&quot;:{&quot;x&quot;:96,&quot;y&quot;:152,&quot;width&quot;:832,&quot;height&quot;:720},&quot;counter&quot;:{&quot;x&quot;:336,&quot;y&quot;:376,&quot;width&quot;:336,&quot;height&quot;:280},&quot;notch&quot;:{&quot;apex&quot;:{&quot;x&quot;:800,&quot;y&quot;:720},&quot;left&quot;:{&quot;x&quot;:696,&quot;y&quot;:872},&quot;right&quot;:{&quot;x&quot;:904,&quot;y&quot;:872}}}}</metadata>
+  <g fill="#ffffff">
+    <path data-roles="lowercase-a" d="M96 152 L928 152 L928 872 L904 872 L800 720 L696 872 L96 872 Z M336 656 L672 656 L672 376 L336 376 Z" fill="#ffffff" fill-rule="nonzero"/>
+  </g>
+</svg>

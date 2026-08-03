@@ -2,7 +2,7 @@
 
 The document explains how ALX Protocol derives deterministic Block identity from structured content, normalized parent references, canonical byte output, and Keccak-256 hashing.
 
-The protocol specification and machine-readable protocol files remain authoritative for normative behavior.
+The protocol specification, schemas, and canonical test vectors remain authoritative for normative behavior.
 
 ---
 
@@ -11,7 +11,7 @@ ALX Protocol identity derivation has two stages:
 1. **Canonicalization** — converts structured protocol input into deterministic UTF-8 bytes.
 2. **Hash derivation** — derives cryptographic identity from canonical bytes using Keccak-256.
 
-Together, the stages allow ALX Protocol Blocks to retain stable identity across implementations, runtimes, storage systems, artifact packages, and product workflows.
+Together, the stages allow ALX Protocol Blocks to retain stable identity across implementations, runtimes, storage systems, and applications.
 
 ---
 

@@ -30,7 +30,7 @@ Implement each operation to pass the core conformance suite:
 | `createBlock(content, parentHashes)` | Construct Block with derived hashes |
 | `validateBlock(block)` | Recompute blockHash and compare |
 | `validateLineage(block, graph)` | Check parent references against known Blocks |
-| `buildGraph(blocks)` | Construct adjacency map from a Block set |
+| `buildGraph(blocks)` | Construct adjacency map from a Block collection |
 | `validateGraph(graph)` | Check for cycles, self-references, and missing parents |
 | `traceAttribution(root, graph)` | Walk graph; compute pathCount, depth, edges, leaves |
 
@@ -67,7 +67,7 @@ Before computing blockHash:
 
 ---
 
-## Conformance Adapter
+## Protocol conformance adapter
 
 The conformance runner communicates over stdin/stdout using newline-delimited JSON.
 
@@ -80,7 +80,7 @@ See [`conformance/README.md`](../../conformance/README.md) for the full adapter 
 
 ---
 
-## Running Conformance
+## Running protocol conformance
 
 Self-test (TypeScript reference):
 
@@ -106,6 +106,7 @@ All core suites must pass. Extension suites are optional unless the implementati
 | `canonicalization-negative` | semantic | rejection of NaN, Infinity, BigInt, excess depth |
 | `canonicalization-depth` | semantic | depth-limit enforcement |
 | `block-identity` | semantic | contentHash and blockHash derivation |
+| `parent-normalization` | semantic | fail-closed parent collection and entry behavior |
 | `parent-limits` | semantic | MAX_PARENTS boundary, normalization behavior |
 | `attribution-trace` | semantic | trace structure, pathCount, depth, edges |
 | `lineage-negative` | semantic | cycle detection, self-reference rejection |
@@ -115,7 +116,7 @@ All core suites must pass. Extension suites are optional unless the implementati
 
 ---
 
-## Optional Extension Conformance
+## Optional extension conformance
 
 Merkle and signing are additive. Core Block identity is unaffected.
 

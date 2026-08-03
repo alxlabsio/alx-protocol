@@ -1,6 +1,6 @@
 # Quickstart
 
-The quickstart describes install, Block creation, validation, attribution tracing, persistence, and artifact package verification.
+The quickstart describes installation, Block creation, validation, attribution tracing, and persistence.
 
 ---
 
@@ -170,28 +170,11 @@ for (const block of loaded) {
 
 ---
 
-## Artifact Package Verification
-
-From the repository root:
-
-```bash
-pnpm install
-pnpm run build
-node cli/bin/alx.js package verify artifact-packages/security-review-decision --json
-```
-
-The command prints a JSON object. Fields include `ok`, `complete`, `blockHash`, `missingParents`, and `externalParents`.
-
-Canonical artifact packages are in [`artifact-packages/START-HERE.md`](../../artifact-packages/START-HERE.md).
-
----
-
 ## Related Integrator Documents
 
 - [`attributed-outputs.md`](./attributed-outputs.md) — attribution workflow and `pathCount`
 - [`api-reference.md`](./api-reference.md) — SDK functions, types, and parameters
 - [`agent-integration.md`](./agent-integration.md) — agent outputs as Blocks
-- [`verification-receipts.md`](../verification-receipts.md) — verification receipts
 - [`faq.md`](./faq.md) — common questions
 
 ## Related Documents

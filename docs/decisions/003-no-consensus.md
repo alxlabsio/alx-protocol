@@ -18,7 +18,7 @@ This separation allows ALX Protocol to serve as a portable verification layer ac
 
 ALX Protocol uses a **stateless local verification model**.
 
-Block validity is derived from canonical Block structure, content, parent references, and deterministic hashing. Applications own ordering, set membership, timestamps, sequencing, publication rules, registry behavior, and shared-state coordination.
+Block validity is derived from canonical Block structure, content, parent references, and deterministic hashing. Applications own ordering, collection membership, timestamps, sequencing, publication rules, discovery behavior, and shared-state coordination.
 
 The stateless local verification model keeps ALX Protocol focused on portable verification while allowing products to add coordination layers as workflows require.
 
@@ -26,13 +26,13 @@ The stateless local verification model keeps ALX Protocol focused on portable ve
 
 1. **Local verification.** ALX Protocol allows any participant to verify a Block using the Block’s content, parent references, and canonical hashing rules. Verification can run from local data and deterministic protocol rules.
 
-2. **Storage independence.** Blocks can live in PostgreSQL, IPFS, S3, local files, memory, APIs, artifact packages, or product databases. The verification model remains consistent across storage environments.
+2. **Storage independence.** Blocks can live in PostgreSQL, IPFS, S3, local files, memory, APIs, or product databases. The verification model remains consistent across storage environments.
 
-3. **Product flexibility.** Applications can define ordering, publication, indexing, checkpointing, registry behavior, and accepted-state rules based on product requirements.
+3. **Product flexibility.** Applications can define ordering, publication, indexing, checkpointing, discovery behavior, and accepted-state rules based on product requirements.
 
 4. **Efficient developer workflows.** Verification runs through canonicalization and hashing, supporting local development, CI pipelines, agent systems, and high-throughput artifact workflows.
 
-5. **Composable coordination layers.** Products that need public ordering, timestamp proofs, registry membership, marketplace state, or release status can add checkpoint systems, sequencers, ledgers, registries, or application-specific coordination layers around ALX Blocks.
+5. **Composable coordination layers.** Products that need public ordering, timestamp proofs, managed discovery, marketplace state, or release status can add checkpoint systems, sequencers, ledgers, discovery services, or application-specific coordination layers around ALX Blocks.
 
 6. **Graph-native causality.** Parent references encode derivation relationships directly in the Block graph. The graph structure gives applications a lineage model for reasoning about dependencies, reuse, derived artifacts, and attribution traces.
 
@@ -50,7 +50,7 @@ The stateless local verification model keeps ALX Protocol focused on portable ve
 
 - ALX Protocol-compatible implementations verify Blocks through canonical structure, content, parent references, and deterministic hashing.
 
-- Applications define concepts such as “latest Block,” “published Block,” “canonical set,” “accepted revision,” “current version,” and “official registry entry.”
+- Applications define concepts such as “latest Block,” “published Block,” “canonical collection,” “accepted revision,” “current version,” and “official publication entry.”
 
 - Product teams can add checkpointing, timestamp anchoring, registries, sequencers, ledgers, or release channels as optional coordination layers.
 
@@ -58,11 +58,11 @@ The stateless local verification model keeps ALX Protocol focused on portable ve
 
 - Lineage remains available through parent references, while ordering, publication status, and set membership remain product-owned concerns.
 
-- Conformance tests should focus on deterministic identity, parent-reference handling, lineage validation, and verification behavior.
+- conformance tests should focus on deterministic identity, parent-reference handling, lineage validation, and verification behavior.
 
 ## Related Documents
 
-- [`../protocol/spec.md`](../protocol/spec.md)
+- [`../../protocol/spec.md`](../../protocol/spec.md)
 - [`../deep-dives/lineage.md`](../deep-dives/lineage.md)
 - [`../deep-dives/core-contract.md`](../deep-dives/core-contract.md)
 - [`../integrators/storage.md`](../integrators/storage.md)

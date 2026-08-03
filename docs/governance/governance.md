@@ -42,7 +42,7 @@ Protocol-level changes (breaking or significant additive) follow this process:
 
 ---
 
-## Conformance Requirements For Changes
+## Protocol conformance requirements for changes
 
 - Any change to `protocol/spec.md` that alters required behavior MUST include updated test vectors
 - Any new test vector MUST pass in all reference implementations before merge
@@ -68,7 +68,7 @@ See [`CONTRIBUTING.md`](../../CONTRIBUTING.md) for:
 |---|---|
 | Protocol maintainers | `protocol/`, `protocol/test-vectors/`, version policy |
 | Implementation maintainers | `reference-implementations/`, conformance adapters |
-| Documentation maintainers | `docs/`, `artifact-packages/`, `README.md` |
+| Documentation maintainers | `docs/`, `README.md` |
 | Tooling maintainers | `cli/`, `conformance/` |
 
 ---

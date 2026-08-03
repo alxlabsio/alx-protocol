@@ -4,15 +4,9 @@ Agent integration patterns for ALX Blocks. Protocol behavior remains defined by 
 
 ---
 
-## Block Requirements For Agents
+## Block Model For Agents
 
-AI agent outputs are ephemeral, unverifiable, and unattributable. A prompt goes in, a response comes out, and nothing connects the two in a way that can be independently verified. When multiple agents collaborate, the problem compounds: there is no record of which agent produced what, which outputs depend on which inputs, or whether any output underwent tampering.
-
-Blocks solve the attribution gap by binding every agent output into a deterministic identity with declared lineage:
-
-- **Verifiable** — any party can recompute the hash and confirm the output is unchanged.
-- **Attributable** — the Graph structure records which agent contributed what.
-- **Composable** — agents build on each other's Blocks without shared infrastructure, API keys, or trust assumptions.
+A Block gives an agent output deterministic identity and declared parent lineage. `validateBlock()` recomputes identity from protocol data. Graph traversal exposes declared dependencies. Application content records agent roles and workflow context.
 
 A Block is:
 
@@ -322,13 +316,7 @@ The trace shows that the test results (depth 0) depend on generated code (depth 
 
 ## Current Tooling Surface
 
-For current package-level workflows, use the CLI package verifier and canonical artifact packages:
-
-```bash
-alx package verify artifact-packages/context-aware-agent-response --json
-alx package verify artifact-packages/policy-constrained-agent-response --json
-alx package verify artifact-packages/adaptive-interface-state --json
-```
+Use the canonical `alx block` and `alx graph` routes for Block creation, verification, and Trace inspection.
 
 Agent systems should provide content and parent Block references to a conformant SDK or service. The SDK computes hashes, validates Blocks, and emits traces or receipts.
 
@@ -338,6 +326,5 @@ Avoid asking the model to invent `contentHash` or `blockHash` values.
 
 - [`adapters.md`](./adapters.md) — current integration surfaces
 - [`agent-frameworks.md`](./agent-frameworks.md) — LangChain, CrewAI, AutoGen
-- [`workflows.md`](./workflows.md) — research, compliance, marketplace scenarios
-- [`../../artifact-packages/START-HERE.md`](../../artifact-packages/START-HERE.md) — canonical package examples
+- [`attributed-outputs.md`](./attributed-outputs.md) — application-facing lineage and receipt patterns
 - [`api-reference.md`](./api-reference.md) — TypeScript SDK reference

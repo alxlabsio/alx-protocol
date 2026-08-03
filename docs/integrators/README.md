@@ -1,12 +1,6 @@
 # Integrator Documentation
 
-The index maps integrator guides. Integrator guides remain outside the protocol specification.
-
----
-
-For developers connecting ALX Protocol to storage systems, agent frameworks, attestation layers, or settlement infrastructure.
-
-**Authority:** These documents describe application-level patterns. The protocol core remains minimal; integrations extend at the edges.
+This index maps application-level guides for connecting ALX Protocol to storage systems, agent frameworks, attestation layers, and settlement infrastructure. For normative requirements, see [`protocol/spec.md`](../../protocol/spec.md).
 
 ## Getting Started
 
@@ -24,7 +18,6 @@ For developers connecting ALX Protocol to storage systems, agent frameworks, att
 - [`settlement.md`](./settlement.md) - Attribution -> economic coordination flow
 - [`agent-integration.md`](./agent-integration.md) - How AI agents produce and consume Blocks
 - [`agent-frameworks.md`](./agent-frameworks.md) - LangChain, CrewAI, AutoGen integration examples
-- [`workflows.md`](./workflows.md) - Real-world workflows: research pipeline, compliance audit, multi-vendor marketplace
 - [`ai-conventions.md`](./ai-conventions.md) - AI-specific conventions: model cards, hallucination grounding, content types
 - [`database-guide.md`](./database-guide.md) - Database schema design, indices, and queries
 
@@ -33,3 +26,8 @@ For developers connecting ALX Protocol to storage systems, agent frameworks, att
 - [`deployment-checklist.md`](./deployment-checklist.md) - Production readiness checklist
 - [`performance.md`](./performance.md) - Operation costs, benchmarks, and optimization patterns
 - [`comparison.md`](./comparison.md) - Integration boundaries and fit criteria
+
+## Related Documents
+
+- [Protocol specification](../../protocol/spec.md)
+- [TypeScript SDK](../../sdk/README.md)

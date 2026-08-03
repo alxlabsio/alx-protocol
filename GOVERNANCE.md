@@ -1,5 +1,10 @@
 # Governance
 
+**Status:** Repository governance policy
+**Audience:** Contributors, maintainers, and protocol reviewers
+**Authority:** Governs stewardship and repository decision processes; canonical protocol sources govern protocol behavior
+**Last reviewed:** 2026-08-01
+
 This document describes ALX Protocol stewardship, decision tiers, and conformance as governance. RFC process details live in [`docs/governance/governance.md`](./docs/governance/governance.md). This document does not define protocol behavior.
 
 ---
@@ -15,11 +20,11 @@ This document covers:
 - Stewardship model and separation from Xandr Labs commercial product work
 - Decision tiers (protocol-critical, additive, application-layer)
 - Change classification for pull requests
-- Conformance as governance (core vectors and suites)
+- conformance as governance (core vectors and suites)
 - Stewardship transition milestones
 - Architectural constraints enforced by the specification
 
-## Non-goals
+## Non-Goals
 
 This document does not cover:
 
@@ -32,20 +37,21 @@ This document does not cover:
 
 ## Stewardship Model
 
-ALX Protocol is maintained by [Xandr Labs](https://xandrlabs.ai). The steward role covers:
+ALX Protocol is maintained by ALX Foundation, a nonprofit organization. The steward role covers:
 
-- The normative specification (`protocol/spec.md`)
-- Reference implementations (TypeScript, Rust, Python)
-- Conformance test vectors (`protocol/test-vectors/`)
-- **ALXAnchor** on Base (optional existence-time; immutable, no proxy). Legacy Base deployments are reference-only — see [`docs/integrators/on-chain-base.md`](./docs/integrators/on-chain-base.md)
-- Documentation and CLI tooling
+- The normative specification and schemas (`protocol/spec.md`, `protocol/schemas/`)
+- Canonical conformance test vectors and materials (`protocol/test-vectors/`, `conformance/`)
+- Protocol governance and documentation
+- Designation of non-normative reference implementations
 
-Xandr Labs does not own ALX Protocol. The specification, test vectors, reference
-implementations, and all associated tooling are MIT-licensed. Anyone can fork,
-reimplement, or extend ALX Protocol without permission or coordination.
+The specification, test vectors, reference implementations, and associated tooling are
+MIT-licensed. Anyone can fork, reimplement, or extend ALX Protocol without permission
+or coordination with ALX Foundation or Xandr Labs.
 
-Xandr Labs builds developer tooling and infrastructure services on top of ALX Protocol.
-Xandr Labs commercial tooling and infrastructure services are commercially motivated and entirely separate from ALX Protocol core validity.
+Xandr Labs is the founding contributor to ALX Protocol and develops implementations,
+tooling, applications, services, and supporting infrastructure for the ALX ecosystem.
+Commercial products, applications, ecosystem services, and economic mechanisms—including
+those developed by Xandr Labs—do not determine or alter ALX Protocol conformance.
 
 ---
 
@@ -66,7 +72,7 @@ computation are protocol-critical. Protocol-critical changes require:
 5. **Review period** — minimum 7-day comment window for community feedback
 6. **Version bump** — protocol version increment on merge when outputs change
 
-Optional extensions (Merkle, signing, IPFS artifact packages) follow the same RFC discipline with extension manifests and extension conformance suites. Extension changes do not redefine core Block validity.
+Optional extensions (Content Envelope profile, Merkle, and signing) follow the same RFC discipline with extension manifests and extension-specific verification. Extension changes do not redefine core Block validity.
 
 ### Additive changes
 
@@ -80,7 +86,7 @@ PR review:
 
 ### Application-layer changes
 
-Documentation, examples, CLI UX, and CI configuration are at maintainer
+Documentation, CLI UX, and CI configuration are at maintainer
 discretion. Standard PR process applies; no RFC or review period required.
 
 ---
@@ -101,9 +107,9 @@ existing outputs are unchanged. Refactors require only that existing tests conti
 
 ---
 
-## Conformance as Governance
+## Test Vectors as Governance
 
-ALX Protocol's **74 core test vectors** across **10 core conformance suites** (see [`protocol/suites.json`](./protocol/suites.json)) serve as the primary governance mechanism for **core** ALX validity. The vectors cover:
+The required core test vectors and conformance suites listed in [`protocol/suites.json`](./protocol/suites.json) serve as the primary governance mechanism for **core** ALX validity. The vectors cover:
 
 - Canonical JSON serialization (float normalization, Unicode handling, key ordering)
 - Keccak-256 Block identity derivation (`blockHash`, `contentHash`)
@@ -112,7 +118,7 @@ ALX Protocol's **74 core test vectors** across **10 core conformance suites** (s
 - Lineage and Graph validation (negative and boundary cases)
 - Semantic integrity checks on Block structure
 
-Optional extensions (Merkle, signing, IPFS artifact packages) have separate extension conformance suites. Extension conformance does not define core Block validity.
+Optional extensions remain outside core conformance. Merkle and signing have extension conformance suites; the Content Envelope profile is schema-only.
 
 **Any implementation that passes all required core test vectors is conformant.** There is no
 certification process, no registry of approved implementations, and no authority
@@ -135,17 +141,18 @@ the implementer community.
 
 ### Current state: single steward
 
-Xandr Labs maintains the spec, all three reference implementations, and the
-test vectors. Decision authority follows the process described above.
+ALX Foundation maintains the specification, schemas, canonical test vectors, conformance
+materials, and protocol governance. Xandr Labs develops reference implementations and
+participates as the founding contributor. Decision authority follows the process described above.
 
 ### At 3+ independent implementations
 
-When three or more conformant implementations exist outside Xandr Labs:
+When three or more conformant implementations exist independently of ALX Foundation and Xandr Labs:
 
 - Establish an **advisory board** with representation from independent
   implementers
 - Advisory board gains review authority over protocol-critical changes
-- Xandr Labs retains merge authority but commits to not merging over
+- ALX Foundation retains merge authority but commits to not merging over
   advisory board objections
 
 ### At 5+ independent implementations or standards body interest
@@ -153,8 +160,10 @@ When three or more conformant implementations exist outside Xandr Labs:
 When five or more independent implementations exist, or a recognized standards
 body (W3C, IETF, or equivalent) expresses formal interest:
 
-- Transfer spec ownership to an **independent foundation or standards body**
-- Xandr Labs becomes one participant among many, with no veto power
+- ALX Foundation may transfer or delegate standards stewardship to a recognized standards
+  body or community-governed successor
+- ALX Foundation and Xandr Labs participate through the receiving body's established process,
+  with no unilateral veto power
 - Governance transitions to the receiving body's established process
 
 ### Regardless of stewardship
@@ -162,9 +171,9 @@ body (W3C, IETF, or equivalent) expresses formal interest:
 The stewardship transition commitments survive any transition:
 
 - The specification and test vectors remain MIT-licensed
-- No steward, foundation, or standards body may impose licensing restrictions
+- No steward, successor foundation, or standards body may impose licensing restrictions
   on ALX Protocol
-- Xandr Labs retains no special authority after transition
+- Xandr Labs retains no special governance authority by virtue of its founding-contributor status
 
 ---
 
@@ -203,9 +212,9 @@ infrastructure.
 - **Security disclosures**: `security@xandrlabs.ai` (see [SECURITY.md](./SECURITY.md))
 - **Contributing**: see [CONTRIBUTING.md](./CONTRIBUTING.md) for scope, PR requirements, and design principles
 
-Anyone can implement ALX Protocol in any language. Conformance — passing the required core test
+Anyone can implement ALX Protocol in any language. Protocol conformance — passing the required core test
 vectors — is the only requirement. No registration, no approval, no
-coordination with Xandr Labs.
+coordination with ALX Foundation or Xandr Labs.
 
 ---
 

@@ -26,8 +26,8 @@ ALX Protocol defines a **narrow, formally stated threat surface** bounded by cry
 | **Hash collision (birthday attack)** | Keccak-256 provides approximately 2¹²⁸ collision resistance. | No practical collision is known or expected. Post-quantum migration requires a new `protocolVersion`. |
 | **Second-preimage attack** | Canonical serialization is deterministic and injective for valid inputs. Identical canonical strings produce identical hashes; distinct canonical strings produce distinct hashes with overwhelming probability. | No known vector. |
 | **Replay of signed protocol payloads** | EIP-712 signatures include nonce, expiry, and chain ID. Replay protection is enforced in `verifySignedProtocolPayload`. | Signers must manage nonce state. Stateless verifiers cannot detect nonce reuse across sessions without external coordination. |
-| **Parent flooding (DoS)** | Normalization deduplicates and enforces a maximum of 256 parent hashes after deduplication (LIMIT-001). | An attacker can still declare 256 expensive-to-fetch parents, requiring 256 Block resolutions to verify lineage. Implementers SHOULD apply rate limits at the Block creation boundary. |
-| **Canonicalization depth overflow** | Canonicalization enforces a maximum nesting depth of 128 levels (LIMIT-002). Inputs exceeding this depth are rejected with `ALX_CANONICALIZATION_DEPTH`. | A 128-level input still requires O(n) recursive descent. Implementations SHOULD enforce memory limits in production environments. |
+| **Parent flooding (DoS)** | Normalization deduplicates and enforces the specification maximum of 256 parent hashes after deduplication. | An attacker can still declare 256 expensive-to-fetch parents, requiring 256 Block resolutions to verify lineage. Implementers SHOULD apply rate limits at the Block creation boundary. |
+| **Canonicalization depth overflow** | Canonicalization enforces the specification maximum nesting depth of 128 levels. Inputs exceeding this depth are rejected with `ALX_CANONICALIZATION_DEPTH`. | A 128-level input still requires O(n) recursive descent. Implementations SHOULD enforce memory limits in production environments. |
 | **Unsupported protocol version** | `validateBlock` rejects any Block declaring a `protocolVersion` other than `"1"` with `ALX_UNSUPPORTED_VERSION`. | Operators running mixed-version environments must coordinate version upgrade paths explicitly. |
 
 ## Out-Of-Scope Threats (Application Layer)
@@ -63,6 +63,5 @@ ALX Protocol defines a **narrow, formally stated threat surface** bounded by cry
 - [`../governance/security.md`](../governance/security.md) — cryptographic assumptions and signing model
 - [`001-keccak-256.md`](001-keccak-256.md) — hash function selection rationale
 - [`../../protocol/spec.md`](../../protocol/spec.md) — normative protocol rules and limits
-- [`../../protocol/limits.json`](../../protocol/limits.json) — normative protocol limits
-- [`../../contracts/ALXAnchor.sol`](../../contracts/ALXAnchor.sol) — on-chain existence-time anchor
+- [`../../contracts/src/ALXAnchor.sol`](../../contracts/src/ALXAnchor.sol) — on-chain existence-time anchor
 - [`../integrators/deployment-checklist.md`](../integrators/deployment-checklist.md) — application-layer operator responsibilities

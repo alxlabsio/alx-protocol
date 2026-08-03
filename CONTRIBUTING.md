@@ -1,5 +1,10 @@
 # Contributing
 
+**Status:** Repository contribution policy
+**Audience:** Contributors and maintainers
+**Authority:** Governs contribution and review practices; protocol behavior remains governed by canonical protocol sources
+**Last reviewed:** 2026-08-01
+
 This document describes how to contribute to ALX Protocol. This document does not define protocol behavior.
 
 ---
@@ -17,7 +22,7 @@ This document covers:
 - Design principles for pull requests
 - Security reporting pointer
 
-## Non-goals
+## Non-Goals
 
 This document does not cover:
 
@@ -34,7 +39,7 @@ pnpm install
 pnpm run ci
 ```
 
-`pnpm run ci` runs the TypeScript CI gate: build, repo verification, artifact-package tests, unit tests, core conformance, and extension conformance (Merkle + signing).
+`pnpm run ci` runs the TypeScript CI gate: build, repository verification, CLI and adapter tests, unit tests, core conformance, and extension conformance.
 
 Individual commands when iterating:
 
@@ -45,7 +50,6 @@ pnpm test
 pnpm run test:conformance
 pnpm run test:extension  # Merkle + signing extension self-tests
 node cli/bin/alx.js test-vectors run
-pnpm run maintainer:audit  # optional advisory scans (requires maintainer/ locally)
 ```
 
 ---
@@ -59,7 +63,6 @@ Changes MUST be limited to protocol-critical components:
 - `cli/`
 - `conformance/`
 - `docs/`
-- `artifact-packages/`
 - `.github/workflows/`
 
 ---
@@ -85,12 +88,12 @@ Changes MUST be limited to protocol-critical components:
 
 ## Design Principles
 
-- **Deterministic Execution** — Canonical inputs produce identical outputs across conforming implementations
+- **Deterministic Representation** — Canonical inputs produce identical outputs across conformant implementations
 - **Verifiable Outputs** — Outputs can be independently validated against canonical inputs
-- **Composable Artifacts** — Artifacts are reusable, extensible, and recombinable across systems
-- **Attribution by Design** — Attribution is deterministically derived from lineage and enforced through protocol-level invariants
+- **Composable Digital Artifacts** — Applications represent digital material as content carried in Blocks and compose declared relationships through `parentHashes`
+- **Structural Attribution Metrics** — Attribution Traces and `pathCount` are computed from declared Graph topology; they do not establish authorship, originality, ownership, value, or reward eligibility
 
-Code and architecture reviews use the internal codebase rubric in [`maintainer/rubrics/codebase-rubric.md`](./maintainer/rubrics/codebase-rubric.md) (gitignored; see [`maintainer/README.md`](./maintainer/README.md)). Comment placement and review: **Part 13** (CC-1 through CC-12); obvious-comment deletion: **Part 10** (LD-10).
+Code and architecture reviews assess protocol conformance, layer boundaries, deterministic behavior, public API stability, test coverage, error handling, and comments that explain non-obvious contracts.
 
 ---
 
@@ -110,7 +113,7 @@ See [`GOVERNANCE.md`](./GOVERNANCE.md) for stewardship tiers and [`docs/governan
 
 ## Security
 
-Report security concerns via: `security@xandrlabs.ai` (see [`SECURITY.md`](./SECURITY.md))
+Report security concerns through the Xandr Labs-administered operational intake at `security@xandrlabs.ai` (see [`SECURITY.md`](./SECURITY.md)). ALX Foundation retains protocol stewardship.
 
 ---
 
@@ -119,5 +122,4 @@ Report security concerns via: `security@xandrlabs.ai` (see [`SECURITY.md`](./SEC
 - [`GOVERNANCE.md`](./GOVERNANCE.md) — stewardship and conformance as governance
 - [`docs/governance/governance.md`](./docs/governance/governance.md) — RFC process and maintainer roles
 - [`AGENTS.md`](./AGENTS.md) — invariants and terminology for AI-assisted contributors
-- [`maintainer/docs/STYLE-GUIDE.md`](./maintainer/docs/STYLE-GUIDE.md) — documentation conventions
 - [`protocol/spec.md`](./protocol/spec.md) — normative protocol behavior

@@ -1,109 +1,74 @@
-# ALX anchor (Base Mainnet)
+# Optional Base Anchoring
 
-Audience: Integrators, DevOps, Xandr Labs operators  
+- **Status:** Planned optional integration
+- **Audience:** Integrators requiring public existence-time evidence
+- **Authority:** Non-normative; protocol behavior remains governed by [`../../protocol/spec.md`](../../protocol/spec.md)
+- **Last reviewed:** 2026-08-03
 
-**ALX anchor** is the optional on-chain surface on Base (**ALXAnchor** contract). Block creation, validation, **blockchain** lineage, **`alx.index`**, and **`alx.registry`** all operate without a wallet, gas, or RPC.
+The `ALXAnchor` optional Base contract records when a `blockHash` first appeared on-chain. Block creation, validation, Graph construction, storage, and retrieval operate independently of wallets, gas, RPC endpoints, and contracts.
 
----
+## When To Use It
 
-## Purpose
+Use `ALXAnchor` when a neutral public timestamp justifies the operational cost. `ALXAnchor` records hashes and timestamps only. Applications retain content storage, location resolution, authorship, Block validation, and availability responsibilities.
 
-Document **ALXAnchor** on Base versus off-chain conventions. New integrators need only this contract for on-chain writes. Historical Base deployments are listed in [Legacy on Base (reference only)](#legacy-on-base-reference-only).
+| Need | Contract required? |
+|---|---|
+| Create or validate a Block | No |
+| Store or retrieve a Block | No |
+| Build or verify a Graph | No |
+| Record public existence-time for one hash | Optional |
+| Submit several hashes in one transaction | Optional |
 
-## ALX vocabulary (informative)
+## Contract Surface
 
-| Term | Layer |
-|------|--------|
-| **Block** | Protocol primitive |
-| **blockchain** | Off-chain — 2+ Blocks linked via `parentHashes` |
-| **blockset** | Off-chain — 2+ `blockHash` values grouped for one operation |
-| **`alx.index`** | Off-chain — platform available / approved hashes |
-| **`alx.registry`** | Off-chain — steward / platform catalog |
-| **ALX anchor** | On-chain — **ALXAnchor** on Base (existence-time, optional blockset commit) |
+| Function | Purpose |
+|---|---|
+| `anchor(bytes32 blockHash)` | Record one previously unanchored hash |
+| `anchorBatch(bytes32 batchId, bytes32[] blockHashes)` | Submit 2–256 hashes in one transaction; already anchored hashes are skipped |
+| `isAnchored(bytes32 blockHash)` | Check whether a hash has an anchor |
+| `anchoredAt(bytes32 blockHash)` | Return the first anchor timestamp |
+| `anchoredBy(bytes32 blockHash)` | Return the submitting address |
 
-Catalogs and indexes stay off-chain. The anchor layer label applies only to **ALXAnchor**, never to off-chain linked Blocks.
+`batchId` identifies the transaction batch for event consumers. Portable membership uses application-owned data. Anchoring preserves the existing Block set and Graph.
 
----
-
-## Minimal ALX anchor use (recommended)
-
-| Activity | ALX anchor? |
-|----------|-------------|
-| `createBlock`, `validateBlock`, `traceAttribution` | No |
-| Platform **`alx.index`** / **`alx.registry`** | No |
-| Trust = `validateBlock` + **`alx.index`** membership | No |
-| Public existence-time for a `blockHash` or **blockset** | **Yes** — **ALXAnchor** |
-
-**Default:** platforms publish **`alx.index`** Blocks; consumers run `validateBlock` and check index membership. **ALX anchor** only when a neutral on-chain timestamp is worth the gas.
-
-```text
-Off-chain (default):
-  Block → blockchain → blockset → alx.index (+ optional alx.registry)
-  trust: validateBlock + alx.index membership
-
-ALX anchor (rare):
-  blockHash or blockset → ALXAnchor on Base
-```
-
----
-
-## ALXAnchor (target contract)
-
-Source: [`contracts/ALXAnchor.sol`](../../contracts/ALXAnchor.sol). ABI: [`contracts/abis/ALXAnchor.json`](../../contracts/abis/ALXAnchor.json). Address after deploy: [`protocol/chains/base-mainnet.json`](../../protocol/chains/base-mainnet.json) → `contracts.alxAnchor.address`.
-
-| Function | Role |
-|----------|------|
-| `anchor(bytes32)` | First existence-time for one `blockHash`; reverts if already anchored |
-| `anchorBlockSet(bytes32 setId, bytes32[])` | Batch anchor; **minimum 2** hashes; skips already-anchored entries |
-| `isAnchored(bytes32)` | Read-only check |
-| `anchoredAt` / `anchoredBy` | Timestamp and submitter of first anchor |
-
-`setId` is for events and application narrative; membership lists belong in **`alx.index`** off-chain.
-
-Deploy and verify: [`contracts/README.md`](../../contracts/README.md).
-
----
-
-## CLI (opt-in)
+## CLI
 
 ```bash
-# Anchor a Block (validateBlock runs locally first)
-alx anchor create path/to/block.json --rpc-url https://sepolia.base.org --private-key <key>
+# Anchor one locally validated Block
+alx anchor create research.block.json \
+  --rpc-url https://sepolia.base.org \
+  --private-key <key>
 
-# Anchor a blockset (minimum 2 comma-separated blockHashes)
-alx anchor create --blockset 0xaaa...,0xbbb... --rpc-url https://sepolia.base.org --private-key <key>
+# Submit several blockHash values in one transaction
+alx anchor create --hashes 0xaaa...,0xbbb... \
+  --batch-id 0xccc... \
+  --rpc-url https://sepolia.base.org \
+  --private-key <key>
 
-# Query anchor status (read-only, no private key)
-alx anchor status 0x<blockHash> --rpc-url https://sepolia.base.org --json
-
-# Optional: resolve Block bytes via configured Base pointer read (see below)
-alx block resolve 0x<blockHash> --chain base --rpc-url https://mainnet.base.org
+# Query one blockHash
+alx anchor status 0x<blockHash> \
+  --rpc-url https://sepolia.base.org \
+  --json
 ```
 
-No RPC unless `--chain base`, `alx anchor`, or `alx anchor status` is used.
+Environment variables:
 
 | Variable | Purpose |
-|----------|---------|
-| `ALX_ANCHOR_ADDRESS` | ALXAnchor address override |
-| `ALX_BASE_RPC_URL` | Base RPC endpoint |
-| `ALX_DEPLOY_KEY` | Hex private key for anchor transactions (never commit) |
-| `ALX_POINTER_REGISTRY_ADDRESS` | Optional read-only CID pointer override (`base-mainnet.json`) |
+|---|---|
+| `ALX_ANCHOR_ADDRESS` | Override the configured contract address |
+| `ALX_BASE_SEPOLIA_RPC_URL` | Base Sepolia RPC endpoint |
+| `ALX_BASE_RPC_URL` | Base mainnet RPC endpoint |
+| `ALX_DEPLOY_KEY` | Transaction-signing private key; never commit it |
 
----
+Deployment state is declared in [`../../protocol/chains/base-mainnet.json`](../../protocol/chains/base-mainnet.json). The configured deployment remains planned until an address is published through the repository release process.
 
-## Optional Base reads (reference)
+## Security Boundary
 
-**New integrations use only ALXAnchor for on-chain writes.**
-
-`alx block resolve --chain base` may consult an optional read-only CID pointer address in [`protocol/chains/base-mainnet.json`](../../protocol/chains/base-mainnet.json) together with **ALXAnchor** metadata. Historical marketplace or checkpoint deployments on Base are out of scope for new work; Merkle proofs and platform ACL remain off-chain (`alx.index`, SDK).
-
-Contract engineer reference (ABIs and legacy deployment names): [`contracts/README.md`](../../contracts/README.md) only.
-
----
+Clients validate Blocks locally before anchoring and again after retrieval. Signature material, contract metadata, timestamps, and transaction identifiers remain outside `blockHash` derivation. Contract unavailability never changes Block identity or validity.
 
 ## Related Documents
 
-- [`glossary.md`](glossary.md) — full term map
-- [`index-blocks.md`](index-blocks.md) — `alx.index`
-- [`registry-blocks.md`](registry-blocks.md) — `alx.registry`
-- [`storage.md`](storage.md) — IPFS and retrieval API
+- [`../../contracts/README.md`](../../contracts/README.md)
+- [`storage.md`](./storage.md)
+- [`../decisions/008-storage-and-discovery-boundaries.md`](../decisions/008-storage-and-discovery-boundaries.md)
+- [`../../protocol/spec.md`](../../protocol/spec.md)

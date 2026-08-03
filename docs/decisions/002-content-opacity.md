@@ -56,7 +56,7 @@ The protocol canonicalizes and hashes JSON-serializable content as part of Block
 
 ## Related Documents
 
-- [`../protocol/spec.md`](../protocol/spec.md)
+- [`../../protocol/spec.md`](../../protocol/spec.md)
 - [`../deep-dives/canonical-envelope.md`](../deep-dives/canonical-envelope.md)
 - [`../integrators/extensions.md`](../integrators/extensions.md)
 - [`../integrators/ai-conventions.md`](../integrators/ai-conventions.md)

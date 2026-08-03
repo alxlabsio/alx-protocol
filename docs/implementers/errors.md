@@ -165,8 +165,13 @@ Stable identifiers are recommended:
 - `ERR_LINEAGE_MISSING`
 - `ERR_LINEAGE_CYCLE`
 
-Benefits:
+Properties:
 
 - cross-language consistency
 - machine-readable validation
 - future-proofing without breaking message text
+
+## Related Documents
+
+- [Protocol specification](../../protocol/spec.md)
+- [Protocol operations](../operations.md)

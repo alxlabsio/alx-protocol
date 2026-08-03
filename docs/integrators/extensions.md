@@ -21,7 +21,7 @@ The following concerns remain outside core Block validity:
 - signatures;
 - Merkle proofs;
 - settlement systems;
-- external registries;
+- network discovery services;
 - application-specific adapters;
 - domain-specific content schemas.
 
@@ -31,7 +31,9 @@ The following concerns remain outside core Block validity:
 |---|---|---|
 | Signing | optional extension | Attest to a Block or receipt without changing Block identity |
 | Merkle proofs | optional extension | Checkpoint Block hashes or prove inclusion in a set |
-| `ipfs-artifact-package` manifest | optional extension | Map ALX identities to package bytes and content-derived identifiers |
+| Content Envelope | optional content profile | Add typed application structure inside `Block.content` |
+
+Verification Receipt is an optional application record outside protocol extensions and core verification output.
 
 ## Storage Pattern
 
@@ -39,12 +41,9 @@ Storage systems retrieve bytes. ALX verifies Block identity and lineage.
 
 A storage integration may store:
 
-- `block.json`;
-- `content.json`;
-- parent Blocks;
-- verification receipts;
-- artifact package manifests;
-- evidence files.
+- complete Blocks;
+- application-owned CID mappings or retrieval metadata;
+- optional verification receipts.
 
 A storage integration must preserve:
 
@@ -62,22 +61,15 @@ An attestation can make a claim about:
 
 - a Block hash;
 - a verification receipt;
-- an artifact package;
 - an organization or agent review.
 
 An attestation preserves Block identity.
 
-## Content-Addressed Package Pattern
+## Optional Record Pattern
 
-The `ipfs-artifact-package` extension maps ALX hashes to content-derived identifiers.
+The Verification Receipt schema describes a completed Graph verification run. Applications may create, store, sign, or exchange a receipt after verification.
 
-Local content-derived identifier verification checks package bytes against manifest values. Local verification excludes live retrieval from a content-addressed storage provider, gateway fetch, or provider pinning.
-
-Live retrieval can be added by an external integration:
-
-```text
-fetch by content-derived identifier -> verify fetched bytes -> replay package verification -> produce receipt
-```
+A receipt remains an application record outside Block identity, Graph construction, and core conformance. A receipt captures a prior verification run only. Current Graph validity requires the relevant Blocks and an explicit Verification Context.
 
 ## Settlement Pattern
 
@@ -97,12 +89,13 @@ Settlement is optional for:
 
 ALX content can remain opaque.
 
-Applications may define content envelopes or domain schemas for routing, indexing, and product behavior. Application schemas help interpret content. Application schemas remain outside core validity unless the protocol explicitly adopts the schema in `protocol/`.
+Applications may use the published [Content Envelope schema](../../protocol/schemas/content-envelope.schema.json) for typed, indexed, schema-bound, or conformance-bound content. Its [extension manifest](../../protocol/extensions/content-profile/extension.json) classifies the envelope as a provisional optional content profile.
+
+Opaque JSON-serializable `Block.content` remains valid with or without the profile. The profile preserves Block identity and core conformance.
 
 ## Related Documents
 
 - [`adapters.md`](./adapters.md)
-- [`artifact-package-manifest.md`](./artifact-package-manifest.md)
 - [`settlement.md`](./settlement.md)
 - [`../verification-receipts.md`](../verification-receipts.md)
 - [`../../protocol/extensions/`](../../protocol/extensions/)

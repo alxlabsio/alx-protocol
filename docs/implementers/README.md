@@ -1,12 +1,6 @@
 # Implementer Documentation
 
-The index guides implementers through the ALX Protocol specification, operations, conformance, and reference implementations.
-
----
-
-For developers building an ALX Protocol implementation in any language.
-
-**Authority:** These documents explain `protocol/spec.md`. New protocol behavior is defined exclusively in `protocol/spec.md`.
+This index maps the specification, operations, conformance material, and reference implementations for developers implementing ALX Protocol. For normative requirements, see [`protocol/spec.md`](../../protocol/spec.md).
 
 ## Start Here
 
@@ -20,6 +14,11 @@ For developers building an ALX Protocol implementation in any language.
 
 - [`independent-implementation.md`](./independent-implementation.md) - Standalone checklist for building from the spec
 - [`implementer-guide.md`](./implementer-guide.md) - Build from scratch (includes Go walkthrough)
-- [`conformance.md`](./conformance.md) - Conformance requirements and testing
+- [`conformance.md`](./conformance.md) - conformance requirements and testing
 - [`compatibility.md`](./compatibility.md) - Cross-implementation matrix
 - [`errors.md`](./errors.md) - Error codes, conditions, and recovery guidance
+
+## Related Documents
+
+- [Protocol specification](../../protocol/spec.md)
+- [Conformance runner](../../conformance/README.md)

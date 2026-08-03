@@ -8,7 +8,7 @@ These invariants help implementers, maintainers, reviewers, and conformance auth
 
 Protocol invariants describe the behavior that makes ALX Protocol Blocks reproducible, verifiable, composable, and portable.
 
-Conforming implementations preserve the invariants through canonicalization rules, hash derivation, lineage validation, graph verification, attribution tracing, extension verification, and conformance testing.
+Conformant implementations preserve the invariants through canonicalization rules, hash derivation, lineage validation, graph verification, attribution tracing, extension verification, and conformance testing.
 
 ---
 
@@ -41,7 +41,7 @@ Product capability:
 
 - ALX Blocks can be verified independently by any party using the same canonical input
 
-### INV-03: Cross-Implementation Conformance
+### INV-03: Cross-implementation conformance
 
 Independent implementations MUST produce identical `blockHash` values for identical protocol inputs.
 
@@ -65,7 +65,7 @@ Requirements:
 
 - unresolved parent references MAY produce validation errors depending on the evaluation context
 - resolution behavior MUST be deterministic
-- validation results MUST remain reproducible for identical inputs and known Block sets
+- validation results MUST remain reproducible for identical inputs and known Block collections
 
 Product capability:
 
@@ -170,7 +170,7 @@ Requirements:
 - reachable Blocks MUST be included
 - unreachable Blocks MUST be excluded
 - reachability MUST be computed deterministically
-- equivalent graphs MUST produce equivalent reachable Block sets
+- equivalent graphs MUST produce equivalent reachable Block collections
 
 Product capability:
 
@@ -232,7 +232,7 @@ Protocol-defined operations MUST NOT depend on:
 
 Product capability:
 
-- ALX verification can run consistently in local development, CI, backend services, agent workflows, artifact packages, and independent implementations
+- ALX verification can run consistently in local development, CI, backend services, applications, and independent implementations
 
 ## 7. Invariant Enforcement Mapping
 

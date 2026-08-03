@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc" shape-rendering="geometricPrecision">
+  <title id="title">ALX logo candidate: diamond45, closed</title>
+  <desc id="desc">Geometric ALX cube mark using 45-degree face axes and closed perimeter.</desc>
+  <metadata>{&quot;system&quot;:&quot;ALX geometric mark&quot;,&quot;axis&quot;:&quot;diamond45&quot;,&quot;connection&quot;:&quot;closed&quot;,&quot;angle&quot;:45,&quot;viewBox&quot;:1024,&quot;unit&quot;:8,&quot;edge&quot;:352,&quot;band&quot;:96,&quot;gap&quot;:32,&quot;counter&quot;:96,&quot;opticalNudge&quot;:2}</metadata>
+  <g fill="currentColor">
+    <path data-roles="a l x-1 x-2 bridge-a-l bridge-l-x bridge-a-x" d="M512 132 L686.399 306.399 L542.83 449.968 L512 382.143 L481.17 449.968 L337.601 306.399 Z M459.68 323.839 L512 376.158 L564.32 323.839 L512 271.519 Z M320.161 340.61 L372.481 392.929 L372.481 510.329 L494.56 632.408 L494.56 682.722 L320.161 508.323 Z M566.435 586.884 L703.839 856.423 L703.839 892 L703.839 892 L666.843 855.004 L529.44 585.466 L529.44 549.888 Z M703.839 743.093 L548.996 737.157 L529.44 717.601 L529.44 665.253 L649.403 669.851 L703.839 724.287 Z M389.921 358.718 L372.481 392.929 L320.161 340.61 L320.161 323.839 L337.601 306.399 Z M494.56 632.408 L529.44 667.287 L529.44 717.601 L512 700.161 L494.56 682.722 Z M686.399 306.399 L703.839 323.839 L703.839 724.287 L651.519 671.967 L634.079 358.718 Z" fill="currentColor" fill-rule="nonzero"/>
+  </g>
+</svg>

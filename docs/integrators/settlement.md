@@ -2,7 +2,7 @@
 
 Settlement remains outside ALX Protocol core validity.
 
-Settlement can be modeled as an optional product or application-layer extension for systems that need economic coordination around verified artifacts. The [ALX Protocol Whitepaper](./whitepaper.md#part-vii--ecosystem-coordination) describes optional ecosystem services including economic coordination (XAN); economic rules are defined in the XAN Economic Whitepaper and remain outside ALX Protocol core validity.
+Settlement can be modeled as an optional product or application-layer extension for systems that need economic coordination around verified digital artifacts. The [ALX Protocol Whitepaper](../whitepaper.md#part-vii--ecosystem-coordination) describes XNDR as a separate economic coordination mechanism for ALX ecosystem participants. XNDR rules remain outside ALX Protocol core validity.
 
 ## Purpose
 
@@ -31,7 +31,7 @@ This document does not define:
 - payout policy;
 - token behavior;
 - smart contract requirements;
-- registry requirements;
+- publication and discovery requirements;
 - legal attribution.
 
 ## Optional Product Flow
@@ -97,7 +97,6 @@ Settlement systems may use ALX outputs. Settlement systems MUST NOT be required 
 
 ## Related Documents
 
-- [`../whitepaper.md`](../whitepaper.md) — Part VII optional ecosystem services and economic coordination (XAN)
+- [`../whitepaper.md`](../whitepaper.md) — Part VII optional ecosystem services and economic coordination (XNDR)
 - [`../verification-receipts.md`](../verification-receipts.md)
-- [`../integrators/artifact-package-manifest.md`](./artifact-package-manifest.md)
 - [`../../protocol/spec.md`](../../protocol/spec.md)

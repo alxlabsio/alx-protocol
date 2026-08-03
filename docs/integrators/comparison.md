@@ -51,7 +51,7 @@ Those concerns remain separate.
 
 **Pattern — ALX Protocol with a content-addressed storage system:**
 
-Store Blocks as content-addressed objects. Include locally recomputable content identifiers in artifact package manifests. Retrieve Blocks by content-derived identifier. Verify Block identity and lineage through ALX Protocol hash validation. Storage availability and ALX Protocol verification remain independent operations.
+Store Blocks as content-addressed objects. Maintain application-owned Block-hash-to-CID mappings when needed. Retrieve Blocks by content-derived identifier. Verify Block identity and lineage through ALX Protocol hash validation. Storage availability and ALX Protocol verification remain independent operations.
 
 ---
 

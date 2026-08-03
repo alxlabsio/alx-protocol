@@ -1,1374 +1,1171 @@
 ---
-title: "ALX Protocol Whitepaper"
-description: "Infrastructure for verifiable intelligent systems — Xandr Labs · Version 1.0.0"
+title: "ALX Protocol"
+description: "An open protocol for composable digital artifacts"
 ---
 
-# ALX Protocol Whitepaper
+# ALX Protocol
 
-Audience: Evaluators, integrators, investors  
-Last reviewed: 2026-05-30
+An open protocol for composable digital artifacts
+
+**Status:** Informative, non-normative whitepaper
+
+**Audience:** Evaluators, integrators, implementers, researchers, and ecosystem participants
+
+**Authority:** This paper explains ALX Protocol. protocol/spec.md, protocol/schemas/, and protocol/test-vectors/ define conformance.
+
+**Protocol version:** 1
+
+**License:** MIT
+
+**Maintainer:** ALX Foundation
+
+**Founding contributor:** Xandr Labs
+
+**Last reviewed:** 2026-07-15
 
 ---
 
-**ALX Protocol**  
-Infrastructure for verifiable intelligent systems  
+# Table of Contents
 
-Xandr Labs · Version 1.0.0 · 2026-05-30
+The publication DOCX contains an automatically generated table of contents.
 
 ---
-
-## Document Map
-
-- **Part I** — The Problem
-- **Part II** — Existing Verification Systems and ALX Compositional Layer
-- **Part III** — The Block, Lifecycle, Verification Model, and Derivation Graphs
-- **Part IV** — Protocol Properties, Guarantees, Scope, Security, and Interoperability
-- **Part V** — What Verifiable Artifacts Enable
-- **Part VI** — Adoption and Productization
-- **Part VII** — Ecosystem Coordination
-- **Part VIII** — Toward Verifiable AI Infrastructure
 
 # Abstract
 
-Digital systems produce, transform, and exchange artifacts at unprecedented scale—and AI is accelerating that shift. Most infrastructure was not designed around artifact lineage. Metadata, logs, and platform records are often fragmented, mutable, or detached once an artifact leaves the originating system.
+ALX Protocol is an open-source protocol for composable digital artifacts.
 
-The result is a widening trust gap. Organizations hold artifacts without reliable answers to basic questions: What is this object? Has it changed? Which upstream artifacts contributed? Can derivation history be verified independently and ported across tools and institutions?
+A Block binds opaque JSON-serializable `content` and normalized parent Block identities into deterministic content-only and lineage-bound identities. Declared parent relationships form a structural Graph that conformant implementations can verify and traverse when the required Block data is available.
 
-ALX Protocol addresses the trust gap by defining open infrastructure for verifiable intelligent systems: deterministic identity, traceable lineage, and portable evidence of creation, transformation, and derivation.
+Open protocol design means that public rules, schemas, and canonical test vectors support independent implementation. Block creation and verification require no hosted service, vendor, blockchain, storage network, or economic mechanism.
 
-At the center is the **Block**, a minimal protocol primitive for durable, verifiable protocol objects. A Block binds artifact content and parent lineage into a cryptographic identity that conformant systems can recompute and validate without external services.
+Artificial intelligence and agent workflows provide leading applications because those systems create lineage-critical handoffs at high volume. The same Block model applies to human-authored, machine-produced, software, media, research, and institutional artifacts. Applications retain responsibility for semantic meaning, truth, quality, permissions, safety, and acceptance.
 
-This whitepaper introduces the motivation, design principles, core primitives, and system architecture of ALX Protocol.
+# Executive Summary
 
-## Executive Summary
+ALX Protocol is an open protocol for composable digital artifacts. Digital artifacts are the application-facing materials. Blocks are the protocol representations. The normalized `parentHashes` set creates structural composition, and Graph traversal makes declared relationships machine-consumable.
 
-ALX Protocol provides deterministic identity, parent-bound lineage, and local structural verification for any digital artifact.
+- Block primitive — A Block contains four required fields: `blockHash`, `contentHash`, `parentHashes`, and `content`. Protocol version 1 also permits optional `protocolVersion`.
 
-**Block primitive** — A Block seals arbitrary JSON `content` and a list of parent Block hashes (`parentHashes`) into a deterministic `blockHash = keccak256(canonical({ content, parentHashes }))`. Verification recomputes the hash locally.
+- Deterministic identity — `contentHash` identifies canonicalized `content`. `blockHash` identifies canonicalized `content` together with normalized `parentHashes`.
 
-**Verifiable derivation graph** — Blocks reference parents via `parentHashes`, forming a directed derivation graph. Lineage is cryptographically bound into each Block's identity, not inferred from logs.
+- Structural composition — `parentHashes` binds a declared, unordered dependency set into Block identity. Applications determine the meaning and compatibility of each relationship.
 
-**Structural attribution** — The protocol computes `pathCount`, the number of distinct directed paths from an ancestor Block to a descendant Block, as a deterministic structural metric.
+- Local verification — Conformant implementations recompute identities and inspect available Graph relationships through canonical protocol rules.
 
-**Local-first** — No blockchain, token, or external service is required. Creation, validation, and graph traversal run entirely as local computation on protocol data.
+- Application boundary — ALX Protocol verifies structure. Applications evaluate truth, quality, authorship, legal rights, policy, usefulness, and semantic compatibility.
 
-**Composable with external layers** — Storage (IPFS, S3, databases), attestations (signatures, timestamps), and policy logic attach in optional context layers that do not affect `blockHash` or identity.
+- External layers — Storage, attestations, timestamps, application indexes, hosted discovery systems, governance systems, and economic mechanisms can operate around Blocks while core conformance remains independently implementable.
 
-**Verification boundary** — ALX verifies artifact identity, content integrity, declared parent lineage, graph consistency, and structural `pathCount`. ALX does not verify semantic truth, content quality, storage availability, or policy compliance.
+# Terminology and Reading Model
 
-# Part I — The Problem
+The following vocabulary separates the protocol object, application-facing material, structural relationships, and application interpretation.
 
-Part I develops the trust gap, operational pressures, and verification landscape introduced in the Abstract and Executive Summary.
+| Term | Meaning |
+| --- | --- |
+| Digital artifact | Digital material that an application may represent as `content` in a Block |
+| Block | The ALX Protocol primitive that binds `content` and declared parent Block identities into deterministic identity |
+| Composition | A structural relationship created through normalized `parentHashes` |
+| Graph | The formal structure created by parent relationships among Blocks |
+| Context | An application-layer interpretation assembled from artifact `content` and Graph relationships |
+| Verification Context | A protocol input that selects Graph validation mode and declares external parent boundaries; distinct from application-layer context |
+| Machine-consumable | A supporting property produced by canonical representation and deterministic traversal |
+| Open protocol | Public rules, schemas, and test vectors supporting independent conformant implementations |
 
-## The Trust Gap for Consequential Artifacts
+This paper uses Block for the protocol primitive and digital artifact for the material represented by an application. Composition refers to parent-linked Block structure. Integration refers to external systems that store, attest to, index, interpret, or govern Blocks.
 
-As AI-generated outputs enter high-stakes workflows, organizations require portable answers to:
+# Part I—The Artifact Composition and Lineage Gap
 
-- What created this artifact?
-- Which sources informed this artifact?
-- Which agents, models, or systems transformed this artifact?
-- Which changes occurred across the artifact’s lifecycle?
-- Which derivation path produced this artifact?
-- Which chained Blocks represent the artifact’s lineage?
-- Which systems provide independent verification of historical state?
+Digital systems increasingly depend on artifacts produced across tools, models, agents, databases, workflows, and organizations. Artificial intelligence increases the volume and speed of this exchange, but the structural problem applies to human-authored, machine-produced, and AI-generated artifacts alike.
 
-Current infrastructure rarely provides durable, portable, independently verifiable representations for the questions above. ALX addresses verification at the artifact layer: each Block binds deterministic identity and explicit lineage; chained Blocks form inspectable derivation graphs. Domain truth, model correctness, compliance judgment, and trust evaluation remain external to the protocol.
+A digital artifact is digital material that an application may represent as opaque JSON-serializable `content` in a Block. Examples include source inputs, model outputs, agent handoffs, evaluations, decision records, workflow states, tool responses, schema objects, media records, and other materials that downstream systems can reference, verify, reuse, or extend.
 
-## Agentic Systems Multiply Invisible Handoffs
+Lineage is the declared structural relationship between a Block and upstream Blocks. Parent relationships describe source materials, decisions, handoffs, workflow states, or other dependencies, while applications determine the semantic meaning of each relationship.
 
-Multi-agent workflows generate intermediate artifacts at every handoff. Without structured preservation of those artifacts, reconstructing how a final output was produced becomes operationally difficult. Chained Blocks preserve intermediate steps, transformation history, and parent-linked derivation across the full workflow.
+AI systems, applications, and implementers need durable answers to structural questions:
 
-## Enterprises Need Source-Grounded AI
+- Which Block identity represents this artifact?
 
-RAG systems, copilots, and workflow agents must preserve traceable relationships to approved sources and intermediate transformations. ALX binds outputs to parent artifacts, source materials, and derivation steps through explicit parentHashes.
+- Has the artifact `content` changed?
 
-## Regulation & Governance Are Moving from Policy to Proof
+- Which upstream artifacts are declared as dependencies?
 
-Regulated workflows increasingly require inspectable evidence of source lineage, model participation, review events, and artifact integrity—validatable at the artifact level across distributed environments.
+- Which application records or attestations identify participating people, agents, models, systems, or workflows?
 
-## Personalization Requires Verified Context
+- Which intermediate artifacts influenced the final artifact?
 
-Context-aware systems depend on preferences, prior decisions, and intermediate reasoning artifacts that carry verifiable identity and lineage across interactions and system boundaries.
+- Which derivation path connects this artifact to prior context?
 
-## Existing Provenance Remains Trapped Inside Platforms
+- Can Block identity, `content` integrity, and declared lineage be verified outside the originating environment?
 
-Logs, dashboards, and vendor APIs provide system-local visibility. Portable verification requires artifact-level evidence that persists across vendors, tools, and organizational boundaries without platform-specific observability.
+The artifact composition and lineage gap is the absence of a shared structure for deterministic identity, declared relationships, and local verification across system boundaries. Digital artifacts are difficult to compose across independent systems when identity, lineage, attribution, and validation use incompatible representations.
 
-# Part II — Existing Verification and Provenance Systems
+## Agentic Workflows Produce Lineage-Critical Handoffs
 
-## The Modern Verification Stack
+Multi-agent workflows generate intermediate artifacts at each handoff. One agent retrieves source material. Another agent summarizes the source material. Another agent extracts claims. Another agent produces a draft. Another agent reviews the result. Each step creates operational context for the next step.
 
-Modern verification infrastructure spans versioning, content addressing, media provenance, supply-chain attestation, trust signatures, shared ledgers, observability, and notarization. Each layer addresses a distinct scope. ALX operates at the artifact layer: deterministic Block identity and `parentHashes` lineage that compose with each layer below.
+These intermediate artifacts carry value because downstream agents, models, and applications can rely on prior outputs as inputs. Source selections, extracted claims, draft revisions, evaluation results, policy checks, and review decisions can all shape the final artifact.
 
-| Layer              | Representative Systems | Primary Guarantee              | ALX Composition                    |
-| ------------------ | ---------------------- | ------------------------------ | ---------------------------------- |
-| Versioning         | Git                    | Change history in repositories | Parent reference to commit hash    |
-| Content addressing | IPFS, IPLD             | Content retrieval by CID       | Parent reference with local verify |
-| Media provenance   | C2PA                   | Embedded signed claims         | Parent Block in derivation graph   |
-| Build integrity    | SLSA                   | Pipeline attestations          | Parent-linked build evidence       |
-| Attestation        | EIP-712, in-toto       | Signed assertions              | Optional attachment at Block       |
-| Shared commitment  | Blockchains            | Append-only anchor             | Optional **ALX anchor** on Base    |
-| Observability      | Logs, traces           | Runtime telemetry              | Elevated to verifiable Blocks      |
-| Notarization       | Timestamp services     | Time and existence proof       | Parent-linked external proof       |
+Agentic workflows benefit from durable representation of handoffs as digital artifacts. A handoff represented by a Block can carry `content` identity and declared parent lineage. Applications can then interpret the handoff within the surrounding workflow while conformant implementations inspect the structural relationships.
 
-## ALX as a Compositional Artifact Layer
+## Source Grounding Depends on Portable Lineage
 
-ALX composes with verification-layer systems by introducing a shared primitive for:
+Retrieval-augmented generation systems, copilots, and workflow agents increasingly depend on approved source material. Output reliability depends on relationships between the output and the sources, policies, datasets, or prior decisions that informed the output.
 
-- Deterministic artifact identity
-- Parent-bound lineage
-- Local verification across environments
+Source grounding benefits from grounding relationships represented at the Block layer. An output can declare upstream source artifacts through explicit parent references. A downstream system can evaluate declared dependencies from protocol data.
 
-The compositional primitive applies uniformly across AI-generated, human-authored, and machine-produced artifacts.
+Portable lineage gives source-grounded AI a reusable structure across tools, teams, vendors, and institutions. Outputs can carry declared relationships to upstream artifacts, and downstream systems can verify Block identity, `content` integrity, and parent-bound lineage through local computation.
 
-## Content Versioning Systems
+## Platform-Local Provenance Provides Operational Context
 
-Git preserves structured history through commits, branches, diffs, and authorship metadata. However, AI-generated artifacts increasingly flow through broader pathways: prompts, APIs, vector stores, agent systems, SaaS platforms, and distributed workflows.
+Existing systems provide useful forms of visibility. Logs show runtime behavior. Dashboards show application state. Vendor APIs expose provider-specific records. Observability systems capture traces. Governance systems track review and approval events.
 
-ALX introduces artifact-carried identity and parent-bound lineage that persist across agent pipelines, APIs, vector stores, and SaaS workflows. Git and ALX compose directly, enabling a Block to reference a Git commit hash as a parent, binding repository-level history into artifact-level lineage.
+These systems create valuable operational records. ALX Protocol adds an artifact-level structure that can move across environments. Applications can represent context-bearing records as Blocks, allowing conformant implementations to verify Block identity and declared lineage across tools, vendors, and organizations.
 
-## Content Addressing & Distributed Storage
+Systems that compose digital artifacts benefit from provenance that remains associated with each artifact representation. Artifact-level provenance allows downstream systems to reference, verify, reuse, and extend Block data after export, transfer, ingestion, summarization, or reuse.
 
-IPFS and IPLD enable content-addressed retrieval where identical content resolves to the same CID regardless of location.
+# Part II—Composable Digital Artifacts and the Block Model
 
-ALX extends content addressing by binding lineage into artifact identity. A Block can reference IPFS-stored content as a parent while preserving deterministic verification semantics. Lineage binding enables artifacts to be both content-addressed and lineage-aware within a unified derivation structure.
+## Overview
 
-## Media & Artifact Provenance Standards
+ALX Protocol represents composable digital artifacts through a minimal Block model. The model separates application-facing artifacts from protocol objects and separates structural composition from semantic interpretation.
 
-C2PA defines structured provenance for media (images, video, audio) through embedded metadata and signed records.
+## The ALX Artifact Model
 
-ALX generalizes provenance beyond media-specific constraints. ALX applies identity, lineage, and verification uniformly across summaries, model outputs, structured records, and agent-generated artifacts.
+ALX Protocol provides a shared Block model across application and infrastructure boundaries. A Block supplies deterministic `content`-only identity, lineage-bound identity, declared parent relationships, and local verification. Applications can reference external records inside `content`, represent them directly as Blocks, or link them into a Graph through `parentHashes`.
 
-C2PA and ALX compose directly: C2PA-signed media can be incorporated as parent Blocks within broader ALX derivation graphs.
+The Block model allows AI-generated, human-authored, and machine-produced artifacts to participate in a common structural Graph across storage systems, execution environments, applications, verification tools, and organizations. External systems retain their native responsibilities while ALX Protocol supplies deterministic identity and declared relationships.
 
-## Supply Chain & Build Integrity
+## The Block Primitive
 
-SLSA provides verified build provenance through dependency tracking, pipeline integrity, and reproducible build assurances.
+The Block is the core primitive of ALX Protocol. A Block binds opaque artifact `content` and a normalized set of declared parent Block identities into deterministic protocol identity.
 
-ALX integrates SLSA by binding build outputs into deterministic artifact identity and lineage structures. A Block may reference SLSA attestations as parent-linked evidence, embedding supply-chain verification directly into the artifact graph.
+A Block carries artifact payload data as opaque JSON-serializable `content`. The protocol does not inspect, interpret, classify, or validate the semantic meaning of `content`. This opacity allows the same primitive to represent source inputs, model outputs, agent handoffs, evaluations, decision records, workflow states, tool responses, schema objects, and other machine-readable or human-readable payloads.
 
-Build outputs, dependencies, and transformation steps become first-class, verifiable components in ALX derivations.
+A Block also carries `parentHashes`, a normalized list of declared upstream Block identities. These references identify structural dependencies. Including `parentHashes` in Block identity binds the declared parent set directly into deterministic identity without assigning semantic meaning to any relationship.
 
-## Attestation & Trust Systems
+The Block primitive separates two identity scopes. `contentHash` identifies canonicalized Block `content` only. `blockHash` identifies the Block through canonicalized `content` and normalized `parentHashes`. This separation allows conformant implementations to distinguish content identity from lineage-bound Block identity during local verification.
 
-Attestation systems provide signed assertions about artifact properties such as authorship, execution context, compliance, or validation state.
+The Block is minimal by design. Storage location, timestamps, attestations, signatures, schemas, application indexes, hosted discovery records, policy rules, and hosted services can attach above the Block layer without changing Block identity or protocol validity.
 
-ALX incorporates attestation claims as part of lineage without altering verification semantics. A Block can reference attestation records as parent-linked evidence, enabling external trust signals to participate in derivation graphs while preserving local identity verification.
+## Block Structure
 
-## Blockchains
+A Block contains four required protocol fields: `content`, `parentHashes`, `contentHash`, and `blockHash`.
 
-Blockchains provide shared commitment systems through append-only ledgers, consensus validation, and immutable state records.
+| Field | Role | Identity Scope |
+| --- | --- | --- |
+| `content` | Opaque JSON-serializable artifact payload | Included in `contentHash` and `blockHash` |
+| `parentHashes` | Normalized set of declared upstream Block identities | Included in `blockHash` |
+| `contentHash` | Deterministic `content`-only identity derived from `content` | Verifies Block `content` integrity |
+| `blockHash` | Deterministic lineage-bound identity derived from `content` and `parentHashes` | Verifies Block identity and declared parent lineage |
 
-ALX composes with blockchain systems by enabling optional **ALX anchor** commits on Base (existence-time for `blockHash` values) while preserving independent verification of artifact identity and lineage. Merkle proofs and catalog/index policy remain off-chain (`alx.index`, `alx.registry`, SDK).
+`content` carries the artifact payload. The payload represents a source input, model output, agent handoff, evaluation, decision record, workflow state, tool response, schema object, or other JSON-serializable unit.
 
-## Observability Systems
+`parentHashes` carries declared upstream Block identities. A root Block contains an empty `parentHashes` list. A derived Block contains one or more parent references. Each parent reference declares a dependency relationship between the current Block and an upstream Block.
 
-Logging and observability systems provide runtime visibility into system behavior through event traces, execution logs, and operational telemetry.
+`contentHash` is derived from canonicalized `content`. `contentHash` provides content-only Block identity and allows conformant implementations to compare recomputed content identity with the declared value.
 
-ALX composes with observability and logging systems by elevating log-derived artifacts into verifiable Blocks with deterministic identity and parent-bound lineage. Log events, traces, and operational outputs can be structured as first-class artifacts within ALX graphs, enabling runtime behavior to become part of verifiable derivation history.
+`blockHash` is derived from canonicalized { `content`, `parentHashes` } after parent normalization. It establishes deterministic, lineage-bound Block identity. Conformant implementations compare `blockHash` values to determine whether two Blocks have the same protocol-defined identity over canonicalized `content` and normalized parent Block identities.
 
-## Centralized notarization
+Attestations, signatures, timestamps, schemas, storage references, application indexes, hosted discovery records, policy rules, hosted services, and application metadata are external to the required Block structure. These external layers can reference or attach to a Block without changing `contentHash`, `blockHash`, or protocol validity.
 
-Centralized notarization services provide timestamping and verification within a product or organizational boundary, establishing when an artifact existed and which entity submitted it.
+Figure 1 shows the separation between content-only identity, lineage-bound Block identity, and external attachments.
 
-ALX composes with notarization systems by binding externally issued timestamps or identity proofs as parent-linked evidence within derivation graphs.
+![Block identity model showing contentHash and blockHash derivation](assets/whitepaper-figures/figure-01-block-identity-model.png)
 
-## ALX Artifact Model
+*Figure 1 — Block identity model. `contentHash` derives from canonicalized `content`; `blockHash` derives from canonicalized `content` and normalized `parentHashes`. External attachments remain outside both identity derivations.*
 
-Existing systems operate as infrastructure within distinct verification layers. ALX composes with verification-layer systems by introducing a primitive at the artifact layer: deterministic identity and parent-bound lineage across any conformant implementation.
+![Same contentHash with different blockHash values when parent identities differ](assets/whitepaper-figures/figure-01a-hash-distinction-inset.png)
 
-Git, IPFS, C2PA, SLSA, attestation systems, blockchains, logging systems, and centralized notarization systems each provide mechanisms for provenance, integrity, and verification across distinct scopes and domains. ALX extends this ecosystem by defining a unified artifact identity layer that applies uniformly to AI-generated, human-authored, and machine-produced outputs.
+*Figure 1a — Hash distinction. Equivalent `content` can preserve `contentHash` while different normalized parent identities produce different `blockHash` values.*
 
-The artifact identity layer enables interoperability across existing provenance and verification systems by standardizing how artifacts are identified, linked, and verified independent of storage medium, transport mechanism, execution environment, or application boundary.
+## Structural Composition
 
-# Part III — The ALX Protocol
+Composition occurs when a Block declares one or more normalized parent Block hashes. The retained parent set is unordered and participates directly in `blockHash` derivation. Each relationship is structural: the child Block commits to the declared parent identities without asserting semantic compatibility, causality, truth, or usefulness.
 
-## Agent Pipelines Without Artifact Identity
+Parent-linked Blocks form a Graph. Conformant implementations can verify available Blocks and traverse declared parent relationships through protocol data. Applications decide which relationships are meaningful and which artifacts can be used together.
 
-The trust gap becomes most visible in multi-agent systems.
+Figure 2 illustrates structural composition across source, derived, and final Blocks.
 
-A single model output can be difficult to verify. A multi-agent workflow increases verification requirements because each agent receives context, transforms that context, produces an output, and passes that output downstream.
+![Chained Blocks and declared parent relationships](assets/whitepaper-figures/figure-02-chained-blocks-and-parent-references.png)
 
-By the end of the workflow, the system may produce a high-value artifact such as a legal brief, credit assessment, clinical summary, software architecture, market research report, or compliance recommendation.
+*Figure 2 — Chained Blocks and parent references. Arrows show derivation direction; each child declares its upstream parent `blockHash` values through normalized `parentHashes`.*
 
-The final artifact may persist while the derivation path becomes incomplete or inaccessible.
+## Summary
 
-A research workflow illustrates this pattern. One agent summarizes source documents into a brief. A second agent extracts claims and citations. A third agent transforms the material into an executive report. A fourth agent reviews the report for factual consistency before publication.
+Digital artifacts are the application-facing materials. Blocks are the protocol representations. The normalized `parentHashes` set creates structural composition, and the resulting Graph supports deterministic verification and traversal across conformant implementations.
 
-The final report persists. Intermediate artifacts are often retained only in orchestration state, logs, transient responses, or application memory.
+# Part III—Identity, Lineage, and Local Verification
 
-Missing Block sealing at workflow handoffs introduces verification gaps where artifact identity, lineage continuity, and derivation integrity are not preserved across system boundaries:
+## Overview
 
-- Which sources informed which claims?
-- Which citation set supported by which paragraph?
-- Which draft did the review agent inspect?
-- Which chained Blocks represent each transformation?
-- Which step introduced an error or unsupported claim?
-- Which systems can verify the full derivation path independently?
+Part III explains how deterministic identity, parent resolution, and Graph traversal make Block relationships locally verifiable. The verification model evaluates protocol structure while applications retain responsibility for meaning and use.
 
-The system produced an answer. ALX enables the system to represent the full derivation of the answer as a verifiable artifact graph.
+## Deterministic Identity
 
-## Workflow Derivation Structure
+ALX Protocol defines identity through deterministic hashing over canonical protocol data. Equivalent canonical inputs produce equivalent hash values across conformant implementations.
 
-Each agent plays a role in the workflow. ALX gives the workflow a shared, durable record of the composition. The final performance exists as the output. The score exists as the derivation graph: a verifiable structure that records the handoffs, dependencies, transformations, and contributions that shaped the final artifact.
+A Block has two identity values:
 
-A concrete multi-agent trading pipeline—data ingestion, signal synthesis, compliance, execution, portfolio update, and audit sealing—is worked through in Part V (Figure 3), including computed `pathCount` over the derivation graph.
+- `contentHash` = `keccak256`(`canonicalize`(`content`))
 
-## The Block
+- `blockHash` = `keccak256`(`canonicalize`({ `content`, `parentHashes` }))
 
-**Figure 1 — L1 canonicalization → L2** `contentHash` **/** `blockHash`
+- `contentHash` identifies canonicalized Block `content` only. Changing `content` requires `contentHash` to be recomputed.
 
-```mermaid
-flowchart TB
-  A[content] -->|L1| CH[contentHash]
-  B[parentHashes]
-  A --> CE["{ content, parentHashes }"]
-  B --> CE
-  CE -->|L2| BH[blockHash]
-  AT[Attestations] -.-> BH
-  CTX[Context] -.-> BH
-```
+- `blockHash` identifies the Block through canonicalized `content` and normalized `parentHashes`. Changing either input requires `blockHash` to be recomputed.
 
-*Caption:* `content` *→* `contentHash`*;* `{ content, parentHashes }` *→* `blockHash`*.*
+This identity model separates `content` integrity from lineage-bound identity. Two Blocks can carry equivalent `content` and therefore share the same `contentHash`, while different `parentHashes` produce different `blockHash` values. This allows conformant implementations to verify payload integrity and declare lineage as distinct structural properties.
 
-ALX addresses the artifact verification problem with one primitive: the **Block**.
+The specification normalizes `parentHashes` by lowercasing valid hashes, removing invalid entries, deduplicating the retained values, and sorting the retained set lexicographically. Equivalent normalized parent sets therefore produce equivalent `blockHash` values across conformant implementations.
 
-A Block is an independently verifiable container for any meaningful artifact. A Block can represent research finding, code reviews, financial analysis, compliance assessment, legal draft, model evaluation, creative work, agent handoff, or output from an AI agent.
+## Block Verification
 
-The protocol verifies artifact identity and lineage while preserving content opacity. Schema validation, truth assessment, policy checks, and domain judgment remain application-layer functions.
+Block verification is local computation over Block data. A conformant implementation verifies a Block by recomputing `contentHash` and `blockHash` from canonical inputs and comparing the recomputed values with the declared values inside the Block.
 
-ALX verifies structure.
+Block verification includes four core operations:
 
-Content opacity makes the protocol general. Systems that verify identity and lineage without interpreting content can operate across domains, vendors, agents, models, storage systems, and applications.
+- Canonicalize `content`.
 
-### Block Structure
+- Recompute `contentHash` as `keccak256`(`canonicalize`(`content`)).
 
-A Block binds five fields: two author-provided inputs, two protocol-computed hashes, and one optional attestation array.
+- Recompute `blockHash` as `keccak256`(`canonicalize`({ `content`, `parentHashes` })).
 
-| Field          | Source   | Role                                                | In Hash Envelope                 |
-| -------------- | -------- | --------------------------------------------------- | -------------------------------- |
-| `content`      | Author   | Opaque artifact payload (JSON-serializable)         | Yes (`blockHash`, `contentHash`) |
-| `parentHashes` | Author   | Unordered set of upstream `blockHash` references    | Yes (`blockHash`)                |
-| `contentHash`  | Protocol | Keccak-256 of canonical `content`                   | Stored; derived                  |
-| `blockHash`    | Protocol | Keccak-256 of canonical `{ content, parentHashes }` | Identity                         |
-| `attestations` | Optional | EIP-712 signatures over `blockHash`                 | No                               |
+- Compare recomputed values with the declared `contentHash` and `blockHash`.
 
-Identical `content` and identical `parentHashes` yield identical `blockHash` values across conformant implementations.
+A Block is structurally valid when recomputed hash values match the declared values and the Block conforms to the required protocol structure.
 
-## Block Lifecycle
+Block verification does not require network access, storage retrieval, blockchain confirmation, registry lookup, hosted service availability, or external authority approval. Verification depends only on the Block data and the canonicalization and hashing rules defined by the protocol.
 
-- Creation
-- Attachment
-- Verification
-- Composition
-- Inspection
-- Anchoring
-- Governance
+Block verification confirms Block identity, `content` integrity, and lineage-bound identity. Semantic truth, `content` quality, authorship, policy status, compliance status, and real-world identity remain outside Block verification.
 
-The Block lifecycle begins with creation. During creation, content and parentHashes are provided and canonicalized into a deterministic representation. The canonicalized content produces the contentHash, while the combined canonicalized structure of content and parentHashes produces the blockHash.
+Figure 3 summarizes the local structural-verification sequence.
 
-Verification occurs through local recomputation. A conformant implementation reconstructs the canonical representation and recomputes blockHash to validate structural integrity. Verification requires no external dependencies or third-party systems.
+![Local Block verification through canonicalization and hash recomputation](assets/whitepaper-figures/figure-03-local-verification-flow.png)
 
-Composition occurs when a new Block references existing Blocks through parentHashes, establishing explicit lineage relationships and extending the derivation graph across the full workflow.
+*Figure 3 — Local verification flow. A conformant implementation validates structure, canonicalizes protocol inputs, recomputes both identities, and compares declared values. A successful result establishes structural validity only.*
 
-## Block Creation in Practice
+## Parent Lineage Verification
 
-Block creation and lineage binding follow a deterministic and implementation-agnostic pattern.
+Parent lineage verification checks whether declared upstream Block references are structurally bound into the current Block identity.
 
-Block creation does not require a dedicated storage interface, blockchain interface, model provider integration, or application framework. The selection criterion is whether an artifact requires persistent identity binding and explicit lineage preservation for downstream consumption.
+A Block declares upstream dependencies through `parentHashes`. Each value in `parentHashes` identifies a parent Block by `blockHash`. A root Block has an empty `parentHashes` list. A derived Block has one or more parent references.
 
-ALX functions as a minimal verification interface over agent handoffs, research outputs, compliance artifacts, model evaluations, and enterprise workflows. Over time, Blocks generated across workflow contexts form a shared derivation graph that remains portable, inspectable, and independently verifiable across systems.
+During verification, a conformant implementation confirms that `parentHashes` is sorted, deduplicated, and included in the `blockHash` derivation. Because `blockHash` is computed from canonicalized { `content`, `parentHashes` }, any change to declared parent lineage produces a different `blockHash`.
 
-### Block Creation Modes
+Parent lineage verification confirms declared dependency structure. The verification process shows that a Block commits to a specific set of upstream Block identities. Applications determine whether those dependencies are available, relevant, truthful, compliant, or appropriate for a particular use.
 
-ALX defines three Block creation modes.
+When parent Blocks are available, a conformant implementation can verify each parent Block independently and traverse the resulting dependency relationships. This creates a local, computable lineage structure from Block data.
 
-#### Manual Creation
+## Derivation Graph Verification
 
-Manual Blocks originate from human invocation through user interfaces, web applications, or command-line tools.
+A derivation Graph is formed when multiple Blocks reference upstream Blocks through `parentHashes`. Each Block is a graph node identified by `blockHash`. Each parent reference defines a directed dependency edge between a derived Block and an upstream Block.
 
-Manual creation applies when an artifact requires explicit sealing for purposes such as citation, review, publication, archival, or formal preservation.
+Derivation Graph Verification extends Block verification across connected Blocks. A conformant implementation can verify each available Block independently, confirm that each declared `parentHashes` entry is bound into the child Block’s `blockHash`, and traverse parent references to inspect the declared dependency structure.
 
-Manual Blocks encode intentional human selection of identity-bound artifacts.
+Graph traversal operates over `parentHashes`. Starting from a descendant Block, a verifier can move upstream through declared parent references to identify source Blocks, intermediate Blocks, review Blocks, policy Blocks, handoff Blocks, or other dependency artifacts. Starting from an ancestor Block, an implementation can analyze downstream influence when child relationships are indexed or otherwise available.
 
-#### Programmatic Creation
+Derivation Graph Verification confirms structural relationships among Blocks. Verification can show which Blocks are declared as dependencies, how Blocks connect through parent references, and whether available Blocks maintain valid local identities. Derivation Graph Verification does not determine semantic causality, `content` truth, authorship, policy status, or the real-world correctness of a workflow.
 
-Programmatic Blocks originate from application-level systems through SDKs, APIs, or automated services.
+This graph model allows AI systems, applications, and implementers to treat lineage as computable protocol data. Artifact histories can be inspected, traversed, and verified through deterministic Block identities and declared parent references.
 
-Programmatic creation applies when software systems generate artifacts intended for reuse across services, pipelines, or workflows.
+## Deterministic Identity Across Representations
 
-Programmatic Blocks encode deterministic system-level generation of identity-bound outputs.
+ALX Protocol establishes deterministic Block identity. `contentHash` is derived from canonicalized `content`, while `blockHash` is derived from canonicalized `content` together with normalized `parentHashes`. Changing `content` requires both identities to be recomputed. Changing only `parentHashes` preserves `contentHash` but requires a newly derived `blockHash`, producing a different Block representation.
 
-#### Automatic Creation
+A changed payload or parent set is represented by a new Block identity. An earlier Block remains independently referenceable whenever the earlier protocol data remains available.
 
-Automatic Blocks originate from middleware within agent systems, retrieval pipelines, CI/CD systems, and orchestration frameworks.
+Deterministic identity distinguishes structural equivalence without relying on storage controls, append-only databases, access control, or hosted state management.
 
-Automatic creation applies when system design requires meaningful transformations and handoffs produce verifiable artifacts by default.
+Storage systems, applications, registries, indexes, and hosted services can delete, overwrite, hide, or reorganize records at their own layers. Those operations affect availability and presentation while the deterministic identity function remains unchanged.
 
-Automatic Blocks encode workflow-level transitions where artifact generation is embedded into execution paths.
+Stable Block identity supports reproducibility and later verification for reports, analyses, recommendations, reviews, evaluations, handoffs, and other digital artifacts.
 
-## Block Creation Criteria
+## Protocol Layer and External Layer
 
-Block creation is triggered when an artifact requires preservation of identity, lineage, or contextual binding such that omission would introduce ambiguity in future interpretation, reuse, or verification.
+ALX Protocol defines a minimal protocol layer for Block identity and structural verification. The protocol layer consists of four required fields: `content`, `parentHashes`, `contentHash`, and `blockHash`.
 
-Block creation applies to artifacts that are:
+External layers can attach to, reference, store, index, sign, timestamp, interpret, or govern Blocks without changing Block identity. These external layers include storage systems, schemas, attestations, signatures, timestamps, application indexes, hosted discovery systems, policy logic, hosted services, application metadata, user interfaces, and governance processes.
 
-- Reused in downstream workflows
-- Cited as evidence or referential material
-- Incorporated into decision-making processes
-- Transferred between agents or systems
-- Reviewed, validated, or approved
-- Published or externally distributed
-- Included in compliance, audit, or regulatory workflows
-- Used as persistent user-level or institutional context
-- Designated for future reconstruction or replay
+This separation preserves a stable verification surface. A conformant implementation can verify the protocol layer locally, while applications and external systems can add domain-specific meaning, access control, discovery, trust signals, compliance rules, or semantic interpretation above the Block layer.
 
-## Selection Principle
+The protocol layer defines Block identity, `content` integrity, declared parent lineage, and local verification. External layers define storage availability, presentation, policy enforcement, real-world identity, legal status, semantic interpretation, and operational behavior.
 
-The operating rule defines a selection constraint for Block creation:
+Figure 4 locates optional storage, attestation, policy, and metadata layers outside the Block identity boundary.
 
-Artifacts that require future verifiability or trust-dependent reuse MUST be sealed as Blocks.
+![Protocol identity fields separated from external application layers](assets/whitepaper-figures/figure-04-protocol-layer-and-external-layers.png)
 
-Block creation follows future dependency risk on identity and lineage preservation.
+*Figure 4 — Protocol and external layers. `content`, normalized `parentHashes`, `contentHash`, and `blockHash` define the protocol identity surface. External layers can associate data with `blockHash` without changing Block identity or validity.*
 
-## Operational Model
+## Verification Boundary
 
-The three creation modes define adoption across operational layers:
+ALX Protocol verifies structure at the Block layer. Structural verification includes Block identity, `content` integrity, declared parent lineage, derivation Graph relationships, and structural `pathCount` when Graph data is available.
 
-- Human systems produce Blocks through explicit intent.
-- Application systems produce Blocks through deterministic execution
-- Agent systems produce Blocks through automated workflow transitions
+ALX Protocol verifies that `contentHash` matches canonicalized `content`. ALX Protocol verifies that `blockHash` matches canonicalized { `content`, `parentHashes` }. ALX Protocol verifies that declared parent references are included in Block identity. ALX Protocol can traverse available parent references to inspect derivation Graph structure.
 
-Together, manual, programmatic, and automatic creation modes ensure consistent Block generation across human, application, and agent environments while preserving uniform identity and lineage semantics.
+Semantic truth remains external to the protocol. Content quality, model correctness, factual accuracy, authorship, signer identity, storage availability, legal compliance, institutional trust, policy status, and real-world validity are evaluated by applications, attestations, registries, governance systems, or other external layers.
 
-## Block Verifiability
+This boundary allows ALX Protocol to remain domain-agnostic. The protocol provides deterministic structure for identity, integrity, lineage, and local verification, while external systems provide interpretation, judgment, storage, trust, policy, and enforcement.
 
-A Block carries a deterministic identity derived from canonical `content` and declared `parentHashes`.
+## Summary
 
-The same content with the same parents always produces the same Block identity: on any machine, in any language, across any conformant implementation. Any modification to Block content, parent references, or derivation structure produces a different Block identity. Block identity commits to both the artifact and the derivation path encoded in `parentHashes`.
+The local verification model defines how ALX Protocol verifies Blocks through deterministic computation over protocol data. A conformant implementation can recompute `contentHash` and `blockHash`, validate declared parent lineage, and inspect derivation Graph relationships without relying on a blockchain, token, hosted service, storage provider, registry, index, or external authority.
 
-In most systems, provenance is metadata. Metadata can be stored separately, rewritten, stripped, or lost. In ALX, lineage forms part of identity. Parent references are structurally bound into what the artifact is.
+The Block is the core verification primitive. `content` carries the opaque artifact payload. `parentHashes` carries declared upstream Block identities. `contentHash` provides `content`-only identity. `blockHash` provides lineage-bound Block identity.
 
-A root Block is a Block with no parent references. A derived Block includes one or more parent references, where each parent reference explicitly identifies an upstream Block used in construction. An analysis Block derived from a source Block includes the source Block as a parent. A decision Block derived from the analysis includes the analysis Block as a parent. A final report Block may include multiple parent references, such as source documents, intermediate analysis Blocks, review Blocks, policy validation Blocks, and human approval Blocks. Each parent reference encodes a directed dependency edge from the child Block to the parent Block. The resulting structure forms a derivation graph in which nodes are Blocks and edges are parent-to-child relationships, producing a complete, verifiable record of artifact construction and transformation history across the system.
+This model gives systems and implementers a portable structure for composable digital artifacts. External systems can add storage, signatures, timestamps, schemas, attestations, indexes, policy logic, semantic interpretation, and governance workflows around the Block layer while preserving core protocol identity.
 
-## Independent Verification
+# Part IV—Protocol Properties, Openness, and Boundaries
 
-Verification in ALX Protocol is local computation. A verifier computes Block identity by applying the ALX identity function to canonical `content` and declared `parentHashes`. The computed identity is compared against the Block's declared `blockHash`. Matching values indicate structural validity under ALX Protocol rules.
+## Overview
 
-## Structural Verification Model
+ALX Protocol defines a constrained set of protocol-level properties for Block identity, lineage, attribution, and verification. These properties are structural. The protocol establishes how Blocks are identified, how parent references are bound into Block identity, how derivation Graphs can be traversed, and how structural attribution can be computed from Graph topology.
 
-The protocol defines structural verification over the Block layer.
+Part IV defines the guarantees ALX provides at the protocol layer and the boundaries ALX preserves around external systems. The protocol does not define a full application platform, storage network, governance framework, semantic evaluation system, or trust authority. ALX provides a minimal verification surface that external systems can compose with through Blocks, derivation Graphs, attestations, application indexes, hosted discovery systems, storage layers, and application logic.
 
-Structural verification includes:
+The four core protocol guarantees are deterministic identity, parent-bound lineage, traceable attribution, and `content` opacity. Together, these guarantees support local verification and structural composition for human-authored, machine-produced, and AI-generated artifacts.
 
-- Validation of canonical content
-- Computation of contentHash
-- Computation of blockHash
-- Inspection of parentHashes
+## Protocol Scope
 
-Verification is performed by a conformant implementation through local recomputation.
+ALX Protocol defines a minimal structural model for Block identity, lineage binding, graph-based attribution, and local verification. The protocol specifies the required Block fields, the identity relationship between `content`, `parentHashes`, `contentHash`, and `blockHash`, and the structural relationships created when Blocks reference upstream Blocks.
 
-Verifier operations include:
+Protocol scope includes:
 
-- Canonicalization of content
-- Recomputation of contentHash
-- Recomputation of blockHash using content and parentHashes
-- Validation of lineage structure via parentHashes
+- deterministic identity generation from canonical protocol data
 
-Verification operates independently of external services, hosted systems, or coordination layers.
+- `content`-only identity through `contentHash`
 
-## Immutability by Design
+- lineage-bound identity through `blockHash`
 
-A Block is immutable. Block identity is computed from canonical `content` and declared `parentHashes` through a deterministic identity function. Any modification to canonical content produces a distinct Block identity. Any substitution, removal, or insertion of intermediate artifacts within a derivation chain produces a distinct downstream Block identity.
+- declared upstream references through `parentHashes`
 
-The original Block persists unchanged as a stable reference in identity space. Any modified artifact is represented as a new Block instance with a distinct identity and a distinct position in a derivation graph.
+- derivation Graph construction from chained Blocks
 
-Immutability is enforced at the protocol layer through identity determinism over canonical content and lineage structure. No external storage constraints, access controls, or mutability restrictions are required for preservation of prior states.
+- structural attribution through `pathCount`
 
-Block identities provide version-specific, time-stable references to AI-generated artifacts, including reports, analyses, recommendations, and reviews.
+- local verification by conformant implementations
 
-Block identities enable precise referential integrity across time-bounded and multi-stage workflows requiring reproducibility and accountability, including audit processes, regulatory review, research replication, vendor dispute resolution, model evaluation, legal discovery, and enterprise AI governance.
+Protocol scope excludes semantic interpretation and external system behavior. ALX Protocol does not determine whether artifact `content` is true, `complete`, useful, compliant, high quality, authorized, available, or trustworthy. Applications, governance systems, registries, attestation providers, storage systems, institutions, and human reviewers perform those evaluations outside the protocol.
 
-## Trust Anchor Definition
+This boundary preserves protocol neutrality. ALX verifies structure at the Block layer while external systems provide storage, schemas, signatures, timestamps, policy rules, legal meaning, institutional trust, economic interpretation, and domain-specific judgment.
 
-The Block identity defines the trust anchor layer.
+## Protocol Surface
 
-The trust anchor interface provides:
+ALX Protocol centers the protocol surface on Block identity, content identity, parent lineage, and local verification.
 
-- Deterministic identity
-- Lineage binding
-- Verifiable structure
-- Contextual artifacts define the context interface surrounding the Block.
+`content` carries the opaque JSON-serializable artifact payload. `parentHashes` carries the sorted and deduplicated list of declared upstream Block identities. `contentHash` provides `content`-only identity. `blockHash` provides lineage-bound Block identity.
 
-The context interface provides:
+The protocol surface defines how these fields participate in identity and verification. `contentHash` is computed from canonicalized `content`. `blockHash` is computed from canonicalized { `content`, `parentHashes` }. This structure binds artifact payload data and declared parent lineage into deterministic protocol identity.
 
-- Interpretive metadata
-- External references
-- Application-level semantics
+External systems operate outside the minimal protocol surface. Storage networks, databases, blockchains, identity providers, schema frameworks, model providers, governance systems, hosted services, application indexes, hosted discovery systems, and application interfaces can store, transmit, index, attest to, interpret, or govern Blocks. These external systems do not modify `contentHash`, `blockHash`, canonicalization rules, hash derivation, or protocol validity.
 
-Contextual artifacts do not contribute to identity computation or protocol validity.
-
-## Blocks, Context, and Machine Consumption
-
-The Block functions as a trust anchor within the ALX protocol. Applications and machines associate additional context with a Block without modifying the Block definition or altering Block identity.
-
-## External References and Contextual Artifacts
-
-A Block may reference content stored in distributed storage networks, enterprise document systems, object storage systems, or local file systems.
-
-A Block may also reference or include attestations, signatures, model cards, evaluation reports, schemas, policy documents, retrieval metadata, tool-call transcripts, embeddings, and other machine-readable or human-readable artifacts that assist in interpreting the Block’s content.
-
-Contextual artifacts constitute the context layer.
-
-The context layer is excluded from:
-
-- Block identity computation
-- Canonicalization inputs
-- Validity determination
-- Block structural definition
-
-## Machine Consumption Model
-
-Machines and applications consume contextual artifacts associated with a Block.
-
-Contextual artifacts support:
-
-- Interpretation of Block content
-- Retrieval of related information
-- Enforcement of application-level policy constraints
-- Continuation of reasoning workflows
-- Augmentation of semantic understanding of Block origin and usage
-
-Context processing operates independently of protocol-level verification.
-
-## Layered Architecture
-
-ALX defines a minimal protocol layer consisting of:
-
-- content
-- parentHashes
-- contentHash
-- blockHash
-
-Only the protocol layer participates in identity computation and validity rules.
-
-All other systems operate as external layers, including:
-
-- Storage
-- Schema
-- Attestation
-- Application
-
-External layers may associate metadata, references, and contextual structures with a Block without affecting identity computation or protocol validity.
-
-## Separation of Concerns
-
-**Figure 2 — Protocol envelope vs external attachments**
-
-```mermaid
-flowchart TB
-  subgraph Core [Protocol envelope]
-    P1[content]
-    P2[parentHashes]
-    P3[contentHash]
-    P4[blockHash]
-  end
-  S[Storage] -.-> P4
-  AT[Attestations] -.-> P4
-  CTX[Context] -.-> P4
-  APP[Application] --> CTX
-```
-
-*Caption:* `content`*,* `parentHashes`*,* `contentHash`*,* `blockHash` *define identity; storage, attestation, context, and application attach at* `blockHash`*.*
-
-The separation between protocol and context interface defines infrastructure independence.
-
-The protocol interface defines:
-
-- Deterministic identity
-- Lineage structure
-- Structural verification
-
-The context interface defines:
-
-- Semantic interpretation of Block-associated artifacts
-- Contextual enrichment through external metadata and auxiliary artifacts
-- External reference association across storage, attestation, and application systems
-- Application-specific processing, policy evaluation, and workflow behavior
-
-Protocol–context separation enables portability across storage systems, execution environments, and network architecture while preserving a stable and minimal protocol surface.
-
-## From Individual Blocks to Verified Derivation Graphs
-
-A single Block provides a durable identity for a discrete artifact. The Block identity enables stable reference across storage systems, transmission environments, and verification contexts. Identity computation produces equivalent results across conformant implementations for equivalent canonical inputs.
-
-Multiple chained Blocks form a structured derivation graph. Parent references encoded through parentHashes establish explicit relationships between artifacts. Each parent reference defines a directed dependency relationship between a derived Block and one or more upstream Blocks. The resulting graph encodes derivation structure as deterministic references within Block identities.
-
-In an agent workflow, each transformation produces a new Block. A root input produces a Block with no parent references. A derived transformation produces a Block referencing one or more upstream Blocks through parentHashes. Different transformation stages may reference different numbers and combinations of parent Blocks, including single-source derivations, multi-source aggregations, and multi-step compositions. Each transformation extends the derivation graph through deterministic lineage relationships encoded in Block structure.
-
-The resulting structure represents a verifiable artifact graph. The graph encodes both artifact outputs and transformation history as a deterministic, computable structure derived from Block identities and parent-reference relationships.
-
-The graph provides addressability through deterministic Block identities. Each node in the graph is identified by a unique blockHash. Relationships between nodes are defined through parentHashes, which establish directed edges from derived Blocks to declared parent Blocks.
-
-Graph traversal operates over `parentHashes` edges to navigate derivation paths across the artifact structure. Lineage propagation operates through dependency relationships encoded in parentHashes, enabling analysis of upstream influence across downstream Blocks. Temporal ordering of transformations is represented as sequences of Block derivations, where each derived Block extends the graph relative to its parent set.
-
-## Identity as Structural Primitive
-
-The protocol defines identity as the core primitive.
-
-Block identity is established through:
-
-- Canonicalized content
-- Structured parentHashes
-- Deterministic computation of blockHash
-
-Identity is derived exclusively from canonical `content` and declared `parentHashes` and is invariant under conformant implementations for equivalent canonical states.
-
-### Identity Guarantee
-
-ALX defines deterministic identity for each Block. Block identity is computed from canonicalized content and parentHashes. The resulting blockHash functions as a stable identifier for the artifact. Identity is invariant across conformant implementations for equivalent canonical inputs.
-
-### Lineage Guarantee
-
-ALX defines explicit lineage encoding for each Block. Each Block contains parentHashes referencing upstream Blocks. `parentHashes` references define directed relationships between artifacts. Lineage is embedded into identity computation through inclusion of parentHashes in blockHash derivation, ensuring structural coupling between artifact state and derivation history.
-
-### Verification Guarantee
-
-ALX defines local verification for each Block. Verification is performed by recomputing:
-
-- Canonical representation of content
-- Canonical representation of parentHashes
-- contentHash from canonicalized content
-- blockHash from canonical inputs
-
-Verification validates structural consistency without reliance on external services, coordination interface, or third-party systems.
-
-### Graph Construction Guarantee
-
-ALX defines graph derivation construction over Blocks. Each Block defines a node in a directed graph identified by blockHash. Each entry in parentHashes defines a directed edge from a derived Block to an upstream Block. The resulting structure encodes artifact derivation as a deterministic graph over identity and lineage relationships.
-
-# Part IV — Protocol Properties and Boundaries
-
-## Protocol Claims and Boundaries
-
-ALX defines a constrained set of protocol-level guarantees centered on deterministic artifact identity and lineage binding. The protocol establishes claims over structure, computation, and verification. The protocol excludes claims over semantic correctness, availability guarantees, and external system behavior.
-
-### Explicit Exclusions
-
-ALX excludes semantic evaluation of content. The protocol does not determine correctness, truth value, quality, usefulness, or validity of any artifact content or derived output. ALX excludes availability guarantees. The protocol does not define persistence, storage durability, or retrieval guarantees for Blocks or parent references.
-
-ALX excludes external trust modeling. The protocol does not evaluate or assign trust to authors, storage systems, attestation providers, or application-layer frameworks.
-
-### Protocol Scope and Constraints
-
-ALX defines a minimal structural model for artifact identity, lineage binding, and verification.
-
-The protocol specifies:
-
-- Required fields participating in identity computation
-- Computed fields derived from canonical inputs
-- Excluded concerns outside identity formation
-
-### External Boundary Definition
-
-Non-identity metadata, including contextual, semantic, and application-level information, exists outside the protocol boundary.
-
-Non-identity metadata, including contextual, semantic, and application-level information, may be associated with a Block but does not participate in:
-
-- Canonicalization
-- Identity computation
-- Lineage encoding
-- Verification rules
-
-### System Property
-
-The value of a Block emerges from protocol constraints that enforce:
-
-- Deterministic identity generation
-- Explicit lineage representation
-- Local verifiability
-- Minimal structural surface area
-
-Protocol constraints ensure consistent interpretation of artifact structure across systems while preserving separation between protocol-defined integrity and application-level semantics.
-
-## Protocol Design: Minimal, Open, and Composable
-
-ALX defines a minimal protocol surface designed to support ecosystem expansion around a stable identity primitive. The Block remains intentionally compact. The surrounding derivation graph enables integration across heterogeneous systems spanning storage, verification, orchestration, and application interfaces.
-
-### Protocol Scope
-
-ALX does not define a full application platform.
-
-The protocol does not prescribe:
-
-- Storage networks
-- Execution environments
-- Blockchains systems
-- Identity providers
-- Content schemas
-- Model providers
-- Governance frameworks
-
-Storage, execution, blockchain, identity, and schema domains remain external, as multiple independent systems already provide mature implementations.
-
-### Core Primitive
-
-ALX defines a primitive composed of:
-
-- Deterministic artifact identity
-- Parent-bound lineage
-- Local verification
-
-Structural guarantees are established through:
-
-- Canonicalization of content
-- Deterministic Hash Computation
-- Inclusion of parent references in identity derivation
-
-Deterministic identity, parent-bound lineage, local verification, and content opacity remain invariant across conformant implementations.
-
-### Composability Across Systems
-
-The protocol supports composability across external infrastructure.
-
-A Block may reference content stored in IPFS, Filecoin, S3, PostgreSQL, local file systems, or enterprise document systems.
-
-A Block may associate attestations from multiple signing systems.
-
-A Block may use optional **ALX anchor** on Base for neutral existence-time, or other external timestamping services, without affecting `blockHash`.
-
-A Block may integrate application-specific schemas for domain interpretation.
-
-Storage, attestation, indexing, and application integrations operate outside the protocol surface and do not affect identity computation or verification rules.
-
-### System Integration Model
-
-The Block defines the trust anchor of the system.
-
-External systems operate as complementary interfaces:
-
-- Storage systems provide content availability
-- Attestation systems provide signed claims
-- Optional **ALX anchor** on Base provides public existence-time for `blockHash` values.
-- Application systems provide semantic interpretation.
-- Policy systems provide governance enforcement
-- AI systems consume contextual inputs and produce derived artifacts
-
-The protocol binds content and lineage into a deterministic identity that remains independently verifiable across implementations.
-
-### Separation of Concerns
-
-Separation of concerns between the protocol surface and external interface produces:
-
-#### Portability
-
-Verification remains possible across storage systems, execution environments, vendor infrastructures, and blockchain networks without dependency on originating systems.
-
-#### Extensibility
-
-New storage adapters, signing mechanisms, application profiles, agent frameworks, and anchoring systems integrate without modification to the protocol primitive.
-
-#### Independent Implementable
-
-Multiple conformant implementations arise from the specification and conformance criteria across independent runtimes.
-
-### System Design Property
-
-The protocol surface remains minimal in scope. The derivation graph remains expressive in structure and composition.
-
-The design establishes a minimal open primitive enabling systems to:
-
-- Create Blocks
-- Link artifacts through lineage
-- Verify structural integrity
-- Enrich with external context
-- Compose derivation graphs across heterogeneous environments
-
-## The Minimal Protocol Surface
-
-The ALX primitive defines a single protocol object: the Block.
-
-A Block consists of the following fields:
-
-- content — the opaque payload representing the artifact state
-- contentHash — the deterministic hash computed from content
-- parentHashes — a canonical set of references to parent Blocks
-- blockHash — the deterministic identifier computed from canonicalized content and parentHashes under the ALX identity function
-
-The computation of blockHash binds both artifact state and derivation structure into a single identity. Protocol core fields define both artifact identity and lineage structure within the protocol.
-
-From this structure, the protocol derives three core properties:
-
-- Immutability — any change to content or parent produces a new Block
-- Lineage integrity — all derivations are explicitly traceable through parent references
-- Local verifiability — a Block’s validity can be checked by recomputing blockHash from its inputs
-
-All external systems— including databases, blockchains, storage networks, model providers, schema frameworks, and hosted services—operate as optional infrastructure or application layers. External systems may store, transmit, index, or attest to Blocks. No modification, override, or reinterpretation of ALX protocol semantics, identity functions, canonicalization rules, or validation rules occurs in external layers.
-
-#### Canonicalization Algorithm
-
-The canonicalization algorithm produces a deterministic byte sequence from a JSON-serializable value.
-
-- Lexicographically sorted object keys
-- Array ordering preserved
-- undefined → null normalization
-- -0 → 0 normalization
-
-#### Canonicalization Constraints
-
-- Maximum recursion depth: 128
-- Maximum serialized size: 16 MB
-
-#### Hash Function Specification
-
-- Keccak-256 as hash function
-- Input = canonical byte sequence
-- Output = digest
-
-#### Hash Encoding Format
-
-- 0x prefix
-- lowercase hex
-- 64 characters
-- 32 bytes
-
-### Block Interaction Model
-
-Blocks may participate in additional operations that do not modify lifecycle state:
-
-- **Attachment**: optional metadata such as context references, attestations, storage pointers, schemas, and policy information. Attachment metadata does not affect Block identity or hashing.
-- **Inspect**: traversal of derivation graph via parentHashes to interpret lineage and structure.
-- **Anchoring**: association of external commitments such as optional **ALX anchor** on Base, off-chain `**alx.registry*`* / `**alx.index**` catalogs, or signed attestation with Block identities.
-
-### Application Layer
-
-**Governance**: policy enforcement including access control, retention rules, compliance constraints, and operational policies. Governance operates outside protocol identity and does not affect canonicalization or verification.
-
-## The Case for an Open Protocol
-
-ALX defines a protocol for deterministic artifact identity and lineage without coupling to a specific infrastructure stack. An open protocol enables multiple independent implementations that share a common verification model while preserving flexibility across storage, execution, and application interfaces.
-
-Openness establishes interoperability across independent systems. Conformant implementations can create Blocks, verify Blocks, and traverse derivation graphs without coordination through centralized services or proprietary runtimes. Interoperability emerges from shared rules governing canonicalization, hash computation, and lineage binding across independent infrastructure.
-
-An open protocol preserves artifact durability across system boundaries. A Block maintains deterministic identity independent of the system that produced it. Verification is performed by recomputing identity from canonical inputs, without requiring access to the originating environment. As a result, derivation graphs remain interpretable across storage backends, application frameworks, and organizational boundaries.
-
-The protocol also enables composability across heterogeneous systems. Storage systems provide persistence, attestation systems provide signed claims, execution systems generate artifacts, application systems provide domain-specific interpretation, and AI systems perform synthesis over contextual inputs. Storage, attestation, execution, application, and AI systems integrate through the Block interface without requiring modification of the protocol primitive.
-
-Independent implementation is a core property of the design. ALX is defined through normative rules for canonicalization, hashing, and graph construction, with conformance determined by adherence to specification and canonical test vectors. Protocol behavior is derived from specification alone.
-
-Open protocol design supports ecosystem expansion without centralized coordination. New storage mechanisms, signing systems, agent frameworks, indexing systems, and governance layers can integrate through the same Block structure while the protocol surface remains stable and minimal.
-
-The resulting system functions as a shared verification substrate for artifact-based systems. The Block provides deterministic identity and lineage binding, while external interfaces provide storage, interpretation, governance, and computation. The separation between protocol surface and external systems preserves openness while maintaining verifiability across heterogeneous environments.
+The minimal surface allows ALX to remain independently implementable. Conformant implementations can create Blocks, verify Blocks, and traverse derivation Graphs through shared protocol rules without requiring a specific storage layer, execution environment, blockchain network, model provider, application framework, or governance system.
 
 ## Four Protocol Guarantees
 
-ALX Protocol defines four core guarantees. Each guarantee establishes an independent structural property of artifacts. The four guarantees form a verification substrate for artifacts used in trust-sensitive, audit-sensitive, reconstruction-sensitive, and compositional workflows.
+ALX Protocol defines four core guarantees at the protocol layer: deterministic identity, parent-bound lineage, traceable attribution, and `content` opacity. Each guarantee establishes a structural property that can be evaluated from Block data and derivation Graph relationships.
 
-The protocol scope is intentionally constrained. ALX does not evaluate semantic truth, content quality, author intent, or domain-specific correctness. ALX does not replace expert review, governance systems, or institutional oversight.
+These guarantees form the foundation for local verification and digital artifact composition. Deterministic identity gives each Block reproducible content-only and lineage-bound identities. Normalized parent Block identities bind declared upstream relationships into `blockHash`. An Attribution Trace provides a computed structural view of a declared Graph, and `pathCount` measures distinct directed traversal paths from the selected Trace root to a reachable Block. Content opacity leaves semantic interpretation to applications.
 
-Instead, the protocol defines structural guarantees required by higher-level systems before interpretation, policy enforcement, or operational decision-making can be performed reliably.
+The four guarantees are intentionally constrained. ALX Protocol does not evaluate semantic truth, `content` quality, model correctness, author intent, legal meaning, economic value, or policy compliance. External systems can use ALX’s structural guarantees as inputs for interpretation, governance, trust decisions, attribution policy, audit workflows, or application-specific logic.
 
-The protocol guarantees are:
+### Deterministic Identity
 
-## 1. Deterministic Identity
+ALX Protocol defines deterministic identity for each Block. A conformant implementation computes Block identity from canonical protocol data, producing equivalent hash values for equivalent canonical inputs across independent runtimes, programming languages, operating systems, and infrastructure environments.
 
-Every Block defines an identity that is independently reproducible from canonicalized inputs. Equivalent content and equivalent parentHashes yield identical blockHash values across conformant implementations.
+A Block contains two identity values:
 
-Deterministic identity across implementations is a protocol requirement. Verification depends on consistent identity generation across programming languages, runtime environments, operating systems, and infrastructure providers.
+- `contentHash` = `keccak256`(`canonicalize`(`content`))
 
-The protocol defines deterministic serialization and cryptographic hashing rules to enforce reproducible identity generation. Canonicalization transforms structured input into a deterministic byte sequence. Cryptographic hashing transforms the canonicalized representation into a fixed blockHash value.
+- `blockHash` = `keccak256`(`canonicalize`({ `content`, `parentHashes` }))
 
-Conformance is defined through normative serialization behavior and canonical test vectors. Implementations are conformant when each implementation produces identical blockHash values for identical canonical inputs under defined rules.
+- `contentHash` identifies canonicalized Block `content` only. `blockHash` identifies the Block through canonicalized `content` and normalized `parentHashes`. This separation allows conformant implementations to verify `content` integrity and lineage-bound Block identity as distinct structural properties.
 
-Deterministic identity enables interoperability across independent systems. Blocks generated in one environment can be verified in another without coordination through shared infrastructure. Enterprises can perform local recomputation-based verification, regulators can validate artifacts independently of originating systems, and developers can generate and verify Blocks across heterogeneous programming environments using the same protocol rules.
+- Deterministic identity enables local verification. A verifier can recompute `contentHash` and `blockHash` from Block data and compare recomputed values with declared values. Matching values confirm that the Block is structurally consistent under ALX Protocol rules.
 
-The protocol constrains identity generation strictly to canonicalization and hashing rules. Implementations execute canonicalization and hashing rules without introducing alternative identity semantics.
+- Deterministic identity also enables cross-implementation consistency. A Block created in one conformant environment can be verified in another conformant environment through the same canonicalization and hashing rules. Protocol behavior is derived from specification-defined computation rather than a hosted service, proprietary runtime, storage provider, blockchain, or external authority.
 
-## 2. Parent-Bound Lineage
+### Parent-Bound Lineage
 
-A Block’s lineage participates directly in Block identity computation. The protocol includes parentHashes as an input to blockHash derivation, meaning parent references are part of deterministic identity generation.
+ALX Protocol defines parent-bound lineage for each derived Block. A Block declares upstream dependencies through `parentHashes`, and `parentHashes` participates directly in `blockHash` derivation.
 
-A Block that declares parent references produces a blockHash derived from canonicalized content and canonicalized parentHashes. Any modification to the parent set results in a different blockHash. Any removal of a parent reference produces a different identity. Any reordering of parent references outside canonical ordering rules changes the canonical representation and therefore produces a different blockHash. Distinct derivation paths therefore correspond to distinct Blocks.
+A root Block contains an empty `parentHashes` list. A derived Block contains one or more parent references. Each parent reference identifies an upstream Block by `blockHash` and creates a directed dependency relationship between the derived Block and the declared parent Block.
 
-The protocol enforces explicit structural binding between child Blocks and parent Blocks. Each Block encodes a declared derivation path through its parentHashes, and that path is inseparable from identity once the Block is formed.
+Because `blockHash` is computed from canonicalized { `content`, `parentHashes` }, declared lineage becomes part of deterministic Block identity. Any change to the parent set produces a different `blockHash`. A parent addition, parent removal, parent substitution, or change to canonical parent ordering changes lineage-bound identity.
 
-The protocol excludes inferred provenance models. Lineage is represented as explicit structural input encoded in `parentHashes`. Parent relationships exist within identity computation, not as external annotations or post-hoc attribution layers.
+Parent-bound lineage gives AI systems, applications, and implementers a structural way to represent dependency relationships. A research summary can declare source materials and intermediate analyses as parents. A compliance decision can declare policy documents, evaluation outputs, and review artifacts as parents. An agent handoff can declare the prior workflow state and source context as parents.
 
-The distinction separates protocol-level lineage from external metadata systems. Traditional metadata systems allow provenance information to be detached from artifacts, rewritten at storage boundaries, or inconsistently replicated across systems. ALX avoids this separation by encoding lineage directly into identity computation through deterministic hashing rules.
+The resulting structure forms a derivation Graph. Blocks are graph nodes identified by `blockHash`. Parent references are directed edges from derived Blocks to upstream Blocks. This graph encodes declared lineage as computable protocol data.
 
-Lineage binding enables verifiable derivation across AI systems and enterprise workflows. A compliance assessment references policy documents, source material, and review outputs through explicit parent relationships. A research summary references source papers and intermediate analyses through structured lineage. A software design references requirements, architectural reviews, and security evaluations as upstream dependencies. A financial recommendation references market data, model outputs, and approval artifacts as part of its derivation structure.
+### Traceable Attribution
 
-The resulting structure forms a verifiable derivation graph in which transformation history, dependency relationships, and lineage are encoded as persistent, computable structure within Block identity.
+ALX Protocol defines traceable attribution as a structural property of a Graph. When Blocks reference upstream Blocks through `parentHashes`, path relationships become computable from Graph topology.
 
-## 3. Traceable Attribution
+ALX computes `pathCount` as the number of distinct directed traversal paths from the selected Trace root to a reachable Block. `pathCount` operates only over Block connectivity and parent-reference relationships.
 
-Once artifacts form a derivation graph, contribution becomes a computable property of structure.
+`pathCount` does not evaluate semantic importance, authorship value, economic value, legal ownership, creative contribution, or policy entitlement. These interpretations remain external to the protocol. ALX provides the structural metric; applications, registries, governance systems, accounting systems, royalty systems, research systems, and policy layers define how the metric is interpreted.
 
-ALX defines pathCount as a deterministic measure over the derivation graph. pathCount computes the number of distinct directed paths from an ancestor Block to a descendant Block.
+Traceable attribution supports workflows where artifacts propagate through repeated derivation and recombination. A source artifact contributes to several summaries. Each summary contributes to multiple analyses. Multiple analyses contribute to a synthesis artifact. The synthesis artifact contributes to downstream reports, decisions, or recommendations. Each derivation step adds parent-reference edges to the graph.
 
-pathCount is defined over graph structure. pathCount operates on node connectivity and edge relationships encoded through blockHash identity and parentHashes references. pathCount evaluates path multiplicity across all valid derivation routes between two Blocks.
+Through `pathCount`, ALX exposes relationship structure as deterministic protocol data. Systems can inspect how Blocks connect, how many traversal paths connect the selected root to a reachable Block, and how upstream Blocks participate in the resolved Graph.
 
-pathCount evaluates structural connectivity. pathCount does not evaluate semantic meaning, interpretive content, or application-level assessments. The protocol defines pathCount as a structural metric derived from graph topology.
+Figure 5 shows four distinct directed traversal paths from a selected descendant Trace root to one reachable ancestor Block.
 
-In multi-step workflows, artifacts propagate through repeated derivation and recombination. A source artifact produces multiple derived summaries. Each summary produces additional analytical artifacts. Multiple analytical artifacts may contribute to synthesis artifacts. Synthesis artifacts may contribute to downstream recommendations. Each derivation step introduces additional graph edges through parentHashes, increasing the number of valid traversal paths within the graph.
+![Derivation Graph with four traversal paths from descendant Trace root to ancestor Block](assets/whitepaper-figures/figure-05-derivation-graph-and-pathcount.png)
 
-The protocol exposes connectivity as a deterministic property of graph structure. Connectivity is derived from explicit lineage relationships encoded in Blocks and represented through directed edges in the derivation graph.
+*Figure 5 — Derivation Graph and `pathCount`. `pathCount(Descendant → Ancestor) = 4` records four distinct directed traversal paths over declared parent relationships. The metric describes topology only, independent of quality, credit, acceptance, or economics.*
 
-ALX enables computation of contribution relationships across heterogeneous workflows. A research dataset connects to multiple analyses. Each analysis connects to multiple synthesis artifacts. Each synthesis connects to downstream outputs. The originating dataset participates in multiple structural paths that extend through intermediate derivation steps into final artifacts.
+### Content Opacity
 
-`pathCount` supports external systems that define attribution logic. Research systems compute contribution allocation. Royalty systems compute distribution models. Accounting systems compute dependency-based attribution. Provenance systems compute lineage-based scoring. Model evaluation systems compute contribution tracking across training and inference artifacts.
+ALX Protocol defines `content` opacity as a protocol boundary. The protocol verifies artifact structure without interpreting the semantic meaning of `content`.
 
-The protocol does not define economic policy, governance policy, or attribution policy. The protocol defines a structural measurement primitive over derivation graphs. Contribution is represented as a function of path structure encoded in the Block graph.
+A Block can carry any opaque JSON-serializable payload. The payload represents a source document, model output, agent handoff, evaluation, decision record, workflow state, tool response, schema object, media metadata, policy evidence, benchmark result, or other artifact type. Each payload undergoes the same structural process: canonicalization, hash computation, identity verification, and lineage verification.
 
-## 4. Content Opacity
+Content opacity allows ALX to operate across heterogeneous artifact domains. A legal memo, software review, financial analysis, clinical summary, research dataset, compliance assessment, creative output, or machine-generated decision record can participate in the same verification graph without requiring the protocol to understand the domain.
 
-ALX verifies artifacts without interpreting content. The protocol computes hashes over canonicalized inputs. The protocol excludes inspection of semantic meaning, classification of content type, schema validation, field enforcement, policy evaluation, truth assessment, or interpretation of intent.
+The protocol does not classify `content` type, validate domain schemas, evaluate truth, assess quality, infer intent, enforce policy, or determine compliance. Applications, schemas, registries, governance systems, reviewers, and institutional processes handle these functions outside the Block layer.
 
-Content opacity defines the protocol boundary for semantic interpretation. Content opacity enables the protocol to operate as a general verification layer across heterogeneous artifact domains.
-
-The protocol applies the same verification process to all JSON-serializable artifacts. A medical summary, legal memo, software review, creative output, financial model, compliance assessment, research paper, dataset, benchmark result, agent handoff, or machine-generated decision record can each be represented as a Block. Each Block undergoes identical structural processing through canonicalization and hashing.
-
-Content representations may include text, structured data, media metadata, policy evidence, model outputs, or other serializable forms. The protocol does not require interpretation of representation format. The protocol applies to deterministic transformation rules over serialized inputs.
-
-Content opacity enables cross-system composition without shared schema alignment. One system produces a Block representing research finding. A second system produces a Block representing a compliance review. A third system produces a Block derived from both inputs to produce a decision artifact. Each system operates with independent internal schemas while participating in the same verification graph through shared Block structure.
-
-The protocol maintains local semantics within each producing system. The protocol maintains universal verification across all systems through deterministic identity and lineage binding.
-
-Meaning remains local to the producing application. Verification remains consistent across all implementations of the protocol.
+Content opacity preserves a stable verification surface. ALX verifies identity, integrity, lineage, and Graph structure while allowing external systems to define interpretation, presentation, indexing, policy, trust, and domain-specific meaning.
 
 ## Verification Scope
 
-### ALX Verification Scope
+ALX Protocol defines a clear verification boundary. The protocol verifies structural properties that can be computed from Block data and derivation Graph relationships. External systems evaluate semantic, legal, economic, operational, and institutional meaning.
 
-The following tables define the ALX verification boundary. The protocol specifies structural verification guarantees and excludes non-structural evaluation domains.
+### Structural Verification
 
-**Structural Verification (in scope)**
+| Property | Verification Mechanism |
+| --- | --- |
+| Block identity | Recompute `blockHash` from canonicalized { `content`, `parentHashes` } |
+| Content integrity | Recompute `contentHash` from canonicalized `content` |
+| Declared parent lineage | Validate normalized `parentHashes` and inclusion in `blockHash` derivation |
+| Derivation Graph relationships | Traverse available parent-reference edges across Blocks |
+| Graph completeness | Report `complete` only when every declared parent resolves |
+| Graph acyclicity | Detect cycles during Graph traversal |
+| Structural attribution | Compute `pathCount` over available Graph data |
+| Cross-implementation consistency | Confirm equivalent canonical inputs produce equivalent hashes across conformant implementations |
 
-| Property                         | Verification Mechanism                                                        |
-| -------------------------------- | ----------------------------------------------------------------------------- |
-| Block identity                   | Recompute `blockHash` from canonical `{ content, parentHashes }`              |
-| Content binding                  | Recompute `contentHash` from canonical `content`                              |
-| Lineage structure                | Validate `parentHashes` references; acyclic graph                             |
-| Attribution structure            | Compute `pathCount` over derivation graph                                     |
-| Cross-implementation consistency | Identical canonical inputs yield identical hashes                             |
-| Signed attestation (optional)    | Verify EIP-712 signature over `blockHash`                                     |
-| Merkle inclusion (optional)      | Verify proof against off-chain root (SDK; not a protocol requirement on Base) |
+### External Domains
 
-**Application and External Domains (out of scope)**
+| Domain | Boundary |
+| --- | --- |
+| Semantic truth | `content` is opaque to ALX Protocol |
+| Content quality | Structurally valid Blocks can contain low-quality, incomplete, or incorrect `content` |
+| Model correctness | Applications evaluate model reasoning and output quality |
+| Real-world authorship | External attestations, credentials, or governance systems evaluate identity claims |
+| Storage availability | `parentHashes` provides references without guaranteeing retrieval |
+| Storage durability | Storage systems provide persistence |
+| Policy compliance | Applications, policy engines, governance systems, or institutions perform compliance judgments |
+| Economic meaning of `pathCount` | ALX Protocol defines structural `pathCount`; applications define attribution policy or value assignment |
+| Legal status | External legal frameworks provide interpretation and enforceability |
+| Institutional trust | Organizations, registries, governance systems, or reviewers make trust decisions |
 
-| Domain                          | Rationale                                                            |
-| ------------------------------- | -------------------------------------------------------------------- |
-| Semantic correctness / truth    | `content` is opaque to the protocol                                  |
-| Model or reasoning quality      | Structurally valid Blocks may contain incorrect conclusions          |
-| Real-world identity             | Attestations prove key control; identity binding is external         |
-| Parent availability             | `parentHashes` are references, not storage guarantees                |
-| Storage durability              | Persistence is a storage-layer responsibility                        |
-| Policy and compliance judgment  | Governance operates above the protocol surface                       |
-| Economic meaning of `pathCount` | Structure is protocol-defined; value assignment is application-layer |
+## Open Protocol Design
 
-## Implications of the Four Guarantees
+The protocol rules, schemas, and canonical test vectors are publicly inspectable and support independent conformant implementations. The protocol defines shared rules for Block structure, canonicalization, hash derivation, parent references, and Graph relationships.
 
-The four guarantees operate through a separation between verification and interpretation. Deterministic identity enables reproducible artifact references. Verifiable lineage enables inspectable derivation paths. Traceable attribution enables computable contribution over graph structure. Content opacity enables protocol applicability across heterogeneous artifact domains.
+Open protocol design enables independent implementation. Conformant implementations can create Blocks, verify Blocks, and traverse derivation Graphs by following the same protocol rules. Verification does not require coordination through a centralized service, proprietary runtime, hosted platform, storage provider, blockchain network, or application vendor.
 
-Deterministic identity, verifiable lineage, traceable attribution, and content opacity define a structural foundation for auditable AI systems without requiring alignment across models, vendors, databases, blockchain networks, application frameworks, or schema definitions.
+The protocol surface remains minimal so external systems can compose around the Block primitive. Storage systems can provide persistence. Attestation systems can provide signed claims. Indexes and registries can provide discovery. Schemas can provide domain-specific structure. Policy systems can provide governance enforcement. Applications can provide semantic interpretation and user-facing workflows.
 
-ALX defines a verification layer that attaches to artifacts at the Block. The protocol binds deterministic identity and lineage into each Block, enabling verification to persist across storage systems, execution environments, and organizational boundaries.
+This design supports ecosystem expansion without changing Block identity. New storage adapters, signing mechanisms, anchoring systems, agent frameworks, indexing systems, application profiles, and governance layers can integrate above the protocol layer while preserving `contentHash`, `blockHash`, and protocol validity.
 
-The four guarantees define structural invariants over identity, lineage, attribution, and representation. The protocol excludes semantic correctness, trust evaluation, policy enforcement, and domain-specific validation. Interpretation, governance, and decision-making operate at application and institutional layers above the protocol surface.
+ALX Protocol therefore provides an independently implementable structure for composable digital artifacts. Blocks provide deterministic identity and declared lineage. External systems provide storage, interpretation, trust signals, policy logic, discovery, and operational behavior.
 
-Protocol correctness is defined by adherence to identity, lineage, attribution, and content-opacity invariants. ALX specifies identity binding, lineage encoding, attribution structure, and content opacity, while delegating interpretation and governance to external systems operating above the protocol boundary.
+## Stewardship and Ecosystem Development
 
-## Security Model and Threat Boundaries
+Xandr Labs is the founding contributor to ALX Protocol and develops implementations, tooling, applications, services, and supporting infrastructure for the ALX ecosystem. ALX Foundation, a nonprofit organization, independently maintains the open protocol and its canonical specification, schemas, test vectors, and conformance materials. Commercial products, applications, ecosystem services, and economic mechanisms—including those developed by Xandr Labs—do not determine or alter ALX Protocol conformance.
 
-ALX defines a security model centered on the structural integrity of artifacts and derivation graphs. The protocol enforces integrity through deterministic identity generation and lineage binding within each Block.
+## Boundary Summary
 
-The protocol protects against artifact mutation by binding content into contentHash through deterministic canonicalization and cryptographic hashing. Any modification to content produces a different contentHash and a different blockHash, resulting in a distinct Block identity.
+ALX Protocol defines structural guarantees at the Block layer. The protocol verifies deterministic identity, `content` integrity, declared parent lineage, derivation Graph relationships, and structural attribution through local computation over Block data.
 
-The protocol protects against lineage modification by including parentHashes in blockHash computation. Any modification, removal, or substitution of parent references produces a different blockHash. Lineage remains structurally encoded within identity through `parentHashes` inclusion in `blockHash`.
+The protocol boundary is intentionally narrow. ALX does not evaluate semantic truth, `content` quality, model correctness, real-world authorship, legal status, policy compliance, storage availability, storage durability, institutional trust, or economic meaning.
 
-The protocol protects against inconsistent representation through canonicalization rules that define deterministic transformation of JSON-serializable inputs into a stable byte sequence. Canonicalization ensures equivalent inputs produce equivalent hash inputs across all conformant implementations.
+This boundary preserves protocol neutrality. ALX provides a consistent verification surface for AI-generated, human-authored, and machine-produced artifacts, while external systems provide interpretation, storage, signatures, timestamps, schemas, application indexes, hosted discovery, governance, and operational enforcement.
 
-The protocol protects against unverifiable derivation by requiring explicit parent references as inputs to identity computation. Derivation exists only when encoded in parentHashes and reflected in blockHash. Absence or alteration of lineage produces a distinct Block identity.
+The result is a minimal protocol model for composable digital artifacts. Blocks provide deterministic identity and parent-bound lineage. Graphs provide computable structure across related Blocks. External layers provide the domain-specific interpretation, governance, storage, discovery, and operation required by applications.
 
-ALX defines structural verification as the protocol security boundary. Verification includes recomputation of contentHash, recomputation of blockHash, and validation of parentHashes under canonicalization rules across conformant implementations.
+# Part V—Interoperability and Applied Composition
 
-Security responsibilities beyond structural verification operate at application layers. Application-layer responsibilities include governance systems, identity systems, storage systems, policy engines, and domain-specific validation frameworks that operate outside the protocol surface.
+## Overview
 
-## Privacy and Data Lifecycle
+Modern verification infrastructure includes versioning systems, `content`-addressed storage, media provenance standards, supply-chain attestations, trust signatures, shared commitment systems, observability tools, and notarization services. Each system provides a distinct form of integrity, provenance, visibility, or commitment.
 
-ALX does not require persistent storage of content to preserve artifact identity. A Block maintains deterministic identity through contentHash and blockHash, while underlying content may be retained, modified, or deleted by external systems according to local policy.
+ALX Protocol operates at the Block layer. The protocol defines deterministic Block identity, `content` integrity, parent-bound lineage, and local verification for AI-generated, human-authored, and machine-produced artifacts.
 
-Storage systems define content lifecycle behavior. Lifecycle policies include controlled access, private storage, time-based retention, deletion workflows, and hash-only persistence depending on regulatory, operational, or organizational constraints. Lifecycle policies operate outside the protocol surface.
+Part V explains how applications integrate ALX with existing verification systems. ALX does not replace those systems. Applications can carry, reference, or associate external verification records with Blocks under application-defined integration rules.
 
-The protocol verifies structural integrity over the state of an artifact at the time of validation. Verification operates over canonicalized content and declared parentHashes. Verification evaluates whether the presented inputs produce a valid blockHash under protocol rules. The protocol does not enforce storage availability, retention duration, or access continuity.
+## The Modern Verification Stack
 
-Applications govern data availability, access control, retention enforcement, and deletion or redaction workflows. Applications determine whether content is stored, how long it persists, and under what conditions it is accessible or removed.
+The following table summarizes the modern verification stack, the primary guarantee provided by each layer, and the role ALX plays as a compositional Block layer.
 
-The security model defines structural guarantees over identity and lineage. The system model enables composability through a minimal protocol surface and deterministic primitives across independent implementations.
+| Layer | Representative Systems | Primary Guarantee | ALX Integration |
+| --- | --- | --- | --- |
+| Content Versioning | Git | Repository history, commits, diffs, authorship metadata | A Block can reference a commit hash as parent-linked artifact data |
+| Content Addressing | IPFS, IPLD | Content retrieval by CID | A Block can reference `content`-addressed data while preserving lineage-bound identity |
+| Media Provenance | C2PA | Embedded signed claims for media assets | C2PA records can participate as parent Blocks in a Graph |
+| Supply Chain Integrity | SLSA | Build provenance and pipeline integrity | Applications can represent build outputs and attestations as parent-linked evidence |
+| Attestation | EIP-712, in-toto | Signed assertions about artifact properties | Attestation records can attach as external trust signals or parent-linked evidence |
+| Shared Commitment | Blockchains | Append-only commitment and timestamped state | Optional anchors can commit `blockHash` values without changing protocol validity |
+| Observability | Logs, traces | Runtime telemetry and execution visibility | Applications can represent log-derived records as verifiable Blocks |
+| Notarization | Timestamp services | Time and existence evidence | Applications can reference external timestamps as parent-linked evidence |
 
-## Open and Interoperable by Design
+## ALX Protocol Within the Verification Stack
 
-ALX operates as an infrastructure-neutral protocol. The Block structure is independent of any specific storage system, execution environment, identity provider, or application framework.
+ALX Protocol operates at the Block layer. A Block is the deterministic protocol representation of a digital artifact. Each Block carries opaque JSON-serializable `content`, `content`-only identity in `contentHash`, declared parent references in `parentHashes`, and lineage-bound identity in `blockHash`.
 
-Multiple independent implementations can create and verify Blocks using shared rules for canonicalization, cryptographic hashing, and lineage binding. Interoperability is defined through deterministic specification and shared canonical rules.
+The Block layer provides a common structure for identifying, linking, and verifying digital units across environments. Artifact examples include an AI-generated output, human-authored record, machine-produced event, source input, agent handoff, evaluation result, policy check, workflow state, or external verification record.
 
-Blocks remain portable across systems. A Block produced in one environment can be verified in another environment without requiring access to the originating system or execution context. Verification depends only on canonical inputs and protocol-defined computation rules.
+Each Block carries two protocol-defined identities. `contentHash` is derived from canonicalized `content` alone. `blockHash` is derived from canonicalized `content` together with normalized `parentHashes`. This separation allows conformant implementations to compare content identity independently from lineage-bound Block identity.
 
-The protocol supports integration across heterogeneous and evolving ecosystems. Storage systems, attestation systems, indexing systems, agent frameworks, and AI applications connect to Blocks through stable interfaces without modifying the Block primitive or identity semantics.
+The Block layer is compositional. External systems can be referenced by Blocks, represented as Blocks, or attached above Blocks as supporting records. A Git commit, IPFS CID, C2PA manifest, SLSA attestation, EIP-712 signature, log event, timestamp proof, or blockchain anchor can participate in an ALX derivation Graph without changing Block identity or protocol validity.
 
-The protocol surface remains fixed. External systems evolve independently while continuing to operate over the same verification model. Interoperability arises from consistent application of protocol rules across diverse infrastructure implementations.
+ALX verification remains local-first. A conformant implementation can recompute `contentHash` and `blockHash` from protocol data and compare recomputed values with declared values inside each Block. Graph traversal can then evaluate declared parent relationships across a set of Blocks.
 
-ALX operates as an open protocol at the structural layer and remains neutral across infrastructure dimensions where AI systems commonly diverge. Protocol–context separation defines the composability boundary of the system.
+The Block layer does not assign semantic truth, quality, compliance status, institutional authority, storage availability, or real-world authorship. Those signals can be supplied by external systems and policies. ALX provides the structural foundation that allows those signals to be linked to deterministic artifacts and carried through derivation Graphs.
 
-Openness enables independent implementation of the protocol across runtimes, programming languages, and execution environments. Neutrality enables composition of artifacts across heterogeneous dimensions, including content formats, storage systems, identity mechanisms, cryptographic signing schemes, vendor ecosystems, and application domains.
+## Integration with Existing Systems
 
-ALX defines a stable verification substrate across otherwise independent systems. The protocol enforces consistent rules for deterministic identity generation and lineage binding while remaining agnostic to external infrastructure design choices.
+ALX Protocol integrates with existing verification and provenance systems through the Block primitive. A Block can reference external records, carry external records as `content`, or connect external records into a derivation Graph through `parentHashes`.
 
-ALX occupies the structural layer where fragmentation typically occurs across AI systems. Within the protocol boundary, artifacts remain deterministically verifiable and compositionally consistent across heterogeneous environments without requiring shared infrastructure dependencies.
+This integration model allows existing systems to retain their native guarantees while ALX provides Block identity, `content` integrity, declared lineage, and local verification. A Git commit can remain a repository object. An IPFS CID can remain a `content`-addressed storage reference. A C2PA manifest can remain a signed media provenance record. A SLSA attestation can remain build provenance. A blockchain transaction can remain a shared commitment. ALX gives these records a common Block structure for reference and reuse across conformant implementations.
 
-## Content-Neutral
+The ALX integration model supports three primary patterns:
 
-ALX does not interpret content. The protocol does not assign semantic meaning to Block contents. Structural processing remains identical regardless of whether a Block contains a compliance assessment, poem, legal memo, code review, financial model, medical summary, dataset, or agent handoff.
+- Reference — A Block can include an external identifier, proof, signature, URI, CID, commit hash, transaction hash, timestamp, or attestation reference inside `content`.
 
-ALX computes hashes over canonicalized representations of content. The protocol evaluates structural validity only. The protocol does not evaluate correctness, quality, intent, safety, or domain-specific validity. Verification is limited to deterministic transformation and consistency of representation under protocol rules.
+- Representation — A Block can carry an external record directly as opaque JSON-serializable `content`, giving that record `contentHash`, `blockHash`, and declared lineage.
 
-Schemas, output types, domain constraints, safety policies, and business logic operate at the application layer. Applications define semantic interpretation, validation rules, and domain-specific meaning over content. Applications determine how content is understood, classified, and operationalized.
+- Parent Linking — A Block can declare another Block as an upstream dependency through `parentHashes`, allowing external records represented as Blocks to participate in a derivation Graph.
 
-ALX defines verification over structure. Applications define semantics over content. The protocol boundary separates structural consistency from interpretive logic.
+Applications can represent external verification records within Block `content`, reference external verification records from application-defined `content`, or associate them through external indexes or registries. These integration patterns do not alter Block identity, deterministic identity derivation, or protocol validity. ALX Protocol does not require external verification systems for conformance, and external verification records can remain in their native formats.
 
-Content opacity enables cross-domain reuse of a single primitive. Healthcare systems can generate and verify Blocks without embedding healthcare semantics into the protocol. Legal systems can generate and verify Blocks without defining legal document structures at the protocol level. AI systems can generate and verify Blocks without coupling protocol behavior to reasoning, planning, or generation logic.
+### Integration Responsibility Matrix
 
-Content remains localized within the producing system. Verification remains consistent across all conformant implementations of the protocol, independent of domain, application context, or system origin.
+ALX Protocol provides a deterministic structural representation for integrating external systems through Blocks and declared Graph relationships. Conformant implementations verify Block structure, protocol-defined identities, and declared relationships under ALX rules. External systems remain responsible for the semantics, policies, trust models, and domain-specific verification associated with their records.
 
-## Storage-Agnostic Design
+| External System | Application Integration | ALX Structural Verification | External Responsibility |
+| --- | --- | --- | --- |
+| Version control | Represent or reference commit, tag, release, diff, or repository records through Block `content` or parent-linked Blocks | Block structure, protocol-defined identities, and declared Graph relationships | Repository semantics, authorship metadata, access control, branches, diffs, and merge history |
+| Content addressing and storage | Store or retrieve Block data, reference CIDs or storage URIs, or represent storage records through Blocks | Available Block data, protocol-defined identities, and declared Graph relationships | Retrieval, durability, persistence, and availability |
+| Media provenance | Represent or reference media assets, manifests, signed claims, or transformation records through Blocks | Block structure, protocol-defined identities, and declared Graph relationships | Authenticity, authorship, consent, copyright status, and claim validity |
+| Supply chain and build systems | Represent or reference build records, dependency data, attestations, manifests, or release records through Blocks | Block structure, protocol-defined identities, and declared Graph relationships | Build security, reproducibility, vulnerability status, regulatory compliance, and approval |
+| Attestation and notarization | Represent, reference, or externally associate signatures, credentials, timestamp proofs, approval records, or notarization claims | Block structure, protocol-defined identities, and declared Graph relationships | Signature validation, issuer authority, timestamp or legal sufficiency, policy approval, and institutional trust |
+| Shared commitments and anchors | Associate an external checkpoint with a `blockHash` or represent a commitment record through a Block | Block structure, protocol-defined identities, and declared Graph relationships | Ledger or consensus behavior, checkpoint provenance, timing claims, and trustworthiness |
+| Observability | Represent or reference logs, traces, metrics, events, telemetry, or execution records through Blocks | Block structure, protocol-defined identities, and declared Graph relationships | Record completeness, telemetry accuracy, monitoring interpretation, retention, and operational state |
 
-ALX does not require any specific storage system. A Block can be stored in PostgreSQL, S3, distributed storage networks, flat files, enterprise document systems, local machines, or in-memory systems. Storage systems operate independently of the protocol.
+### External Anchors
 
-Storage systems define availability, performance characteristics, cost models, access control policies, and retention behavior. Storage systems do not define Block identity or Block validity.
+Applications can associate optional external anchor records with `blockHash` values. An anchor can provide external evidence that a Block identity was recorded or observed at a stated time. The relevant application or external verification system evaluates the anchor's provenance, integrity, and trustworthiness. ALX Protocol validity and conformance remain determined by protocol-defined Block data and verification rules.
 
-Block validity is determined by protocol rules over canonicalized content, computed hashes, and declared lineage. Protocol validity rules remain independent of storage location, storage format, or storage provider.
+No blockchain, token, ledger, registry, or external consensus system is required for ALX Protocol validity or conformance.
 
-Storage–verification separation defines a base protocol boundary between structural verification and data persistence. Within the protocol boundary, ALX specifies identity and lineage computation, while storage systems operate as external infrastructure responsible for persistence and access.
+## Applied Composition
 
-Storage adapters provide retrieval, distribution, and integration pathways for applications, agents, and systems. Storage adapters do not define Block identity or Block validity. A Block referencing content in distributed storage verifies identically to a Block referencing content in a private database.
+When digital artifacts are represented by Blocks with deterministic identity and parent-bound lineage, systems can compose and inspect those representations across boundaries. Applications can reference prior outputs, inspect declared dependencies, reuse verified Blocks, and extend workflow state through Graph relationships.
 
-Verification operates over canonical structure and declared `parentHashes`. Integrity is evaluated from protocol-defined inputs and deterministic computation rules. The protocol does not require permanent storage of underlying content, only that canonical inputs are available at the time of verification.
+ALX Protocol represents composable digital artifacts through Blocks and parent relationships. Blocks provide Block identity. `parentHashes` provide dependency structure. Graphs provide machine-consumable lineage. `pathCount` provides structural attribution over Graph topology.
 
-## Language-Independent
+The applied examples in Part V show how the model supports multi-party AI workflows, reproducible research, source-grounded generation, contribution analysis, and application-layer context.
 
-ALX is not a library dependency. ALX is a protocol contract. Reference implementations exist in TypeScript, Rust, and Python. Each conformant implementation produces identical Block identities for identical inputs.
+## Multi-Party AI Workflows Using Derivation Graphs
 
-A Block created in one language can be validated in another language and inspected in a third, with consistent blockHash results across implementations.
+AI workflows increasingly operate across multiple systems, execution environments, model providers, data sources, agents, and application boundaries. A single workflow can include retrieval systems, orchestration frameworks, model calls, tool calls, policy checks, human reviews, storage systems, and downstream applications.
 
-Infrastructure environments are inherently multi-language. Agent frameworks, enterprise systems, compliance tools, developer platforms, data pipelines, and research workflows operate across heterogeneous runtimes without shared execution assumptions. A verification system constrained to a single language becomes an application library. A verification system that produces consistent results across languages functions as infrastructure.
+Each stage can produce artifacts that influence later stages. A credit assessment can depend on customer records, policy rules, scoring models, analyst reviews, and approval decisions. A trading workflow can depend on market data, news data, sentiment analysis, technical analysis, portfolio state, compliance checks, execution reports, and audit records. A legal workflow can depend on source documents, extracted claims, draft revisions, review decisions, and final filings.
 
-ALX enforces cross-language consistency through canonical test vectors and conformance rules. Implementing ALX in a new language requires adherence to the specification and passing the conformance suite, not integration with a specific SDK or framework.
+Applications can represent workflows as derivation Graphs. Material inputs, transformations, handoffs, reviews, decisions, and outputs can be represented as digital artifacts carried in Blocks. Each derived Block declares upstream Block identities through normalized `parentHashes`, forming Graph relationships that conformant implementations can verify and traverse.
 
-The protocol defines the authoritative rules for identity, lineage, and verification. SDKs serve as implementation pathways for adoption, not as sources of protocol semantics.
+This model supports workflows where no single platform owns the full context. One system produces a source artifact. Another system transforms that artifact. Another system evaluates the result. Another system stores, indexes, governs, or reuses the output. ALX provides a common artifact-level structure across these boundaries.
 
-## Chain-Optional
-
-ALX does not require a blockchain. Blocks remain valid without on-chain anchoring. Creation, linkage, and verification operate through deterministic computation over canonicalized content and declared parent references. No token system, consensus mechanism, gas model, wallet infrastructure, or chain dependency participates in protocol validity.
-
-Platform catalogs and approval lists live off-chain in `**alx.index`** and `**alx.registry**` Blocks. Trust defaults to `validateBlock` plus index membership—not to ledger storage of Block JSON.
-
-Chain optionality reduces integration friction across **enterprise**, developer, and regulated environments. Enterprise systems often operate under constraints that exclude public ledger participation for sensitive workflows. Developer systems often prioritize minimal integration complexity without introducing blockchain-specific infrastructure into execution paths. Regulated environments often require private storage and controlled execution contexts.
-
-ALX operates as a local-first verification protocol. Verification is performed through canonicalization and deterministic hashing, independent of external consensus or ledger systems.
-
-Optional **ALX anchor** on Base (**ALXAnchor** contract) records existence-time for a `blockHash` or **blockset** when cross-party audit requires a neutral on-chain timestamp. **ALX anchor** does not store catalogs, verify Block content, or replace `**alx.index`**. **ALX anchor** operates outside protocol validity rules.
-
-ALX integrates with optional Base anchoring without requiring it. The ledger does not define or participate in verification rules, identity computation, or lineage binding.
-
-## Signing-Algorithm Neutral
-
-ALX supports multiple signing systems across heterogeneous identity infrastructures. A Block can associate attestations generated using different cryptographic signing schemes. Supported systems include EIP-712 for Ethereum-compatible wallets, Ed25519 for modern public-key infrastructure, P-256 for WebAuthn and passkey-based authentication, and additional algorithms introduced through extension mechanisms.
-
-Identity infrastructure varies across deployment environments. Developer systems may integrate wallet-based signing. Enterprise systems may integrate managed key infrastructure and hardware-backed key stores. Consumer systems may integrate passkey authentication. Regulated environments may require specific cryptographic standards. Future environments may introduce additional signing mechanisms as infrastructure evolves.
-
-ALX does not constrain identity to a single signing model. The Block remains the structural primitive for deterministic identity and lineage binding. Signing systems generate attestations that reference blockHash without modifying Block structure or identity computation.
-
-Attestations function as externally attached cryptographic claims bound to a Block. Attestation claims operate independently of the protocol's identity rules and do not participate in contentHash, parentHashes, or blockHash computation.
-
-Protocol extensibility enables introduction of new signing mechanisms without modification of canonicalization rules, hashing rules, or lineage semantics. Signing systems operate as interoperable external interfaces layered above the Block structure, providing identity assertions without altering protocol-level validity.
-
-## Vendor-Neutral
-
-ALX defines a protocol layer beneath platform-specific boundaries. Protocols derive value from interoperability across independent implementations. Platforms derive value from centralized control over execution, distribution, and access.
-
-The protocol is defined through a normative specification and distributed under permissive licensing. Multiple independent implementations validate behavior through conformance criteria and canonical test vectors. The protocol does not require a token system, registry service, mandatory network, or vendor-operated verification endpoint.
-
-Vendor neutrality functions as both a design constraint and a deployment property. The protocol introduces no centralized control surface for identity generation, lineage construction, or verification execution.
-
-Enterprise environments evaluate integration risk in terms of dependency coupling and vendor lock-in exposure. A verification layer without centralized coordination reduces infrastructure coupling. Developer environments evaluate integration cost in terms of adoption friction. A primitive that operates without permissioned access, hosted coordination, or platform-specific dependencies reduces integration overhead. Partner ecosystems evaluate interoperability in terms of shared standards without enforced migration to a single execution environment.
-
-Xandr Labs develops ALX reference implementations, SDKs, CLI tools, middleware, and optional hosted services. ALX protocol rules remain independent of Xandr Labs product packaging and deployment choices.
-
-Separation between protocol specification and product implementation preserves independent implementability, reduces systemic coupling, and maintains protocol-level neutrality across ecosystem participants.
-
-## Protocol Surface and Adoption Model
-
-ALX operates with a narrow protocol surface. The protocol excludes storage systems, content schemas, model providers, blockchain networks, signing systems, economic policy layers, semantic validation frameworks, and hosted service dependencies from its definition.
-
-The remaining primitive defines deterministic artifact identity and parent-bound lineage over arbitrary serialized content.
-
-ALX occupies a bounded layer within the system stack. A lower abstraction would reduce ALX to a hashing convention without structural semantics. A higher abstraction would extend ALX into a platform with application-specific constraints. The protocol defines a middle layer: a neutral verification substrate applicable across heterogeneous systems without requiring ownership, coordination, or centralized control.
-
-The ALX specification is public, MIT-licensed, and designed for independent implementation. Developers can implement the protocol in any programming language without registration, approval, or coordination with any vendor. Organizations can adopt ALX without vendor agreements, licensing dependencies, or hosted service requirements.
-
-Conformance is defined through a canonical test suite covering serialization, hashing, validation, lineage construction, and attribution computation. Correctness is determined by adherence to deterministic test vectors.
-
-Authority in the protocol is derived from specification and conformance behavior. Test vectors define expected outcomes. Implementations derive correctness from alignment with deterministic test-vector outputs. SDKs function as implementation pathways for adoption.
-
-## Interoperability and Minimal Setup
-
-Interoperability reduces setup complexity through a single deterministic validity function over canonicalized content and declared parent references. Protocol operation does not require chain configuration, storage initialization, signing infrastructure setup, hosted service dependencies, or framework-specific integration.
-
-Local systems can create and verify Blocks without external dependencies. Verification operates directly over canonicalization rules, hash computation, and lineage binding defined in the specification.
-
-Additional capabilities integrate incrementally as workflow requirements evolve: storage, attestation, on-chain anchoring, agent middleware, and graph indexing. No external layer is a prerequisite for Block validity.
-
-ALX begins as a verification primitive. Production environments extend functionality through layered, additive integrations above the protocol surface without altering core identity or lineage rules.
-
-# Part V — What Verifiable Artifacts Enable
-
-When artifacts carry deterministic identity, verifiable lineage, and structurally measurable contribution relationships, AI systems operate over persistent, composable, and independently verifiable units.
-
-## Enterprise AI Workflows as Multi-Party Artifact Graphs
-
-Enterprise AI workflows operate across multiple independent parties and execution environments. Credit-risk, lending, and trading pipelines share the same structural requirement: each stage may run under different vendors, model providers, or execution runtimes, yet downstream audit must reconstruct which data, rules, and agents contributed to each outcome without re-executing the pipeline. The verifiable trading pipeline in Part V (Figure 3) illustrates that pattern as a multi-party Block graph with post-trade audit and computed `pathCount`.
+Verification operates over Block data and Graph relationships. A conformant implementation can recompute `contentHash`, recompute `blockHash`, traverse declared parent references, identify unresolved boundaries, and evaluate structural metrics such as `pathCount`.
 
 ## Reproducible AI Research
 
-AI research faces reproducibility constraints that become more pronounced as evaluation pipelines increase in complexity. A research lab publishes a benchmark study comparing reasoning performance across model families. The study references multiple datasets, evaluation frameworks, prompt sets, model checkpoints, and aggregated result tables. The evaluation process spans heterogeneous components including data sources, execution scripts, model configurations, and scoring logic.
+AI research depends on reproducible artifact structures. A benchmark study can reference datasets, prompt sets, evaluation scripts, model checkpoints, model cards, scoring logic, intermediate outputs, aggregated result tables, and final claims. Each component changes over time as datasets are updated, prompts are edited, evaluation frameworks evolve, and model versions become unavailable or replaced.
 
-Over time, components of the original workflow diverge from the published baseline. Data sets are updated or removed. Evaluation frameworks evolve and modify scoring behavior. Model checkpoints become unavailable or versioned differently. Prompt templates are edited. Intermediate artifacts are overwritten or not preserved. The published paper describes methodology, but the full artifact structure behind the results is no longer reconstructable.
+ALX gives research workflows an artifact-level structure for reproducibility. Each dataset, model card, prompt set, evaluation script, intermediate result, result table, and final paper section can be represented as a Block. Each Block carries deterministic identity and declares upstream dependencies through `parentHashes`.
 
-Reproduction becomes dependent on incomplete or inconsistent artifacts. System state is inferred from documentation, residual files, or partial availability of external resources.
+Reproducibility becomes a structural question over the derivation Graph:
 
-With ALX, each dataset, model card, evaluation script, prompt set, intermediate result, and final output is represented as a Block. Each Block encodes deterministic identity and declares explicit parent references to upstream artifacts. The published result references the Block derivation graph.
+- Can the declared parent Blocks be resolved?
 
-Reproducibility becomes a structural question over the artifact graph:
+- Do recomputed `contentHash` and `blockHash` values match declared values?
 
-- Parent graph resolution over declared parentHashes across available Blocks
-- Deterministic recomputation of blockHash and validation of identity consistency
-- Exact dataset version identification through referenced dataset Blocks
-- Evaluation provenance through linked evaluation-script Blocks and execution artifacts
-- Downstream derivation tracking through transitive references in the Block graph
+- Which dataset Blocks, model Blocks, prompt Blocks, and evaluation Blocks contributed to the final result?
 
-Hash-based identity preserves version determinism even when underlying content is no longer available. A dataset can be removed from storage while historical identity remains verifiable through the Block representation.
+- Which intermediate artifacts connect source materials to the published output?
+
+- Which parent references represent unavailable, private, or external boundaries?
+
+A published result can reference the Graph that produced the result. When every required Block is available, conformant implementations can verify the Graph locally. Declared external parents may permit successful open-world verification, but the Graph remains incomplete until those parent Blocks resolve.
+
+Historical identity references remain useful even when external storage changes. Full `content` verification requires the relevant Block data or referenced artifact data to be available, while known `blockHash` values can still identify the expected Block identity and declared lineage.
 
 ## Source-Grounded Derivation
 
-Enterprises are adopting retrieval-augmented generation systems to ground AI outputs in approved knowledge sources. Operational systems synthesize responses from internal documents, regulatory filings, customer records, and real-time data streams. Compliance requirements increasingly demand structural evidence that output originates from approved sources with explicit `parentHashes` lineage.
+Approved source material can include internal documents, regulatory filings, customer records, policy manuals, market data, document libraries, and other controlled sources.
 
-Current architectures often lack durable, artifact-level grounding guarantees. Audit workflows depend on retrieval logs, prompt traces, application metadata, or execution records to infer source usage after system execution. In log-based architectures, grounding is reconstructed from runtime artifacts. ALX represents grounding as a verifiable property encoded in `parentHashes` and Block identity.
+ALX represents source grounding as structural lineage. Approved source documents can be represented as root Blocks. Policy definitions, data feeds, retrieved passages, and source bundles can also be represented as Blocks. Derived outputs then declare grounding relationships through `parentHashes`.
 
-ALX encodes grounding as structural lineage within the artifact graph. Approved source documents are represented as root Blocks. Data feeds are represented as root Blocks. Policy definitions are represented as root Blocks. Derived outputs encode grounding through explicit `parentHashes` references to approved source Blocks.
+Grounding becomes inspectable through the derivation Graph:
 
-Grounding becomes a property of graph structure:
+- Outputs can reference approved source Blocks through explicit parent links.
 
-- Outputs reference approved source Blocks through explicit lineage links
-- Absence of approved parent references indicates absence of grounding within the defined corpus
-- Presence of external or unapproved parents indicates structural deviation from defined source boundaries
+- Absence of approved parent references shows that the inspected Graph contains no declared relationship to an approved source Block. It does not prove that the output was produced without other sources.
 
-Verification operates over artifact relationships and `parentHashes` in the derivation graph. Grounding is evaluated through deterministic inspection of the derivation graph and recomputation of Block identity.
+- Presence of external or unapproved parents can indicate structural deviation from defined source boundaries.
 
-Regulated environments—including banking, healthcare, insurance, legal, and government systems—can treat grounding as a verifiable structural property of generated artifacts encoded in the Block graph.
+- Verification can recompute Block identity and inspect parent-reference relationships from protocol data.
 
-## Quantifiable Contribution Structures
+This structure allows regulated or source-sensitive environments to inspect declared grounding relationships as a verifiable structural property. Applications and governance systems define which source Blocks are approved, which boundaries are permitted, and which parent relationships satisfy policy requirements.
 
-AI workflows increasingly operate as collaborative systems spanning multiple participants and infrastructure boundaries.
+ALX does not determine whether a generated output accurately represents a source. ALX verifies whether the output declares source dependencies and whether those dependencies are bound into Block identity.
 
-A consortium of research organizations may jointly operate shared evaluation pipelines. Multiple vendors may contribute agents within enterprise workflows. Open-source contributors may generate artifacts reused in commercial systems. Data providers, model developers, evaluators, and human reviewers may all participate in the creation of a single downstream output.
+## Structural Contribution Metrics
 
-Current contribution measurement approaches rely on contracts, self-reported attribution, usage logs, or platform-specific telemetry systems. Contribution measurement mechanisms are typically coupled to individual systems and do not generalize consistently across heterogeneous infrastructure environments.
+AI workflows increasingly operate as collaborative systems across participants and infrastructure boundaries. Research organizations share evaluation pipelines. Vendors contribute agents to operational workflows. Open-source contributors generate artifacts reused in downstream systems. Data providers, model developers, evaluators, reviewers, and applications all contribute to a single output.
 
-ALX defines a structural measurement interface over the artifact graph through pathCount, a deterministic metric representing the number of distinct derivation paths connecting an ancestor Block to a downstream artifact.
+ALX provides a structural measurement interface over a Graph through `pathCount`. `pathCount` is the number of distinct directed traversal paths from the selected Trace root to a reachable Block.
 
-pathCount defines a deterministic structural property over the derivation graph representing connectivity between ancestor and descendant Blocks through directed lineage paths. The metric is derived from graph structure and declared parent relationships under deterministic evaluation rules, without encoding economic value, priority, quality, intent, correctness, compensation, ranking, or reward distribution.
+`pathCount` is computed from Graph topology. The metric operates over Block connectivity and parent-reference relationships. `pathCount` does not encode economic value, semantic importance, legal ownership, creative contribution, compensation, ranking, reward distribution, or policy entitlement.
 
-## From Verification to Machine-Readable Context
+External systems can use `pathCount` as one input to application-defined attribution analysis. Royalty, accounting, provenance, research, and governance systems independently determine whether and how structural relationships affect their decisions.
 
-Verified derivation graphs introduce structured, machine-readable context: prior outputs become addressable artifacts; dependence becomes inspectable relationships; transformation sequences exist as computable graph structure over `parentHashes`.
+An Attribution Trace, `pathCount`, or any other ALX structural result does not establish contributor identity, originality, ownership, usefulness, economic value, acceptance, or reward entitlement.
 
-### Example: Verifiable Trading Pipeline
+ALX provides the structural metric. Applications, institutions, registries, and policy systems define the interpretation.
 
-The following sequence creates a verifiable derivation graph for an AI-driven trading decision. Each step seals an artifact as a Block with explicit `parentHashes` references to upstream Blocks. Content fields remain opaque to the protocol; `type` labels below are application-layer conventions only.
+## From Artifact Composition to Machine-Consumable Context
 
-1. **Agent definitions** (`agent`) — `webCrawler`, `sentimentAnalyzer`, `technicalAnalyst`, `synthesisAgent`, `complianceAgent`
-2. **Data ingestion** (`dataset`) — `newsData` ← `webCrawler`; `marketData` (root)
-3. **Analysis and signal** (`analysis`, `signal`) — `sentimentOut` ← `sentimentAnalyzer` + `newsData`; `technicalOut` ← `technicalAnalyst` + `marketData`; `signal` ← `synthesisAgent` + `sentimentOut` + `technicalOut`
-4. **Portfolio state** (`portfolio_state`) — `portfolioBefore` ← prior portfolio Block or root
-5. **Trade decision and compliance** (`analysis`, `compliance`) — `tradeDecision` ← `synthesisAgent` + `signal` + `portfolioBefore`; `riskCheck` ← `complianceAgent` + `tradeDecision`
-6. **Trade execution and reporting** (`trade`, `execution_report`) — `trade` ← `riskCheck`; `execReport` ← `trade`
-7. **Portfolio update and risk metric** (`portfolio_state`, `risk_metric`) — `portfolioAfter` ← `portfolioBefore` + `execReport`; `postTradeRisk` ← `portfolioAfter` + `marketData`
-8. **Audit log** (`audit_log`) — `auditRecord` ← `trade` + `riskCheck` + `execReport`
-9. **Offline backtest** (`backtest_result`) — `backtest` ← `synthesisAgent` + `historicalData` (parallel branch, not on the live execution path)
+Applications can construct machine-consumable context from verified Block data and Graph relationships. Context is an application-layer interpretation; core Block identity remains defined by `content`, `parentHashes`, `contentHash`, and `blockHash`.
 
-The same Block primitive scales from a single signal to a full institutional workflow spanning execution, portfolio state, post-trade risk, and regulator-facing audit evidence.
+Figure 6 is an applied, non-normative example of heterogeneous branches converging through declared parent relationships.
 
-**Figure 3a — Live trading pipeline**
+![Prompt and repository branches converge into a final artifact Block](assets/whitepaper-figures/figure-06-composable-context-across-prompts-repositories-and-agent-outputs.png)
 
-```mermaid
-flowchart TB
-  subgraph agents [Agents]
-    webCrawler[webCrawler]
-    sentimentAnalyzer[sentimentAnalyzer]
-    technicalAnalyst[technicalAnalyst]
-    synthesisAgent[synthesisAgent]
-    complianceAgent[complianceAgent]
-  end
-  subgraph data [Data]
-    newsData[newsData]
-    marketData[marketData]
-  end
-  subgraph analysis [Analysis]
-    sentimentOut[sentimentOut]
-    technicalOut[technicalOut]
-    signal[signal]
-    tradeDecision[tradeDecision]
-  end
-  subgraph execution [Execution]
-    portfolioBefore[portfolioBefore]
-    riskCheck[riskCheck]
-    trade[trade]
-    execReport[execReport]
-    portfolioAfter[portfolioAfter]
-    postTradeRisk[postTradeRisk]
-  end
-  webCrawler --> newsData
-  sentimentAnalyzer --> sentimentOut
-  newsData --> sentimentOut
-  technicalAnalyst --> technicalOut
-  marketData --> technicalOut
-  synthesisAgent --> signal
-  sentimentOut --> signal
-  technicalOut --> signal
-  synthesisAgent --> tradeDecision
-  signal --> tradeDecision
-  portfolioBefore --> tradeDecision
-  complianceAgent --> riskCheck
-  tradeDecision --> riskCheck
-  AT[attestation] -.-> riskCheck
-  riskCheck --> trade
-  trade --> execReport
-  portfolioBefore --> portfolioAfter
-  execReport --> portfolioAfter
-  portfolioAfter --> postTradeRisk
-  marketData --> postTradeRisk
-```
+*Figure 6 — Composable context across prompts, repositories, and agent outputs (applied example, non-normative). Both branches converge in a final Block that declares upstream lineage.*
 
-*Caption: Solid arrows are parentHashes references. Dashed attestation attaches to riskCheck outside the hash envelope.*
+Applications can traverse a Graph to construct contextual state from source Blocks, intermediate Blocks, review Blocks, policy Blocks, and handoff Blocks. A verifier can distinguish Block identity, `content` integrity, declared lineage, Graph completeness, and structural attribution.
 
-**Figure 3b — Audit and offline validation**
+This model allows applications to move selected context from transient execution state into reusable protocol data. Blocks within a shared Graph can represent prompts, logs, traces, memory objects, tool calls, source bundles, evaluations, and decisions.
 
-```mermaid
-flowchart TB
-  trade[trade]
-  riskCheck[riskCheck]
-  execReport[execReport]
-  auditRecord[auditRecord]
-  synthesisAgent[synthesisAgent]
-  historicalData[historicalData]
-  backtest[backtest]
-  trade --> auditRecord
-  riskCheck --> auditRecord
-  execReport --> auditRecord
-  synthesisAgent --> backtest
-  historicalData --> backtest
-```
+Application-layer context allows systems to continue work from verifiable prior state. A model can consume a prior output with declared dependencies. An agent can extend a workflow by referencing previous Blocks. An application can reuse an artifact representation while preserving lineage. An auditor can inspect the Graph without the original execution environment.
 
-*Caption: auditRecord aggregates live-path Blocks; backtest branches from synthesisAgent and historicalData.*
+## Example: Verifiable Trading Pipeline
 
-The following tables illustrate structural `pathCount` over the live trading path. Values were computed with the reference implementation trace function over the parent map defined in the pipeline steps above.
+The following sequence illustrates a verifiable derivation Graph for an AI-driven trading decision. Each step represents a digital artifact as a Block with explicit `parentHashes` references to upstream Blocks. `content` remains opaque to the protocol. Type labels such as agent, dataset, analysis, signal, trade, and audit_log are application-layer conventions.
 
-**Ancestor → descendant `pathCount*`*
+- Agent definitions — webCrawler, sentimentAnalyzer, technicalAnalyst, synthesisAgent, and complianceAgent are represented as agent Blocks.
 
-| Target Block  | Ancestor Block | `pathCount` |
-| ------------- | -------------- | ----------- |
-| `trade`       | `marketData`   | 1           |
-| `auditRecord` | `marketData`   | 3           |
-| `auditRecord` | `webCrawler`   | 3           |
+- Data ingestion — newsData is produced from webCrawler. marketData is represented as a root dataset Block.
 
-**Graph summary**
+- Analysis and signal generation — sentimentOut is derived from sentimentAnalyzer and newsData. technicalOut is derived from technicalAnalyst and marketData. signal is derived from synthesisAgent, sentimentOut, and technicalOut.
 
-| Metric                             | Value                                                                                                                       |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Root Blocks in `auditRecord` trace | `complianceAgent`, `marketData`, `portfolioBefore`, `sentimentAnalyzer`, `synthesisAgent`, `technicalAnalyst`, `webCrawler` |
-| Total Blocks in graph              | 20                                                                                                                          |
+- Portfolio state — portfolioBefore represents prior portfolio state as a root Block or as a derived Block from earlier portfolio history.
 
-`pathCount` counts distinct directed paths between the named ancestor and descendant Blocks. Application layers define economic or semantic attribution on top of this structural metric.
+- Trade decision and compliance — tradeDecision is derived from synthesisAgent, signal, and portfolioBefore. riskCheck is derived from complianceAgent and tradeDecision.
 
-Audit verification operates through structural reconstruction over the artifact graph. Access to the original agent framework, vendor environment, or execution system is not required to validate workflow integrity.
+- Trade execution and reporting — trade is derived from riskCheck. execReport is derived from trade.
 
-Machine systems traverse the derivation graph to reconstruct contextual state. Context is derived through graph traversal over verifiable `parentHashes` relationships.
+- Portfolio update and risk metric — portfolioAfter is derived from portfolioBefore and execReport. postTradeRisk is derived from portfolioAfter and marketData.
 
-# Part VI — Adoption and Productization
+- Audit log — auditRecord is derived from trade, riskCheck, and execReport.
 
-Verified derivation graphs function as machine-readable context for adaptive systems. Preferences, prior decisions, source documents, workflow outputs, and review events can each be represented as Blocks; applications traverse derivation graphs to assemble context aligned with operational intent.
+- Offline backtest — backtest is derived from synthesisAgent and historicalData. This branch supports offline validation and does not sit on the live execution path.
 
-ALX does not define application behavior, personalization logic, or reasoning policy. ALX defines a verification substrate over which applications construct context-aware systems.
+The same Block primitive scales from a single signal to a full institutional workflow spanning data ingestion, analysis, compliance, execution, portfolio state, post-trade risk, audit evidence, and offline validation.
 
-## The Adoption Path
+## Summary
 
-**Figure 4 — Adoption Phases: Verify → Graph → Context**
+Composable digital artifacts rely on deterministic Block identity and explicit parent relationships. `parentHashes` provides dependency structure. Graphs provide machine-consumable lineage across related Blocks. `pathCount` provides structural attribution over Graph topology.
+
+Together, these properties allow systems to preserve selected artifact relationships as reusable protocol data. Applications can construct context from prompts, source documents, model outputs, review decisions, repository references, execution reports, audit records, and other Blocks while retaining declared lineage.
+
+Part V shows how ALX Protocol supports multi-party AI workflows, reproducible research, source-grounded derivation, contribution analysis, and machine-readable context. The trading pipeline example demonstrates how Blocks can represent agents, data sources, analysis outputs, compliance checks, execution artifacts, portfolio state, audit records, and offline validation branches within one derivation Graph.
+
+ALX Protocol provides the structural model. Applications and external systems interpret, govern, store, discover, and operationalize the resulting derivation Graphs.
+
+# Part VI—Block Creation, Adoption, and External Layers
+
+## Overview
+
+This section is a non-normative overview for implementers. It is explanatory only and does not add, modify, extend, or replace any protocol requirement. The ALX Protocol specification, schemas, and canonical test vectors are the sole authorities for protocol behavior and conformance. If this overview conflicts with those sources, the canonical sources take precedence.
+
+ALX Protocol defines the Block primitive and provides canonical rules for deterministic Block identity, parent-bound lineage, and derivation Graph structure. This part describes, at a high level, how human users, applications, SDKs, middleware, agents, orchestration systems, CI/CD pipelines, and governance workflows can create and use Blocks around artifacts that benefit from durable identity, declared lineage, and future verification.
+
+Block creation is implementation-agnostic. ALX does not depend on a particular user interface, storage network, blockchain, model provider, application framework, execution environment, registry, or governance system. Conformant implementations produce and process Block data according to the requirements defined in the ALX Protocol specification, the applicable schemas, and the canonical test vectors.
+
+A Block can be created manually through explicit human action, programmatically through application logic, or automatically through workflow middleware. These approaches allow ALX to be incorporated into human review processes, application pipelines, agentic workflows, research environments, compliance systems, and infrastructure automation.
+
+After creation, a Block can participate in a larger derivation Graph. Downstream Blocks can identify the Block through `parentHashes`. External systems can associate storage references, attestations, timestamps, schemas, application index metadata, hosted discovery records, anchors, policy metadata, or application context with the Block. These associations remain outside core Block identity.
+
+This part provides an implementation-oriented overview of common Block creation points, creation modes, SDK-mediated creation, external attachments, optional anchoring, application indexing, planned network discovery, governance layers, and adoption considerations. It does not define protocol behavior.
+
+## When to Create a Block
+
+Create a Block when an artifact requires durable identity, declared lineage, or later verification. The selection point is not the artifact type. The selection point is whether downstream systems need to reference, verify, reuse, inspect, audit, or extend the artifact.
+
+Block creation applies to artifacts that are:
+
+- reused in downstream workflows
+
+- cited as evidence or referential material
+
+- incorporated into decisions, recommendations, or analyses
+
+- transferred between agents, applications, systems, or organizations
+
+- reviewed, validated, approved, rejected, or escalated
+
+- published, exported, archived, or externally distributed
+
+- included in compliance, audit, regulatory, or governance workflows
+
+- used as persistent user-level, application-level, or institutional context
+
+- designated for reconstruction, replay, reproducibility, or dispute resolution
+
+Block creation is appropriate when future verification or trust-dependent reuse requires durable identity and declared lineage.
+
+This principle allows ALX to remain application-agnostic. A prompt, retrieved passage, model output, tool response, source document, evaluation result, workflow state, repository reference, policy decision, execution report, or final artifact can become a Block when identity and lineage need to persist beyond the local execution context.
+
+Use Block creation selectively. Systems do not need to create a Block for every transient event, log entry, or internal state transition. Create Blocks around artifacts with downstream dependency, reuse, audit, or compositional relevance.
+
+## Creation Modes
+
+ALX supports multiple Block creation modes. These modes describe how Blocks enter a workflow; they do not change Block structure, identity computation, verification rules, or protocol validity.
+
+### Manual Creation
+
+Manual creation occurs when a user explicitly creates a Block through a user interface, web application, command-line tool, document workflow, review system, or publication process.
+
+Manual creation applies when an artifact requires intentional preservation. Examples include a cited source document, approved policy decision, reviewed draft, signed report, published research result, archived record, or final publication.
+
+Manual creation records that an application represented selected digital material as a Block through an explicit user action. ALX does not verify the user's identity, intent, authority, or rights in that material.
+
+### Programmatic Creation
+
+Programmatic creation occurs when an application, service, SDK, API, or automated backend creates a Block as part of normal system execution. Programmatic creation applies when software systems generate artifacts intended for reuse across workflows, services, pipelines, or applications. Examples include model outputs, tool responses, evaluation results, repository references, build records, compliance checks, and generated reports. Programmatic Blocks encode system-level production of artifacts with deterministic identity and declared lineage.
+
+### Automatic Creation
+
+Automatic creation occurs when middleware, agent frameworks, retrieval pipelines, CI/CD systems, orchestration frameworks, or workflow engines create Blocks by default at defined transition points. Automatic creation applies when an application needs handoffs, transformations, approvals, state changes, or dependency boundaries to become verifiable artifacts without requiring manual intervention. Examples include agent-to-agent handoffs, retrieval bundles, prompt-output pairs, policy checks, execution traces, deployment decisions, and audit events.
+
+Automatic Blocks encode workflow-level transitions where artifact generation is embedded into execution paths. Together, manual, programmatic, and automatic creation modes allow ALX to operate across human processes, application systems, and agentic workflows while preserving uniform Block identity and lineage semantics.
+
+## SDK-Mediated Block Creation
+
+An SDK can make Block creation a native part of application and workflow execution. The SDK can receive an artifact, normalize the artifact into JSON-serializable `content`, collect declared upstream dependencies as `parentHashes`, `canonicalize` protocol data, compute `contentHash`, compute `blockHash`, and emit a valid Block.
+
+Figure 7 is an applied, non-normative example of SDK-mediated Block creation.
+
+![SDK-mediated Block creation flow](assets/whitepaper-figures/figure-07-sdk-mediated-block-creation.png)
+
+*Figure 7 — SDK-mediated Block creation (applied example, non-normative). An SDK receives digital material, canonicalizes protocol inputs, computes hashes, emits a Block, and can persist the Block through an external system.*
+
+SDK-mediated creation allows applications to represent selected artifacts at the point of production. A retrieval system can create a Block for a source bundle. A model gateway can create a Block for a prompt-output pair. An agent framework can create a Block for a handoff. A CI/CD pipeline can create a Block for a build record. A governance workflow can create a Block for a review decision or policy result.
+
+A typical SDK-mediated creation flow includes:
+
+- receive or observe an artifact
+
+- convert the artifact into JSON-serializable `content`
+
+- collect declared upstream Block references in `parentHashes`
+
+- sort and deduplicate `parentHashes`
+
+- `canonicalize` `content`
+
+- compute `contentHash`
+
+- `canonicalize` { `content`, `parentHashes` }
+
+- compute `blockHash`
+
+- emit the Block
+
+- optionally attach storage references, attestations, timestamps, application index metadata, hosted discovery records, anchors, or application metadata
+
+SDK-mediated creation does not change protocol rules. The SDK is an implementation layer that applies ALX canonicalization, hashing, and validation rules. A Block created through an SDK remains verifiable by any conformant implementation.
+
+The SDK can also support developer ergonomics above the protocol layer. Examples include adapters for storage systems, the optional Content Envelope profile, Graph traversal utilities, optional Verification Receipt records, local retrieval caches, attestation operations, and optional anchoring. These features improve integration while remaining external to Block identity and protocol validity.
+
+## External Attachments and Operations
+
+External attachments allow systems to associate additional context, evidence, storage references, or operational metadata with a Block without changing Block identity. These attachments operate above the protocol layer.
+
+External attachments include:
+
+- storage references
+
+- `content`-addressed identifiers such as CID or cidHash
+
+- attestations and signatures
+
+- timestamps
+
+- schemas and `content` envelopes
+
+- application index metadata and hosted discovery records
+
+- policy metadata
+
+- optional Verification Receipt records
+
+- application metadata
+
+- governance records
+
+- hosted discovery records
+
+These attachments can help systems retrieve, interpret, index, trust, govern, or operationalize Blocks. A storage reference can help locate related `content`. An attestation can provide a signed claim over `blockHash`. A timestamp can provide external existence-time evidence. A schema can describe application-level structure for `content`. A hosted discovery record can support discovery. An optional Verification Receipt can record the result of a completed verification run.
+
+External attachments do not participate in Block identity computation. `contentHash` remains derived from canonicalized `content`. `blockHash` remains derived from canonicalized
+
+{ `content`, `parentHashes` }. Adding, removing, editing, or replacing an external attachment does not change `contentHash`, `blockHash`, or protocol validity.
+
+This separation gives implementers flexibility. Applications can add domain-specific metadata, storage adapters, trust signals, policy decisions, access controls, and user-facing context while preserving a stable protocol identity for the underlying Block.
+
+External operations include inspection, traversal, publication, indexing, anchoring, attestation, governance review, and policy enforcement. These operations can reference Blocks and derivation Graphs while remaining outside the minimal protocol surface. An operation output enters the protocol surface only when an application represents that output as a Block.
+
+## Anchoring, Application Indexes, and Network Discovery
+
+Anchoring and application indexes operate above the Block primitive. Public network discovery belongs to the planned XNDR.network layer; it is not a mature ALX Protocol object and is not required for protocol validity. An anchor can commit one or more `blockHash` values to an external commitment system. The anchor can provide existence-time evidence, publication evidence, or a shared reference point for a Block collection. Anchoring does not change `contentHash`, `blockHash`, declared lineage, or local verification rules.
+
+An application index can organize locally available Blocks and Graphs for search, retrieval, filtering, or traversal. Index behavior remains external to Block identity and does not create another Block or a Graph. If implemented, XNDR.network discovery may locate Blocks, find publishers, resolve storage endpoints, advertise service capabilities, and publish supported content profiles. This repository does not define a mature network registry protocol.
+
+Applications can store Graph metadata in a local index, anchor selected `blockHash` values, or expose controlled retrieval endpoints. Conformant implementations still verify Blocks locally from protocol data. ALX therefore separates protocol validity from availability, discovery, coordination, and external commitment; future XNDR.network behavior cannot change Block identity or core conformance.
+
+## Governance and Policy Layers
+
+Governance and policy layers operate above the Block primitive. These layers can define access control, retention rules, review procedures, compliance checks, approval workflows, audit requirements, publication rules, dispute processes, and institutional trust policies.
+
+ALX Protocol provides the structural data that governance systems can evaluate. A governance system can inspect `blockHash`, `contentHash`, `parentHashes`, derivation Graph relationships, external attestations, optional Verification Receipt records, hosted discovery records, timestamps, schemas, and application metadata. The governance system can then apply domain-specific rules to determine whether an artifact satisfies policy requirements.
+
+Policy evaluation remains external to protocol validity. A Block can be structurally valid under ALX Protocol while failing an application policy, compliance rule, institutional review, or legal requirement. A Block can also satisfy a governance policy without changing `contentHash`, `blockHash`, or declared lineage.
+
+This separation allows different institutions, applications, and jurisdictions to apply different policies over the same protocol data. One system can require signed attestations. Another system can require approved source Blocks. Another system can require closed-world Graph verification. Another system can allow declared external boundaries through open-world verification. Governance layers therefore use ALX as a structural foundation. ALX verifies Block identity, `content` integrity, declared parent lineage, and derivation Graph relationships. Governance systems define authorization, approval, compliance, institutional trust, legal interpretation, and operational enforcement.
+
+## Economic Coordination for the ALX Ecosystem
+
+XNDR defines the separate economic coordination architecture for the ALX ecosystem. XNDR is separate from ALX Protocol and is not a dependency of protocol operation. Under an authorized limited activation, Approved Programs use XNDR to coordinate accepted contributions and other approved economic actions under published rules and separately authorized releases. Program authorities determine participant identity, rights, originality, quality, usefulness, eligibility, acceptance, and any associated economic actions under separate economic, governance, custody, and legal rules documented in the XNDR Economy Whitepaper.
+
+ALX Protocol conformance depends only on canonical protocol rules, schemas, and test vectors. Block identity, structural composition, local verification, and Graph traversal remain independently implementable without XNDR. Programs can use ALX structural verification results or optional receipt records as one source of evidence within their own governance processes. Program evidence review and final acceptance remain separate from protocol verification. XNDR authorization, allocation, custody, and release are governed independently of ALX Protocol, and structural verification alone does not authorize or automatically trigger an economic action.
+
+The following decision sequence defines the responsibility boundary. It does not state that any program, XNDR release, escrow arrangement, liquidity mechanism, or circulation process is currently active.
 
 ```mermaid
 flowchart LR
-  S1[Verify]
-  S2[Graph]
-  S3[Context]
-  S1 --> S2 --> S3
+    A["Program authorization"] --> B["Submission represented as a Block"]
+    B --> C["ALX structural verification"]
+    C -->|"Verification fails"| R["Reject or return for correction"]
+    C -->|"Verification results or receipt"| D["Program evidence review"]
+    D -->|"Rejected or ineligible"| R
+    D -->|"Accepted"| E["Final program acceptance"]
+    E --> F["Authorized XNDR release"]
+    F -->|"Release not authorized"| R
+    F --> G{"Authorized custody route"}
+    G --> H["Escrow"]
+    G --> I["Circulation"]
 ```
 
-*Caption: Verify — Block creation and local verify. Graph — cross-system artifact graphs and indexing. Context — derivation-graph context assembly.*
+Participants contribute. Programs define rules. Program authorities decide. XNDR coordinates authorized economic actions. ALX Protocol verifies structure.
 
-ALX adoption begins within developer and infrastructure workflows before extending into organizational and ecosystem-level coordination. The adoption model progresses through three operational stages.
+## Summary
 
-### Stage One: Developer Integration
+Block creation represents selected digital artifacts as verifiable protocol data. Human users, applications, SDKs, middleware, agents, orchestration systems, CI/CD pipelines, and governance workflows can create Blocks when durable identity, declared lineage, and future verification are required.
 
-Meaningful workflow transitions are represented as Blocks. Agent handoffs, retrieval-augmented outputs, model evaluations, compliance artifacts, and workflow decisions become independently verifiable artifacts with deterministic identity and explicit lineage.
+External attachments and operations can extend Block usability while preserving Block identity. Storage references, attestations, timestamps, optional content profiles, application index metadata, hosted discovery records, anchors, optional receipt records, application metadata, and governance records can attach above the Block layer. ALX Protocol supplies the structural model that implementers use to create, verify, reference, reuse, and extend composable digital artifacts across systems.
 
-Modern agent systems, orchestration frameworks, and retrieval pipelines already operate in environments where provenance discontinuities emerge naturally. Intermediate artifacts often retain operational significance while lacking durable identity, verifiable lineage, or reconstructable derivation structure. Failure analysis depends on logs and runtime traces. Workflow reconstruction depends on platform-specific execution state that may no longer persist.
+# Part VII—Specification and Implementation
 
-ALX integrates at this infrastructure boundary.
+## Overview
 
-Middleware and adapters for frameworks such as LangChain, CrewAI, AutoGen, MCP-compatible agent systems, and workflow orchestration environments enable Block generation without redesigning existing application architecture. Each workflow transition can produce a verifiable Block while preserving the surrounding execution stack.
+ALX Protocol supports independent implementation through canonical specification rules, schemas, and test vectors. Conformant implementations produce equivalent results for equivalent protocol inputs. Part VII summarizes those requirements for readers; the canonical protocol sources remain authoritative.
 
-- early integration introduces persistent structural properties into existing workflows:
-- audit trails with durable lineage across environments
-- source grounding encoded through explicit derivation structure
-- compliance artifacts with independently verifiable provenance
-- observability across agent and pipeline transitions
+Part VII summarizes implementation-facing requirements for ALX Protocol. The canonical specification, schemas, and test vectors define the requirements for canonicalization, hashing, Block structure, parent handling, Graph validation, Attribution Traces, extensions, compatibility, and protocol conformance. The error registry defines exact protocol error identifiers.
 
-Audit trails, source grounding, compliance artifacts, and cross-agent observability emerge through local integration of deterministic identity and lineage binding.
+The specification boundary remains structural. Schema validation can confirm required field shape, hash formatting, and protocol object structure. Full verification requires deterministic recomputation of `contentHash` and `blockHash`, validation of `parentHashes`, Graph traversal where Graph data is available, and evaluation of verification context where external boundaries are declared.
 
-### Stage Two: Enterprise Artifact Graphs
+## Canonicalization Rules
 
-Accumulated Blocks form verified derivation graphs that encode structured relationships across teams, vendors, and workflows.
+Canonical authority: protocol/spec.md §2 and protocol/test-vectors/canonicalization.json.
 
-At this stage, system behavior shifts from isolated verification to graph-level infrastructure. Enterprises operate over verified derivation graphs to support indexing, lineage inspection, governance enforcement, and compliance validation across distributed environments.
+Canonicalization converts protocol data into deterministic bytes before hashing. The specification requires equivalent protocol data to produce equivalent canonical byte sequences across conformant implementations. ALX canonicalization applies to `content` for `contentHash` and to { `content`, `parentHashes` } for `blockHash`.
 
-Common capabilities at this stage include:
+Canonicalization rules include:
 
-• inspection of source grounding across retrieval-augmented generation systems
+- object keys are sorted lexicographically
 
-• chain-of-custody traversal across multi-vendor pipelines
+- array ordering is preserved
 
-enforcement of approved-source constraints through explicit lineage rules
+- undefined at the top level and inside arrays canonicalizes to null; object properties with undefined values are excluded
 
-• deterministic measurement of contribution across systems through graph structure
+- negative zero is normalized to zero
 
-At scale, ALX supports a structural interface over distributed enterprise workflows. Artifact relationships accumulate into persistent, queryable graph structure. Organizational systems operate over verifiable derivation graphs with explicit `parentHashes` references.
+- equivalent JSON-serializable values produce equivalent canonical representations
 
-### Stage Three: Context-Aware Systems from Verified Derivation
+Canonicalization constraints include:
 
-Verified derivation graphs extend beyond structural verification into machine-readable context. Each group encodes a structured record of inputs, transformations, and dependencies that produced system outputs. Applications query this structure to reconstruct contextual state, condition behavior, and extend system execution based on verified historical relationships.
+- maximum recursion depth: 128
 
-Systems built on the Block interface operate over persistent, inspectable context from verified derivation graphs. Each interaction produces new Blocks that extend the derivation graph, continuously accumulating contextual structure over time.
+These rules allow conformant implementations to compute equivalent hashes from equivalent protocol inputs. Canonicalization is part of protocol validity because `contentHash` and `blockHash` depend on deterministic serialization. Canonicalization does not interpret `content` semantics. The canonicalizer processes structured values for deterministic representation only. Schema validation, `content`-type interpretation, policy evaluation, and semantic judgment remain external to the canonicalization layer.
 
-Context-aware systems derive state from explicit artifact relationships in the derivation graph: behavior is conditioned on verifiable lineage, and operational context is assembled through graph traversal over `parentHashes`.
+## Hash Function and Encoding
 
-### Adoption Progression
+Canonical authority: protocol/spec.md §3 and the canonical Block test vectors.
 
-The adoption path begins with integration at the workflow level through middleware and agent system. Extending into enterprise-scale derivation graphs spanning teams, vendors and processes. Culminating in context-aware systems built over verified contextual continuity.
+ALX Protocol uses Keccak-256 for protocol hash derivation. The hash input is the canonical byte sequence produced by the ALX canonicalization rules.
 
-Each stage increases value without requiring changes to the underlying protocol. A single integration provides immediate utility. Multi-system adoption compounds lineage.
+`contentHash` is computed from canonicalized `content`:
 
-## The ALX Stack
+`contentHash` = `keccak256`(`canonicalize`(`content`))
 
-ALX is delivered as a layered protocol stack.
+`blockHash` is computed from canonicalized { `content`, `parentHashes` }:
 
-The specification defines the base protocol rules for deterministic artifact identity and parent-bound lineage. Reference implementations demonstrate independent realization of base protocol rules across environments. Conformance test vectors define expected outputs for canonical inputs. SDKs and adapters provide integration interfaces for developer and production systems.
+`blockHash` = `keccak256`(`canonicalize`({ `content`, `parentHashes` }))
 
-Each component operates independently. The protocol specification defines the invariant layer.
+Hash values use a fixed encoding format:
 
-ALX is structured as open infrastructure with reference implementations in TypeScript, Python, and Rust. Additional implementations extend support to other environments through adherence to the shared specification and conformance suite.
+- 0x prefix
 
-Consistency across implementations is enforced through specification and canonical test vectors.
+- lowercase hexadecimal characters
 
-The protocol layer remains stable across implementations, languages, and deployment environments.
+- 64 hexadecimal characters after the prefix
 
-## Protocol and Product Separation
+- 32-byte digest
 
-The ALX Protocol defines an open verification standard: normative specification, canonical test vectors, and reference implementations. Xandr Labs develops ALX tooling and optional hosted services—SDKs, CLI tools, middleware, adapters, verification services, and applications operating over verified derivation graphs.
+This encoding provides a consistent representation for `contentHash`, `blockHash`, and parent references across conformant implementations. Hash derivation verifies structure only. Matching hash values confirm deterministic identity under ALX Protocol rules. Hash derivation does not verify semantic truth, `content` quality, authorship, storage availability, policy compliance, or legal status.
 
-The protocol layer remains independent of hosted services, databases, tokens, blockchain networks, or proprietary platforms. Conformant implementations can create and verify Blocks without coordination with any vendor.
+## Block Schema
 
-### From Protocol to Product
+Canonical authority: protocol/spec.md §1 and protocol/schemas/block.schema.json.
 
-Xandr Labs develops ALX as its protocol product: developer adoption through SDKs, middleware, and CLI; optional managed infrastructure for indexing, storage adapters, and attestation; enterprise governance through lineage visualization, audit exports, and policy workflows; and context-aware applications over verified derivation graphs. The Xandr platform—separate from ALX Protocol validity—orchestrates SWE best-practice Blocks into intelligent system design and may compose with ALX-verified artifacts.
+The Block schema defines four required fields—`blockHash`, `contentHash`, `parentHashes`, and `content`—and permits the optional `protocolVersion` field defined by protocol version 1.
 
-### Commercial Architecture
-
-The commercial structure spans those four interfaces. Each operates over the same ALX protocol primitive. Commercial value is generated through infrastructure, operational tooling, governance systems, hosted services, and applications operating over verified derivation graphs.
-
-# Part VII — Ecosystem Coordination
-
-## Optional Ecosystem Services
-
-Optional services sit above the ALX protocol and are **not required for conformance**.
-
-### Local-first core
-
-Block creation, linking, and verification are deterministic computations over canonicalized inputs and declared `parentHashes`. Protocol execution does not require payment systems, hosted services, blockchain infrastructure, or economic settlement mechanisms.
-
-### Hosted indexing
-
-Optional services for registered Blocks:
-
-- Registration and discovery
-- Graph indexing and search
-- Lineage visualization and traversal
-- Availability and retrieval
-- Access control
-- Attestation workflows and verification receipts
-- Context APIs for downstream applications
-
-Hosted indexing preserves deterministic identity and lineage binding. It does not modify Block creation rules or validation semantics.
-
-### External parent references
-
-The protocol supports Blocks that reference external Blocks—for example, from other graphs or legacy systems—through **open-world** validation mode. Declared external `parentHashes` are recorded in verification context; they do not alter local `blockHash` computation. Trace output may validate structurally while marking unresolved boundaries explicitly.
-
-### Economic coordination (XAN)
-
-A separate optional layer may coordinate staking, publishing fees, and usage-based rewards on top of verified artifact graphs. Economic rules sit outside core ALX validity and are defined in the XAN Economic Whitepaper. The protocol core operates without tokens or settlement.
-
-## Ecosystem architecture
-
-**Figure 5 — Stack: protocol / indexing / coordination**
-
-```mermaid
-flowchart TB
-  IN[Inputs] --> P[Protocol]
-  P -.-> I[Indexing]
-  I -.-> C[Coordination]
+```json
+{
+  "blockHash": "0x...",
+  "contentHash": "0x...",
+  "parentHashes": ["0x..."],
+  "content": {}
+}
 ```
 
-*Caption: Protocol — identity and local verify. Indexing — discovery and lineage APIs. Coordination — optional ecosystem layer including economic coordination.*
+`blockHash` is the deterministic Block identity. `blockHash` is derived from canonicalized { `content`, `parentHashes` }. Any change to `content` or `parentHashes` produces a different `blockHash`.
 
-## Design Philosophy
+`contentHash` is the `content`-only identity. `contentHash` is derived from canonicalized `content`. Any change to `content` produces a different `contentHash`.
 
-ALX is designed around adoption, independence, and interoperability as primary properties of the protocol.
+`parentHashes` is the normalized list of declared upstream Block identities. Each retained value uses the protocol hash format. A root Block has an empty `parentHashes` list.
 
-The protocol defines a minimal verification primitive for artifacts, enabling deterministic identity computation and parent-based lineage construction over canonicalized representations without dependence on external coordination systems.
+`content` is opaque JSON-serializable application data that may represent digital material. ALX Protocol does not inspect, classify, or interpret `content` at the Block layer.
 
-ALX remains independent of specific infrastructure choices, including hosted platforms, storage systems, blockchain networks, token mechanisms, and vendor-controlled registries.
+The Block schema validates structural shape. The schema can confirm required fields, optional `protocolVersion`, field names, hash formats, array constraints, and permitted properties. Full Block verification separately recomputes `contentHash` and `blockHash` from canonical protocol data.
 
-# Part VIII — Toward Verifiable AI Infrastructure
+## Parent Hash Rules
 
-ALX defines a verification protocol for artifacts operating across intelligent systems, enterprise workflows, and machine-driven environments. The protocol establishes deterministic identity, parent-bound lineage, and reproducible verification through canonical serialization and cryptographic hashing. ALX introduces a bounded verification primitive focused on artifact identity and lineage. ALX does not define semantic correctness, truth evaluation, governance authority, intelligence, storage requirements, or policy interpretation.
+Canonical authority: protocol/spec.md §§1 and 4 and the lineage test vectors.
 
-Chained Blocks form verified derivation graphs that represent relationships across workflows, systems, organizations, models, agents, and infrastructure environments. Growing derivation graphs function as operational infrastructure for provenance inspection, governance workflows, reproducibility, source grounding, contribution measurement, and context-aware machine systems.
+`parentHashes` defines the declared upstream Block references for a Block. Each retained entry identifies an upstream Block by `blockHash`.
 
-The protocol layer establishes a shared verification substrate on which indexing systems, governance infrastructure, attestation systems, context-aware applications, and ecosystem coordination interfaces operate without modifying protocol-level correctness. Artifact identity, lineage, and derivation remain durable, composable, and independently verifiable across systems, organizations, and time.
+A root Block has an empty `parentHashes` list. A derived Block has one or more parent references. Each parent reference creates a declared dependency relationship between the derived Block and an upstream Block.
+
+During Block creation, normalization lowercases valid parent hashes, removes invalid entries, deduplicates the retained values, and sorts the retained set lexicographically before `blockHash` derivation. The specification rejects a normalized set containing more than 256 parents.
+
+Because normalized `parentHashes` participates in `blockHash` derivation, changing the retained parent set changes Block identity.
+
+Schema validation evaluates the resulting `parentHashes` representation. Parent resolution and Graph verification then determine whether retained references resolve under closed-world or explicitly declared open-world verification.
+
+## Graph Validation Modes
+
+Canonical authority: protocol/spec.md §4, protocol/schemas/verification-context.schema.json, and the lineage-boundary vectors.
+
+Graph validation evaluates derivation Graph structure across connected Blocks. A verification operation starts from a graph root, traverses declared parent references through `parentHashes`, and evaluates whether the graph can be structurally verified under the selected validation mode.
+
+ALX supports two Graph validation modes: closed-world and open-world.
+
+Closed-world validation requires every declared parent reference to resolve to an available Block. This mode applies when the verifier expects full Graph availability, such as controlled repositories, audit packages, internal workflow archives, reproducibility bundles, or compliance submissions.
+
+In open-world validation, some parent references may be declared as external boundaries through verification context. This mode is appropriate when a graph references private, unavailable, external, or separately governed parents. External boundaries are recorded explicitly so unresolved parents are not treated as ordinary missing parents.
+
+Graph validation can evaluate:
+
+- whether each available Block is structurally valid
+
+- whether parent references are well-formed
+
+- whether declared parents resolve under the selected validation mode
+
+- whether unresolved parents are missing or declared as external boundaries
+
+- whether cycles are present
+
+- whether Graph traversal can produce a `complete` verification result
+
+A Graph is `complete` only when every declared parent resolves to an available Block. Open-world verification may return `ok`: true when unresolved parents are explicitly declared as external, while `complete` remains false until those parent Blocks resolve.
+
+Graph validation remains structural. Closed-world and open-world modes do not determine semantic truth, `content` quality, policy compliance, storage durability, institutional trust, or legal status.
+
+## Attribution Trace
+
+Canonical authority: protocol/spec.md §5 and protocol/schemas/attribution-trace.schema.json.
+
+An Attribution Trace is a computed structural view of a derivation Graph. The trace starts from a selected root Block and records Graph topology, resolved nodes, directed edges, depth values, missing parents, external parents, cycle status, and structural `pathCount`.
+
+An Attribution Trace can include:
+
+- root — the `blockHash` of the Block where tracing begins
+
+- `validationMode` — the Graph validation mode used during traversal
+
+- `complete` — whether all required lineage was resolved under the selected validation mode
+
+- nodes — resolved Blocks included in the trace
+
+- edges — directed parent-reference relationships between Blocks
+
+- leaves — resolved nodes with no resolved parents
+
+- `missingParents` — unresolved parent hashes not declared as external boundaries
+
+- `externalParents` — unresolved parent hashes declared as external boundaries
+
+- `maxDepth` — longest path length from the root Block to any traced node
+
+- cycle — whether traversal detected a cycle
+
+Each traced node can include structural Graph metrics such as `minDepth`, `maxDepth`, `pathCount`, `parentCount`, and `childCount`. `pathCount` records the number of distinct directed traversal paths from the selected Trace root to that node.
+
+The Attribution Trace is derived from Graph structure. The trace can support lineage inspection, structural contribution analysis, audit workflows, reproducibility checks, and graph visualization. The trace does not establish semantic truth, `content` quality, contributor identity, authorship, originality, ownership, usefulness, policy compliance, acceptance, economic value, or reward entitlement. The Attribution Trace schema validates structural shape only. Correctness of trace values depends on the verification operation that computed the trace, the available Block data, the selected validation mode, and the declared verification context.
+
+## Optional Verification Receipts
+
+Canonical authority: protocol/schemas/verification-receipt.schema.json.
+
+A Verification Receipt is an optional non-Block application record of a completed ALX Graph verification run. The receipt records the Verification Context, verifier identity, Graph root, validation mode, resolved Graph size, unresolved boundaries, errors, warnings, and verification result.
+
+A verification receipt can include:
+
+- receiptVersion — the version of the receipt format
+
+- `protocolVersion` — the ALX Protocol version used during verification
+
+- verifiedAt — the timestamp when verification completed
+
+- verifier — the name and version of the implementation that produced the receipt
+
+- root — the `blockHash` of the graph root
+
+- `validationMode` — closed-world or open-world
+
+- `ok` — whether verification passed under the selected validation mode
+
+- `complete` — true only when every declared parent resolves; declared external parents keep the result incomplete
+
+- blockCount — the number of resolved Blocks in the verified graph
+
+- edgeCount — the number of traversed parent-reference edges
+
+- `externalParents` — parent hashes declared as external boundaries
+
+- `missingParents` — unresolved parent hashes not declared as external boundaries
+
+- errors — structured verification errors
+
+- warnings — non-fatal verification warnings
+
+- `traceHash` — optional hash of the associated Attribution Trace, when available
+
+Verification receipts support audit, reproducibility, governance, and integration operations. A system can associate a receipt with a Block, publish it through a hosted discovery service, store it with an audit record, or use it as evidence that a specific verification operation was performed.
+
+A Verification Receipt is not required for core conformance and is not part of Block identity. Creating, editing, storing, publishing, or removing a receipt does not change `contentHash`, `blockHash`, declared parent lineage, or protocol validity.
+
+A receipt records an application's observation of verification results. It is not a protocol validity decision and does not independently prove current Graph validity, semantic truth, `content` quality, participant identity, authorship, originality, ownership, rights, usefulness, policy compliance, legal status, acceptance, economic value, reward eligibility, storage durability, or institutional trust. Programs and their authorities independently evaluate those matters under application-defined governance.
+
+## Extensions and Compatibility
+
+Canonical authority: protocol/extensions/ and each adopted extension manifest.
+
+ALX Protocol defines a stable core surface and permits optional extensions above or alongside the core. Extensions can add schemas, `content` profiles, verification helpers, application indexing behavior, discovery integrations, attestation formats, anchoring patterns, adapters, or domain conventions. Protocol version 1 keeps Block identity derived from canonicalized `content` and normalized `parentHashes` through `contentHash` and `blockHash`.
+
+Extension publishers declare lifecycle status, compatible protocol versions, required schemas, test vectors, and conformance expectations. This declaration is application guidance, not a Protocol v1 conformance requirement. Lifecycle status values include draft, provisional, stable, deprecated, and withdrawn. Compatibility metadata allows implementers to determine whether an extension can be used with a specific protocol version. Optional extensions support typed `content` envelopes, domain-specific schemas, discovery integrations, attestations, SDK adapters, Graph export formats, policy profiles, and interoperability packages while preserving the minimal protocol surface.
+
+Compatibility depends on clear separation between core protocol requirements and optional extension behavior. A Block can remain valid under the core protocol even when an optional extension is absent. An application may require a specific extension for its own workflow, but that requirement remains application-layer policy unless the extension is part of core protocol conformance.
+
+This model allows the ALX ecosystem to evolve without fragmenting Block identity. Implementers can adopt new capabilities while preserving deterministic identity, parent-bound lineage, local verification, and cross-implementation consistency for core Blocks.
+
+## Implementation Requirements
+
+Canonical authority: protocol/spec.md, protocol/schemas/, protocol/test-vectors/, and conformance/.
+
+The canonical specification defines the requirements for Block structure, canonicalization, hash derivation, parent handling, local verification, and Graph traversal.
+
+Core conformance requires an implementation to:
+
+- accept and validate the required Block fields: `content`, `parentHashes`, `contentHash`, and `blockHash`
+
+- enforce hash encoding rules for `contentHash`, `blockHash`, and entries in `parentHashes`
+
+- normalize `parentHashes` by lowercasing valid hashes, removing invalid entries, deduplicating, and sorting before `blockHash` derivation
+
+- `canonicalize` `content` according to ALX canonicalization rules
+
+- compute `contentHash` as `keccak256`(`canonicalize`(`content`))
+
+- compute `blockHash` as `keccak256`(`canonicalize`({ `content`, `parentHashes` }))
+
+- compare recomputed hash values with declared hash values during verification
+
+- reject structurally invalid Blocks under protocol validation rules
+
+- support root Blocks with empty `parentHashes`
+
+- support derived Blocks with declared upstream parent references
+
+- detect cycles during Graph traversal when Graph verification is performed
+
+- distinguish missing parents from declared external parents when verification context is supplied
+
+- compute structural graph metrics such as `pathCount` when attribution tracing is performed
+
+Canonical test vectors determine conformance by providing shared inputs and expected outputs for canonicalization, hash derivation, Block validation, Graph validation, and attribution tracing.
+
+A conformant implementation may provide additional features such as SDK helpers, storage adapters, schema validation, attestation verification, application indexing, network discovery integration, anchoring, governance processes, visualization tools, or application-specific policies. These features remain outside core conformance unless explicitly defined as required by the protocol version or an adopted extension.
+
+Protocol conformance is structural. A conformant implementation verifies protocol data according to ALX rules. Protocol conformance does not imply that artifact `content` is true, useful, `complete`, lawful, compliant, available, authored by a claimed person, or trusted by an institution.
+
+## Summary
+
+Specification and conformance define how ALX Protocol remains independently implementable across systems. Conformant implementations follow canonical rules for Block structure, canonicalization, hash derivation, parent handling, Graph traversal, Attribution Traces, and extension compatibility.
+
+The core protocol surface remains minimal: `content`, `parentHashes`, `contentHash`, and `blockHash`. `contentHash` provides `content`-only identity. `blockHash` provides lineage-bound identity. `parentHashes` provides declared upstream references. `content` carries the opaque JSON-serializable artifact payload.
+
+Protocol conformance enables local verification. A Block created in an environment using a conformant implementation can be verified in another such environment through deterministic recomputation of `contentHash` and `blockHash`. A Graph can be inspected through `parentHashes`, validation modes, and Attribution Traces when the required Block data and Verification Context are available.
+
+The specification boundary is structural. ALX Protocol defines identity, lineage, Graph relationships, structural attribution, and verification outputs. External systems define storage availability, schema interpretation, attestation trust, policy enforcement, governance decisions, legal meaning, semantic truth, and operational use.
+
+# Conclusion
+
+ALX Protocol is an open protocol for composable digital artifacts.
+
+The Block is the protocol primitive. Deterministic `content`-only identity, lineage-bound Block identity, and normalized parent relationships allow conformant implementations to verify and traverse available Graph data through shared rules.
+
+Applications interpret artifact `content` and determine truth, quality, semantic compatibility, policy, permissions, legal meaning, and operational use. External storage, attestation, indexing, governance, and economic layers can operate around Blocks while ALX Protocol conformance remains independently implementable.
 
 ## Related Documents
 
-- ALX Protocol Specification — normative protocol behavior, canonicalization rules, and conformance requirements
-- ALX Trust Model — verification boundaries, trust assumptions, and threat model summary
-- ALX Documentation Hub — integrator guides, API reference, and developer onboarding material
-- XAN Economics Framework — staking, publishing fees, and usage-based rewards
+- [ALX Protocol Specification](../protocol/spec.md) — canonical protocol behavior
 
+- [Protocol Schemas](../protocol/schemas/) — canonical structural schemas
+
+- [Canonical Test Vectors](../protocol/test-vectors/) — language-independent conformance evidence
+
+- [Cross-Implementation Validation](../conformance/README.md) — conformance verification
+
+- [Trust Model](./trust-model.md) — trust and verification boundaries
+
+- [Whitepaper Figures](./whitepaper-diagrams.md) — figure sources and conventions
+
+- [XNDR Economy Whitepaper](https://github.com/xandrlabs/xandr-app/blob/main/governance/research/xndr-whitepaper.md) — separate economic architecture

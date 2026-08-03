@@ -1,5 +1,10 @@
 # Security Policy
 
+**Status:** Repository security policy
+**Audience:** Users, contributors, maintainers, and security researchers
+**Authority:** Governs vulnerability reporting, response, and disclosure practices; canonical protocol sources govern protocol behavior
+**Last reviewed:** 2026-08-01
+
 This document describes vulnerability reporting and response for ALX Protocol. This document does not define protocol behavior.
 
 ---
@@ -17,7 +22,7 @@ This document covers:
 - In-scope and out-of-scope vulnerability categories
 - Disclosure policy and supported protocol versions
 
-## Non-goals
+## Non-Goals
 
 This document does not cover:
 
@@ -31,6 +36,8 @@ This document does not cover:
 If you discover a security vulnerability in ALX Protocol, please report it responsibly.
 
 **Email:** security@xandrlabs.ai
+
+Xandr Labs administers this operational security intake for ALX Protocol under ALX Foundation stewardship. Use of this address does not give Xandr Labs products or services authority over protocol conformance.
 
 Please include:
 - Description of the vulnerability
@@ -65,7 +72,7 @@ Security concerns relevant to this project include:
 - Canonicalization bypasses that produce different hashes for equivalent inputs
 - EIP-712 signature verification vulnerabilities
 - Replay attacks against signed protocol requests
-- Smart contract vulnerabilities in **ALXAnchor** on Base (and optional read-only CID pointer reads when using `alx block resolve --chain base`)
+- Smart contract vulnerabilities in **ALXAnchor** on Base
 - Denial of service via deeply nested or adversarial input
 - Cross-implementation divergence (two conformant implementations producing different output)
 
@@ -95,10 +102,10 @@ None at this time. Known issues will be listed here with severity, affected vers
 We follow coordinated disclosure:
 
 1. Reporter submits vulnerability via security@xandrlabs.ai
-2. We acknowledge and assess severity
-3. We develop and test a fix
-4. We release the fix and notify the reporter
-5. We publicly disclose the vulnerability (credited unless the reporter prefers anonymity)
+2. The operational security maintainers acknowledge and assess severity
+3. Maintainers develop and test a fix under the repository governance process
+4. Maintainers release the fix and notify the reporter
+5. Maintainers publicly disclose the vulnerability (credited unless the reporter prefers anonymity)
 
 We will credit reporters in the CHANGELOG unless they prefer anonymity.
 

@@ -46,7 +46,7 @@ normalizeHashes(hashes) -> string[]
 | `canonicalize` | Deterministic serialization (core invariant) |
 | `deriveBlockHash` | Compute `blockHash` from canonical structure |
 | `deriveContentHash` | Hash content only (profile-dependent) |
-| `createBlock` | Construct canonical Knowledge Block |
+| `createBlock` | Construct a Block with protocol-defined identities |
 | `validateBlock` | Recompute and verify hash integrity |
 | `normalizeHash` / `normalizeHashes` | Enforce canonical hash format |
 
@@ -139,10 +139,11 @@ Every Block returned by a conformant `createBlock` satisfies:
 - `parentHashes` is sorted, deduplicated, lowercase, format-validated, and ≤ 256 elements
 - Two calls with identical `content` and identical `parentHashes` produce identical `blockHash`
 
-### Conformance Vectors
+### Protocol conformance vectors
 
 ```
 protocol/test-vectors/block-identity.json   — hash identity for content and parentHash combinations
+protocol/test-vectors/parent-normalization.json — fail-closed parent input behavior
 protocol/test-vectors/parent-limits.json    — MAX_PARENTS boundary and normalization behavior
 protocol/test-vectors/canonicalization.json — exact-output canonicalization (required for hash correctness)
 ```
@@ -215,7 +216,7 @@ Result guarantees:
 - deterministic identity
 - Graph consistency
 
-## 9. Conformance Testing
+## 9. Protocol conformance testing
 
 Implementations MUST pass official test vectors.
 
@@ -433,7 +434,10 @@ import (
 // DeriveBlockHash computes the Keccak-256 blockHash from content and parentHashes.
 func DeriveBlockHash(content interface{}, parentHashes []string) (string, error) {
 	// Normalize parents: lowercase, validate, deduplicate, sort
-	normalized := NormalizeHashes(parentHashes)
+	normalized, err := NormalizeHashes(parentHashes)
+	if err != nil {
+		return "", err
+	}
 
 	// Build the canonical hash input: {"content":<canonical>,"parentHashes":[<sorted>]}
 	canonContent, err := Canonicalize(content)
@@ -472,12 +476,13 @@ If `blockHash` values diverge from test vectors, verify the hash constructor fir
 package alx
 
 import (
+	"fmt"
 	"regexp"
 	"sort"
 	"strings"
 )
 
-// Block represents a Knowledge Block in the ALX Protocol.
+// Block represents an ALX Protocol Block.
 type Block struct {
 	BlockHash    string      `json:"blockHash"`
 	ContentHash  string      `json:"contentHash"`
@@ -488,30 +493,35 @@ type Block struct {
 var hashPattern = regexp.MustCompile(`^0x[a-f0-9]{64}$`)
 
 // NormalizeHash lowercases and validates a single hash.
-// Returns empty string if the hash is invalid.
-func NormalizeHash(hash string) string {
+func NormalizeHash(hash string) (string, error) {
 	h := strings.ToLower(strings.TrimSpace(hash))
 	if !hashPattern.MatchString(h) {
-		return ""
+		return "", fmt.Errorf("[ALX_INVALID_HASH] invalid hash: %s", hash)
 	}
-	return h
+	return h, nil
 }
 
 // NormalizeHashes normalizes, deduplicates, and sorts a slice of hashes.
-// Invalid hashes are dropped.
-func NormalizeHashes(hashes []string) []string {
+// Any invalid hash rejects the complete operation.
+func NormalizeHashes(hashes []string) ([]string, error) {
 	seen := make(map[string]bool)
 	var result []string
 	for _, h := range hashes {
-		n := NormalizeHash(h)
-		if n == "" || seen[n] {
+		n, err := NormalizeHash(h)
+		if err != nil {
+			return nil, err
+		}
+		if seen[n] {
 			continue
 		}
 		seen[n] = true
 		result = append(result, n)
 	}
 	sort.Strings(result)
-	return result
+	if len(result) > 256 {
+		return nil, fmt.Errorf("[ALX_TOO_MANY_PARENTS] parentHashes exceeds maximum of 256 after normalization")
+	}
+	return result, nil
 }
 
 // DeriveContentHash computes the Keccak-256 hash of the canonicalized content alone.
@@ -526,9 +536,12 @@ func DeriveContentHash(content interface{}) (string, error) {
 	return "0x" + hex.EncodeToString(digest), nil
 }
 
-// CreateBlock constructs a complete Knowledge Block with derived hashes.
+// CreateBlock constructs a complete Block with derived hashes.
 func CreateBlock(content interface{}, parentHashes []string) (*Block, error) {
-	normalized := NormalizeHashes(parentHashes)
+	normalized, err := NormalizeHashes(parentHashes)
+	if err != nil {
+		return nil, err
+	}
 
 	blockHash, err := DeriveBlockHash(content, normalized)
 	if err != nil {
@@ -680,7 +693,7 @@ func TraceAttribution(rootHash string, graph map[string][]string) *TraceResult {
 
 ---
 
-### Step 5: Build Conformance Adapter
+### Step 5: Build the conformance adapter
 
 The ALX conformance runner communicates with an implementation over stdin/stdout using newline-delimited JSON. Each line is a request; the adapter writes one JSON response line per request.
 
@@ -819,7 +832,7 @@ alx conformance run --impl "./alx-go"
 | **SHA3-256 vs Keccak-256** | `sha3.New256()` is SHA3-256 (NIST). `sha3.NewLegacyKeccak256()` is Keccak-256 (Ethereum). ALX uses Keccak-256. Keccak constructor selection is the most common implementation error. |
 | **Float formatting** | Must match JavaScript's `JSON.stringify`. `1.5` must serialize as `"1.5"`, not `"1.500000"`. Use `strconv.FormatFloat(v, 'f', -1, 64)` for non-integer floats. Integer-valued floats like `2.0` must serialize as `"2"`, not `"2.0"`. |
 | **Key sorting** | Lexicographic sort by UTF-8 bytes. Go's `sort.Strings` handles ASCII and most Unicode correctly. The sort matches the protocol requirement. |
-| **Parent normalization** | Lowercase with `strings.ToLower`, validate against `^0x[a-f0-9]{64}$`, deduplicate, then `sort.Strings`. Invalid `blockHash` values are silently dropped. |
+| **Parent normalization** | Require an array of strings, trim and lowercase each entry, validate against `^0x[a-f0-9]{64}$`, deduplicate, then `sort.Strings`. Reject the complete operation when any entry is invalid. |
 | **Negative zero** | `-0` must canonicalize to `"0"`. In Go, `float64(-0) == 0` is true, so checking `v == 0` and returning `"0"` handles negative zero. Verify with `math.Copysign(1, v)` for an explicit check. |
 | **Canonical hash input field order** | The hash input object must have `"content"` before `"parentHashes"`. Building the string manually (as shown in Step 2) avoids reliance on `encoding/json`'s key ordering. |
 

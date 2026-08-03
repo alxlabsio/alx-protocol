@@ -2,7 +2,7 @@
 
 This directory contains Architecture Decision Records for ALX Protocol. Each record explains a design decision that shapes Block identity, verification behavior, extension boundaries, implementation guidance, or product integration surfaces.
 
-Architecture Decision Records help reviewers, implementers, and maintainers understand how ALX design choices support deterministic identity, local verification, portable attestations, and product-facing integration patterns. Normative protocol behavior remains defined by [`../protocol/spec.md`](../protocol/spec.md), schemas, conformance rules, and test vectors.
+Architecture Decision Records help reviewers, implementers, and maintainers understand how ALX design choices support deterministic identity, local verification, portable attestations, and product-facing integration patterns. Normative protocol behavior remains defined by [`../../protocol/spec.md`](../../protocol/spec.md), schemas, conformance rules, and test vectors.
 
 ## Decision Index
 
@@ -14,6 +14,8 @@ Architecture Decision Records help reviewers, implementers, and maintainers unde
 | [`004-attestation-orthogonality.md`](./004-attestation-orthogonality.md) | Signing boundary | Stable Block identity with flexible authorship and verification proofs |
 | [`005-incremental-validation.md`](./005-incremental-validation.md) | Graph validation | Efficient validation for streaming pipelines and agent workflows |
 | [`006-algorithm-agnostic-signing.md`](./006-algorithm-agnostic-signing.md) | Attestation interface | Portable signing support across EVM, Ed25519, WebAuthn, KMS, and future signing systems |
+| [`007-threat-model-depth.md`](./007-threat-model-depth.md) | Security model | Explicit threat boundaries for applications and deployments |
+| [`008-storage-and-discovery-boundaries.md`](./008-storage-and-discovery-boundaries.md) | Storage and discovery | Local Block Store adapters without new protocol objects |
 
 ## Architecture Decision Record Usage
 
@@ -34,3 +36,8 @@ New decision records should use the next sequential ADR number and follow the ex
 ```txt
 NNN-short-decision-name.md
 ```
+
+## Related Documents
+
+- [Protocol governance](../governance/governance.md)
+- [Protocol specification](../../protocol/spec.md)

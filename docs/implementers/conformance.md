@@ -1,14 +1,14 @@
-# Conformance
+# Protocol conformance
 
-The document explains the conformance model defined by protocol manifests, suites, vectors, and the specification.
+The document explains the conformance model defined by the specification, schemas, canonical vectors, and the operational suite manifest.
 
 ---
 
-## Conformance Requirement
+## Protocol conformance requirement
 
 An implementation is conformant when the required ALX protocol suites pass without modification to suites, vectors, or expected assertions.
 
-Conformance is suite-specific:
+Protocol conformance is suite-specific:
 
 - canonicalization suites require exact byte output;
 - semantic suites verify required protocol outcomes without claiming every emitted field is byte-identical across implementations.
@@ -47,6 +47,7 @@ node conformance/bin/run.js --impl "./my-implementation"
 | `canonicalization-negative` | semantic | Rejection behavior |
 | `canonicalization-depth` | semantic | Depth-limit behavior |
 | `block-identity` | semantic | Content and Block hash identity |
+| `parent-normalization` | semantic | Fail-closed parent collection and entry behavior |
 | `parent-limits` | semantic | Parent count and normalization behavior |
 | `attribution-trace` | semantic | Trace structure and metrics |
 | `lineage-negative` | semantic | Invalid graph behavior |
@@ -89,7 +90,7 @@ Semantic suites assert outcomes such as:
 
 Semantic conformance requires no byte-identical diagnostic fields, warning strings, or convenience outputs.
 
-## Optional Extension Conformance
+## Optional extension conformance
 
 Merkle and signing are optional extensions.
 

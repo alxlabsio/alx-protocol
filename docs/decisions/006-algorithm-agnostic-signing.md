@@ -75,12 +75,12 @@ The result is a shared attestation model that allows product teams to use signin
 
 - The `data` parameter is the raw 32-byte Block hash decoded from hex.
 
-- Conformance and regression tests should verify that signing algorithms remain outside Block identity and that each verifier validates the expected raw Block hash bytes.
+- conformance and regression tests should verify that signing algorithms remain outside Block identity and that each verifier validates the expected raw Block hash bytes.
 
 ## Related Documents
 
 - [`004-attestation-orthogonality.md`](./004-attestation-orthogonality.md)
-- [`../protocol/extensions/signing/`](../protocol/extensions/signing/)
-- [`../protocol/spec.md`](../protocol/spec.md)
+- [`../../protocol/extensions/signing/`](../../protocol/extensions/signing/)
+- [`../../protocol/spec.md`](../../protocol/spec.md)
 - [`../deep-dives/core-contract.md`](../deep-dives/core-contract.md)
 - [`../integrators/extensions.md`](../integrators/extensions.md)
