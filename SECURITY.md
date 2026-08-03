@@ -3,7 +3,7 @@
 **Status:** Repository security policy
 **Audience:** Users, contributors, maintainers, and security researchers
 **Authority:** Governs vulnerability reporting, response, and disclosure practices; canonical protocol sources govern protocol behavior
-**Last reviewed:** 2026-08-01
+**Last reviewed:** 2026-08-03
 
 This document describes vulnerability reporting and response for ALX Protocol. This document does not define protocol behavior.
 
@@ -87,9 +87,17 @@ Security concerns relevant to this project include:
 
 The complete threat model, trust boundaries, and cryptographic assumptions are in [`docs/governance/security.md`](docs/governance/security.md).
 
+## Security Review Status
+
+ALX Protocol has not completed an independent security audit. Repository conformance, native implementation tests, contract tests, and automated analysis provide internal evidence and do not replace independent review.
+
+The production JavaScript dependency graph reports no known advisory for dependency commit `79ee792`. The private Hardhat 2 development graph retains transitive advisories that do not ship in published SDK or CLI runtime dependencies. The independent review scope, evidence requirements, residual risks, and publication record are maintained in [`docs/governance/security-audit.md`](docs/governance/security-audit.md).
+
+`ALXAnchor` is implemented and not deployed. Mainnet deployment remains pending independent contract review.
+
 ## Known Issues
 
-None at this time. Known issues will be listed here with severity, affected versions, and workarounds.
+No confirmed protocol or runtime vulnerability is recorded at this time. Development-tool advisories and independent-review status are recorded separately in the audit readiness document.
 
 ## Supported Versions
 
@@ -114,6 +122,7 @@ We will credit reporters in the CHANGELOG unless they prefer anonymity.
 ## Related Documents
 
 - [`docs/governance/security.md`](docs/governance/security.md) — complete threat model and trust boundaries
+- [`docs/governance/security-audit.md`](docs/governance/security-audit.md) — independent review scope and publication record
 - [`docs/trust-model.md`](docs/trust-model.md) — verification scope summary
 - [`GOVERNANCE.md`](GOVERNANCE.md) — project stewardship
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — contribution process

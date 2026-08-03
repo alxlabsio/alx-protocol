@@ -1,5 +1,10 @@
 # Security
 
+**Status:** Governance security model
+**Audience:** Implementers, integrators, security reviewers, and maintainers
+**Authority:** Explains security properties and trust boundaries; canonical protocol sources govern protocol behavior
+**Last reviewed:** 2026-08-03
+
 Security properties, assumptions, and trust model for ALX Protocol. Protocol behavior remains defined by [`../../protocol/spec.md`](../../protocol/spec.md).
 
 ---
@@ -101,44 +106,35 @@ Security controls:
 | Tampered content | Content modified after creation | `validateBlock` recomputes hash |
 | Forged lineage | Parent references manipulated | `verifyGraph` recomputes all hashes |
 | Replay attack | Signed payload reused | Nonce + expiry + chain ID |
-| Backdated attestation | Signer falsifies timestamp | Use external anchors (checkpoints) for ordering |
-| Unauthorized checkpoint | Malicious checkpoint submission | Contract enforces attestor authorization |
-| Deactivated platform usage | Inactive platform still used | Contract enforces `isPlatformActive` |
+| Backdated attestation | Attestor supplies an inaccurate timestamp | Optional external anchors provide separate existence-time evidence |
+| False anchoring claim | Caller anchors a hash that is not a valid Block identity | Consumers validate the complete Block locally before relying on an anchor |
+| Duplicate anchor race | Multiple callers submit the same hash | The first successful record remains; later single writes revert and batch writes skip duplicates |
 
 ---
 
-## 5. Optional External Checkpoint Security
+## 5. Optional `ALXAnchor` Security
 
-External checkpoint integrations can act as optional verification and anchoring layers. Protocol validity requires no external checkpoints.
+`ALXAnchor` is an optional existence-time integration. Protocol validity requires no contract or external network.
 
-### 5.1 Integration Registry
+### 5.1 Contract Model
 
-Only platform owner MAY:
+The contract is permissionless, administrator-free, and upgrade-free. Any address can submit any `bytes32` value. The stored address identifies only the transaction sender; authorship, authority, and content validity remain external.
 
-- update attestor
-- transfer ownership
-- deactivate platform
+The contract stores the first successful transaction timestamp for each submitted hash. The timestamp provides evidence that the hash was recorded by that block time. Original Block creation time remains outside the anchor record.
 
-### 5.2 Checkpoint Integration
+### 5.2 Verification Boundary
 
-Only authorized attestor MAY:
+Applications validate the complete Block locally before relying on an anchor record. The contract accepts opaque hashes and performs no canonicalization, Block validation, lineage verification, Trace calculation, content inspection, or signature verification.
 
-- submit checkpoints
+The contract accepts the zero `bytes32` value because the contract treats every submitted value as opaque. Applications enforce `blockHash` format and Block validity before submission.
 
-Enforces:
+### 5.3 Batch Behavior
 
-- platform must be active
-- root hash must be valid
+A batch contains between 2 and 256 entries. The contract records new hashes, skips hashes recorded earlier, and emits one batch event with the count of new records. The application-defined `batchId` provides only event correlation; protocol objects and batch-content commitments remain outside the contract.
 
-### 5.3 Merkle Verification
+### 5.4 Merkle Boundary
 
-- Merkle proofs can be verified by external checkpoint integrations
-- sorted-pair hashing is used for determinism
-
-Guarantees:
-
-- order-independent roots
-- deterministic inclusion proofs
+Merkle proof generation and verification remain off-chain SDK extension behavior. The current `ALXAnchor` contract records individual hashes and contains no Merkle proof verifier.
 
 ---
 
@@ -229,4 +225,7 @@ Include:
 ## Related Documents
 
 - [Repository security policy](../../SECURITY.md)
+- [Independent security audit readiness](./security-audit.md)
 - [Protocol specification](../../protocol/spec.md)
+- [`ALXAnchor` reference contract](../../contracts/README.md)
+- [Verification trust model](../trust-model.md)

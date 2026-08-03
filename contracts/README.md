@@ -22,7 +22,7 @@ npm test
 # Base Sepolia
 ALX_BASE_SEPOLIA_RPC_URL=https://sepolia.base.org ALX_DEPLOY_KEY=<hex-key> npm run deploy:sepolia
 
-# Base mainnet, after review and audit
+# Base mainnet, after independent review and audit
 ALX_BASE_RPC_URL=https://mainnet.base.org ALX_DEPLOY_KEY=<hex-key> npm run deploy:mainnet
 ```
 
@@ -57,5 +57,6 @@ Source: [`ALXAnchor.sol`](./src/ALXAnchor.sol). ABI: [`abis/ALXAnchor.json`](./a
 ## Related Documents
 
 - [`docs/integrators/on-chain-base.md`](../docs/integrators/on-chain-base.md)
+- [`docs/governance/security-audit.md`](../docs/governance/security-audit.md)
 - [`docs/decisions/008-storage-and-discovery-boundaries.md`](../docs/decisions/008-storage-and-discovery-boundaries.md)
 - [`protocol/chains/base-mainnet.json`](../protocol/chains/base-mainnet.json)
