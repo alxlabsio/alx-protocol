@@ -161,7 +161,7 @@ result.rejected[0].reason; // "invalid_format"
 ### `canonicalizeProtocolJson(value)`
 
 ```ts
-function canonicalizeProtocolJson(value: unknown, _depth-: number, _seen-: WeakSet<object>): string
+function canonicalizeProtocolJson(value: unknown, _depth?: number, _seen?: WeakSet<object>): string
 ```
 
 Deterministic JSON serialization. Same input always produces the same output string on any platform.
@@ -202,50 +202,76 @@ canonicalizeProtocolJson({ a: 1, b: undefined });  // '{"a":1}'
 
 ```ts
 interface Block {
-  blockHash: string;                // keccak256(canonicalize({ content, parentHashes }))
-  contentHash: string;              // keccak256(canonicalize(content))
-  parentHashes: string[];           // sorted, deduplicated parent Block hashes
-  content: unknown;                 // opaque JSON-serializable payload
-  attestation-: BlockAttestation;   // optional authorship proof (excluded from hash)
+  blockHash: string;
+  contentHash: string;
+  parentHashes: string[];
+  content: unknown;
+  protocolVersion?: string;
 }
 ```
 
-The `attestation` field is optional and orthogonal to block identity. A signed Block and an unsigned Block with the same content and parents have the same `blockHash`.
+`Block` contains only core identity and content fields. `protocolVersion` defaults to `"1"` when absent and remains outside hash derivation.
 
-### `BlockValidation` (Interface)
+### `SignedBlock` (Interface)
 
 ```ts
-interface BlockValidation {
-  ok: boolean;      // true if blockHash matches (and attestation if verified)
-  expected: string; // recomputed hash
-  actual: string;   // hash stored in the Block
-  attestation-: {   // present when attestation was checked
-    ok: boolean;
-    attester: string;
-    algorithm: string;
-    reason-: string;
-  };
+interface SignedBlock {
+  block: Block;
+  attestation?: BlockAttestation;    // deprecated singular compatibility field
+  attestations?: BlockAttestation[];
 }
 ```
 
-### `createBlock(content, parentHashes-)`
+`SignedBlock` is an optional signing-extension wrapper. Attestation material remains outside the core `Block` and does not change `blockHash`.
+
+### Validation Result Interfaces
+
+```ts
+interface HashValidationResult {
+  stored: string;
+  recomputed: string;
+  match: boolean;
+}
+
+interface AttestationValidation {
+  ok: boolean;
+  attester: string;
+  algorithm: string;
+  reason?: string;
+}
+
+interface BlockValidation {
+  ok: boolean;
+  expected: string;
+  actual: string;
+  expectedContentHash?: string;
+  actualContentHash?: string;
+  canonicalParents?: string[];
+  parentsCanonical?: boolean;
+  selfRef?: boolean;
+  blockHash: HashValidationResult;
+  contentHash: HashValidationResult;
+  attestation?: AttestationValidation;
+  attestations?: AttestationValidation[];
+}
+```
+
+`expected` and `actual` expose the recomputed and stored `blockHash` values for compatibility. The structured `blockHash` and `contentHash` results are always present.
+
+### `createBlock(content, parentHashes?)`
 
 ```ts
 function createBlock(content: unknown, parentHashes?: string[]): Block
 ```
 
-Create a Block. Normalizes parent hashes (lowercase, deduplicate, sort), computes `blockHash` and `contentHash`.
+Create a Block. The function normalizes parent hashes, computes `blockHash` and `contentHash`, and sets `protocolVersion` to `"1"`.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `content` | `unknown` | Any JSON-serializable value. `undefined` converts to `null`. |
-| `parentHashes` | `string[]` (optional) | Dependency hashes. Malformed collections or entries throw `ALX_INVALID_HASH`. |
+| `parentHashes` | `string[]` (optional) | Parent Block hashes. Malformed collections or entries throw `ALX_INVALID_HASH`. |
 
-**Returns:** Complete `Block` object with computed hashes.
-
-```js
-const block = createBlock({ type: "analysis", text: "findings" }, [parentHash]);
-```
+**Returns:** Complete core `Block` with computed identity fields.
 
 ### `validateBlock(block)`
 
@@ -253,73 +279,39 @@ const block = createBlock({ type: "analysis", text: "findings" }, [parentHash]);
 function validateBlock(block: Block): BlockValidation
 ```
 
-Verify that a Block's `blockHash` matches its content and parents. Parent existence is outside the scope of this check.
+Validate `blockHash`, `contentHash`, canonical parent ordering, self-reference, and `protocolVersion`. Parent availability and attestation verification are separate checks.
 
-**Returns:** `{ ok, expected, actual }` where `ok` is `true` if `expected === actual`. Does not check attestation - use `validateSignedBlock` for that.
-
-### `createSignedBlock(content, parentHashes, signer, timestamp-)`
+### `createSignedBlock(content, parentHashes, signer, timestamp?)`
 
 ```ts
 async function createSignedBlock(
   content: unknown,
   parentHashes: string[] | undefined,
   signer: Signer,
-  timestamp-: number,
-): Promise<Block>
+  timestamp?: number,
+): Promise<SignedBlock>
 ```
 
-Create a Block with authorship attestation. Computes the same `blockHash` as `createBlock` (deterministic, unchanged), then signs the Block with the provided `Signer` and attaches the attestation.
+Create a core Block, sign its existing `blockHash`, and return a `SignedBlock` wrapper. The optional timestamp uses Unix seconds and defaults to `Math.floor(Date.now() / 1000)` in this imperative signing shell.
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `content` | `unknown` | Any JSON-serializable value |
-| `parentHashes` | `string[]` or `undefined` | Dependency hashes |
-| `signer` | `Signer` | Algorithm-agnostic signer (see Signing section) |
-| `timestamp` | `number` (optional) | Unix seconds. Defaults to `Date.now() / 1000`. |
-
-**Returns:** `Block` with `attestation` field populated.
-
-```js
-import { createSignedBlock } from "@alx-protocol/sdk";
-import { Eip712Signer } from "@alx-protocol/sdk/eip712";
-
-const signer = new Eip712Signer(wallet, { chainId: 8453 });
-const block = await createSignedBlock(
-  { type: "ai.response", text: "Quarterly revenue forecast: 12% growth in cloud infrastructure" },
-  [],
-  signer,
-);
-console.log(block.attestation.attester); // wallet address
-```
-
-### `validateSignedBlock(block, verifier)`
+### `validateSignedBlock(signedBlock, verifier)`
 
 ```ts
-async function validateSignedBlock(block: Block, verifier: Verifier): Promise<BlockValidation>
+async function validateSignedBlock(
+  signedBlock: SignedBlock,
+  verifier: Verifier | Map<string, Verifier>,
+): Promise<BlockValidation>
 ```
 
-Verify both hash integrity AND attestation signature. Checks the hash first, then verifies the signature using the provided `Verifier`.
+Validate the wrapped core Block before checking every attestation. A verifier map supports signed Blocks containing multiple signing algorithms.
 
-**Returns:** `BlockValidation` with `attestation` field containing verification result.
-
-```js
-import { validateSignedBlock } from "@alx-protocol/sdk";
-import { Eip712Verifier } from "@alx-protocol/sdk/eip712";
-
-const verifier = new Eip712Verifier({ chainId: 8453 });
-const result = await validateSignedBlock(block, verifier);
-console.log(result.ok);               // true if both hash and signature valid
-console.log(result.attestation.ok);    // true if signature valid
-console.log(result.attestation.attester); // recovered signer
-```
-
-### `deriveBlockHash(content, parentHashes-)`
+### `deriveBlockHash(content, parentHashes?)`
 
 ```ts
-function deriveBlockHash(content: unknown, parentHashes-: string[]): string
+function deriveBlockHash(content: unknown, parentHashes?: string[]): string
 ```
 
-Compute a Block's identity hash: `keccak256(canonicalize({ content, parentHashes }))`.
+Compute a Block identity hash from canonicalized `content` and normalized `parentHashes`.
 
 ### `deriveContentHash(content)`
 
@@ -327,100 +319,97 @@ Compute a Block's identity hash: `keccak256(canonicalize({ content, parentHashes
 function deriveContentHash(content: unknown): string
 ```
 
-Compute a content hash: `keccak256(canonicalize(content))`. Two Blocks with the same content but different parents share the same `contentHash`.
+Compute the content-only hash. Blocks with the same content and different parents share the same `contentHash`.
 
 ---
 
 ## Layer 3: Graph Validation
 
-### `LineageResult` (Interface)
+### Graph Result Interfaces
 
 ```ts
 interface LineageResult {
   ok: boolean;
   blockHash: string;
   parents: string[];
-  duplicates: string[];  // duplicate parent entries
-  missing: string[];     // parents not in the known set
-  selfRef: boolean;      // Block references itself
-  cycle: boolean;        // cycle detected (single-step: self-ref only)
+  duplicates: string[];
+  missing: string[];
+  external: string[];
+  selfRef: boolean;
+  cycle: boolean;
 }
-```
 
-### `GraphResult` (Interface)
+interface GraphValidationContext {
+  validationMode?: "closed-world" | "open-world";
+  externalParents?: Array<{ hash: string }>;
+}
 
-```ts
 interface GraphResult {
   ok: boolean;
   blocks: number;
   edges: number;
-  roots: string[];          // Blocks with no parents
-  issues: LineageResult[];  // only Blocks with problems
+  roots: string[];
+  mode: "closed-world" | "open-world";
+  externalParents: string[];
+  issues: LineageResult[];
 }
-```
 
-### `VerifyResult` (Interface)
-
-```ts
 interface VerifyResult {
   ok: boolean;
   verified: number;
   broken: Array<{
     blockHash: string;
-    reason: string;       // "hash_mismatch" | "parent_not_found"
-    expected-: string;
-    parentHash-: string;
+    reason: string;
+    expected?: string;
+    parentHash?: string;
   }>;
 }
 ```
 
-### `validateLineage(blockHash, parentHashes, knownHashes-)`
+### `validateLineage(blockHash, parentHashes, knownHashes?, context?)`
 
 ```ts
 function validateLineage(
   blockHash: string,
   parentHashes: string[],
-  knownHashes-: Set<string> | string[],
+  knownHashes?: Set<string> | string[],
+  context?: GraphValidationContext,
 ): LineageResult
 ```
 
-Validate a single Block's lineage. Checks for duplicates, self-references, and missing parents (if the caller passes `knownHashes`).
+Validate one Block's declared parents, duplicate references, self-reference, and parent availability under the selected validation mode.
 
-### `validateGraph(graph)`
+### `validateGraph(graph, context?)`
 
 ```ts
 function validateGraph(
   graph: Map<string, string[]> | Array<[string, string[]]>,
+  context?: GraphValidationContext,
 ): GraphResult
 ```
 
-Validate an entire Graph for structural integrity. Detects cycles across the full graph using O(V+E) DFS.
+Validate a complete Graph and detect cycles using O(V+E) traversal. Closed-world validation is the default.
 
 ### `buildGraph(blocks)`
 
 ```ts
 function buildGraph(
-  blocks: Array<{ blockHash: string; parentHashes-: string[] }>,
+  blocks: Array<{ blockHash: string; parentHashes?: string[] }>,
 ): Map<string, string[]>
 ```
 
-Build a Graph map from an array of Block-like objects. Normalizes all hashes.
+`buildGraph()` builds a Graph map and normalizes the hashes declared by each Block-like object.
 
 ### `verifyGraph(blocks, computeHash)`
 
 ```ts
 function verifyGraph(
-  blocks: Array<{ blockHash: string; content: unknown; parentHashes-: string[] }>,
+  blocks: Array<{ blockHash: string; content: unknown; parentHashes?: string[] }>,
   computeHash: (content: unknown, parentHashes: string[]) => string,
 ): VerifyResult
 ```
 
-Verify authenticity: recompute each Block's hash and confirm all parents exist. Stronger than `validateGraph` — `validateGraph` confirms structure; `verifyGraph` proves each Block's hash matches its content and declared parents.
-
-```js
-import { deriveBlockHash, verifyGraph } from "@alx-protocol/sdk";
-const result = verifyGraph(blocks, deriveBlockHash);
-```
+Recompute every Block hash and confirm that each parent resolves inside the supplied collection.
 
 ---
 
@@ -541,91 +530,86 @@ Verify an inclusion proof locally using the Merkle extension rule.
 
 ## Signing (EIP-712)
 
-Signing is orthogonal to Block identity. A Block's `blockHash` is always derived from content and parents, never from a signature.
+Signing is an optional extension around core Blocks. Signature and attestation material never enters `blockHash` derivation.
 
-### `Signer` (Interface)
+### `Signer` And `Verifier` Interfaces
 
 ```ts
 interface Signer {
-  getId(): Promise<string>;              // signer's public identifier
-  sign(data: Uint8Array): Promise<string>; // sign data, return signature
-  readonly algorithm: string;            // e.g., "eip712", "ed25519"
+  getId(): Promise<string>;
+  sign(data: Uint8Array): Promise<string>;
+  readonly algorithm: string;
 }
-```
 
-Algorithm-agnostic signer. Implement the interface for any signing scheme — EIP-712, Ed25519, RSA, cloud KMS, hardware wallets.
-
-### `Verifier` (Interface)
-
-```ts
 interface Verifier {
-  verify(data: Uint8Array, signature: string, expectedSigner-: string): Promise<{ ok: boolean; signer: string }>;
+  verify(
+    data: Uint8Array,
+    signature: string,
+    expectedSigner?: string,
+  ): Promise<{ ok: boolean; signer: string }>;
   readonly algorithm: string;
 }
 ```
 
-Algorithm-agnostic verifier. Must match the `algorithm` of the `Signer` that produced the signature.
-
-### `Eip712Signer` (Class)
+### `Eip712Signer` And `Eip712Verifier` Classes
 
 ```ts
 class Eip712Signer implements Signer {
-  algorithm: "eip712";
-  constructor(wallet: EthersWallet, opts: { chainId: number; verifyingContract-: string });
+  readonly algorithm: "eip712";
+  constructor(
+    wallet: EthersWallet,
+    opts: { chainId: number; verifyingContract?: string; timestamp?: number },
+  );
 }
-```
 
-Built-in EIP-712 signer. Requires `ethers` (peer dependency, loaded lazily). Import from `@alx-protocol/sdk/eip712`.
-
-### `Eip712Verifier` (Class)
-
-```ts
 class Eip712Verifier implements Verifier {
-  algorithm: "eip712";
-  constructor(opts: { chainId: number; verifyingContract-: string });
+  readonly algorithm: "eip712";
+  constructor(opts: { chainId: number; verifyingContract?: string });
 }
 ```
 
-Built-in EIP-712 verifier. Requires `ethers`. Import from `@alx-protocol/sdk/eip712`.
+The classes are exported from `@alx-protocol/sdk/eip712`. EIP-712 signing requires an ethers-compatible wallet. Verification uses `@noble/secp256k1` when available and falls back to `ethers`.
 
 ### `BlockAttestation` (Interface)
 
 ```ts
 interface BlockAttestation {
   blockHash: string;
-  attester: string;   // signer's public identifier
-  algorithm: string;  // signing algorithm (e.g., "eip712", "ed25519")
-  timestamp: number;  // unix seconds
-  signature: string;  // signature over blockHash
+  attester: string;
+  algorithm: string;
+  timestamp: number;
+  signature: string;
 }
 ```
 
-### `signBlock(blockHash, opts)`
+### Deprecated EIP-712 Helpers
+
+`signBlock()` and `verifyBlockSignature()` remain exported for compatibility and are deprecated for removal in v2.0. New integrations use `createSignedBlock()` with `Eip712Signer` and `validateSignedBlock()` with `Eip712Verifier`.
 
 ```ts
 async function signBlock(blockHash: string, opts: {
-  signer: { getAddress(): Promise<string>; signTypedData(...): Promise<string> };
+  signer: {
+    getAddress(): Promise<string>;
+    signTypedData(domain: object, types: object, value: object): Promise<string>;
+  };
   chainId: number;
-  verifyingContract-: string;
-  timestamp-: number;
+  verifyingContract?: string;
+  timestamp?: number;
 }): Promise<BlockAttestation>
-```
 
-Sign a Block hash using EIP-712. Creates an attestation that a signer produced or verified the Block.
-
-### `verifyBlockSignature(attestation, opts)`
-
-```ts
 async function verifyBlockSignature(attestation: BlockAttestation, opts: {
   chainId: number;
-  verifyingContract-: string;
-  expectedAttester-: string;
-}): Promise<{ ok: boolean; code: string; recoveredAttester-: string; reason-: string }>
+  verifyingContract?: string;
+  expectedAttester?: string;
+}): Promise<{
+  ok: boolean;
+  code: string;
+  recoveredAttester?: string;
+  reason?: string;
+}>
 ```
 
-Verify a Block attestation signature. Recovers the signer and compares against the attestation's `attester`.
-
-### `NormalizedPayload` (Interface)
+### Signed Protocol Payload Interfaces
 
 ```ts
 interface NormalizedPayload {
@@ -637,56 +621,61 @@ interface NormalizedPayload {
   action: string;
   payloadHash: string;
 }
-```
 
-### `VerificationResult` (Interface)
-
-```ts
 interface VerificationResult {
   ok: boolean;
-  code: string;           // "ok" | "invalid_payload" | "invalid_signature" | "signer_mismatch" | "actor_mismatch" | "expired" | "replayed_nonce" | ...
-  reason-: string;
-  signer-: string;
-  nonceKey-: string;
+  code: string;
+  reason?: string;
+  signer?: string;
+  nonceKey?: string;
 }
 ```
 
-### `buildProtocolSigningDomain(opts-)`
+### `buildProtocolSigningDomain(opts?)`
 
 ```ts
-function buildProtocolSigningDomain(opts-: {
+function buildProtocolSigningDomain(opts?: {
   chainId: number;
-  verifyingContract-: string;
+  verifyingContract?: string;
 }): { name: string; version: string; chainId: number; verifyingContract: string }
 ```
 
-Build the EIP-712 domain separator for ALX Protocol. Domain name is `"ALXProtocol"`, version is `"1"`.
+Build the EIP-712 domain for ALX Protocol. The domain name is `"ALXProtocol"`, the version is `"1"`, and an omitted options object uses chain ID `0`.
 
-### `verifySignedProtocolPayload(opts, verifyTypedDataFn-)`
+### `verifySignedProtocolPayload(opts, verifyTypedDataFn?)`
 
 ```ts
+type VerifyTypedDataFn = (
+  domain: object,
+  types: object,
+  value: object,
+  signature: string,
+) => string;
+
 async function verifySignedProtocolPayload(opts: {
   payload: Record<string, unknown>;
   signature: string;
-  expectedSigner-: string | null;
-  expectedChainId-: number | null;
-  expectedDomain-: string | null;
-  seenNonceKeys-: Set<string>;
-  now-: number;
-  allowedClockSkewMs-: number;
-  verifyingContract-: string;
-}, verifyTypedDataFn-): Promise<VerificationResult>
+  expectedSigner?: string | null;
+  expectedChainId?: number | null;
+  expectedDomain?: string | null;
+  seenNonceKeys?: Set<string>;
+  nowSeconds?: number;
+  allowedClockSkewSeconds?: number;
+  verifyingContract?: string;
+}, verifyTypedDataFn?: VerifyTypedDataFn): Promise<VerificationResult>
 ```
 
-Full verification pipeline: normalize payload, check replay window, recover signer, compare against expected.
+Normalize the payload, validate its replay window in Unix seconds, recover the signer, and compare the recovered identity with the expected signer and payload actor.
 
 ### `normalizeSignedProtocolPayload(payload)`
 
 ```ts
-function normalizeSignedProtocolPayload(payload: Record<string, unknown>): NormalizedPayload
+function normalizeSignedProtocolPayload(
+  payload?: Record<string, unknown>,
+): NormalizedPayload
 ```
 
-Normalize and validate a protocol request payload. Throws on invalid actor, missing nonce, or invalid expiry.
+Normalize and validate a signed protocol payload. Invalid addresses, hashes, expiry values, chain IDs, domains, actions, or nonces raise protocol errors.
 
 ### Signing Constants
 
@@ -706,8 +695,8 @@ const PROTOCOL_SIGNED_REQUEST_TYPES: { ProtocolRequest: [...] }
 ```ts
 interface ReplayResult {
   ok: boolean;
-  code: string;      // "ok" | "missing_actor" | "missing_nonce" | "missing_expiry" | "chain_mismatch" | "domain_mismatch" | "expired" | "replayed_nonce"
-  nonceKey-: string;
+  code: string;
+  nonceKey?: string;
 }
 ```
 
@@ -717,29 +706,35 @@ interface ReplayResult {
 function buildReplayScopeKey(opts: {
   actor: string;
   nonce: string;
-  chainId-: number | null;
-  domain-: string | null;
+  chainId?: number | null;
+  domain?: string | null;
 }): string
 ```
 
-Build a scoped nonce key: `"actor:nonce:chainId:domain"`. Wildcards (`*`) used for null values.
+Build a scoped nonce key with null-byte separators: `"actor\0nonce\0chainId\0domain"`. Null `chainId` or `domain` values use `"*"`.
 
-### `validateReplayWindow(payload, opts-)`
+### `validateReplayWindow(payload, opts?)`
 
 ```ts
 function validateReplayWindow(
-  payload: { actor-; nonce-; expiry-; chainId-; domain- },
-  opts-: {
-    now-: number;
-    seenNonceKeys-: Set<string>;
-    expectedChainId-: number | null;
-    expectedDomain-: string | null;
-    allowedClockSkewMs-: number;
+  payload: {
+    actor?: string;
+    nonce?: string;
+    expiry?: number;
+    chainId?: number | null;
+    domain?: string | null;
+  },
+  opts?: {
+    nowSeconds?: number;
+    seenNonceKeys?: Set<string>;
+    expectedChainId?: number | null;
+    expectedDomain?: string | null;
+    allowedClockSkewSeconds?: number;
   },
 ): ReplayResult
 ```
 
-Check that a signed request has a valid expiry window and an unused nonce. Pass a `Set<string>` as `seenNonceKeys` and add successful `nonceKey` values to the set to track seen nonces.
+`validateReplayWindow()` validates required replay fields, optional chain and domain expectations, expiry in Unix seconds, and nonce reuse. A successful result returns the scoped `nonceKey`. Applications persist successful keys in an application-owned set.
 
 ---
 
@@ -809,7 +804,7 @@ interface LockedBind {
 
 ---
 
-### `alxMiddleware(client, opts-)`
+### `alxMiddleware(client, opts?)`
 
 ```ts
 function alxMiddleware<T extends MessagesClient>(
@@ -897,7 +892,7 @@ const client = alxMiddleware(fakeClient, {
 
 ---
 
-### `lockBind(prompt, response, opts-)`
+### `lockBind(prompt, response, opts?)`
 
 ```ts
 function lockBind(
@@ -946,7 +941,7 @@ const pair = lockBind(
 
 ---
 
-### `lock(content, opts-)` (Block utility)
+### `lock(content, opts?)` (Block utility)
 
 Exported from `@alx-protocol/sdk` (not `middleware`). Ergonomic alias for `createBlock` that accepts parent `Block` objects directly.
 

@@ -206,7 +206,7 @@ The `ok` field is true when every entry is accepted and the normalized set conta
 
 ## Layer 3: Validate
 
-### `validateLineage(blockHash, parentHashes, knownHashes-): LineageResult`
+### `validateLineage(blockHash, parentHashes, knownHashes?): LineageResult`
 
 Validate a single block's lineage within an optional known set.
 
@@ -426,42 +426,43 @@ Verify a Merkle inclusion proof.
 
 ## Replay Prevention (Extension)
 
-The operations below support replay protection for ephemeral signed requests. Replay operations are **optional extensions** — outside core conformance requirements.
+The operations below support replay protection for ephemeral signed requests. Replay storage and policy remain application concerns outside core conformance.
 
 ### `buildReplayScopeKey(opts): string`
 
-Build a unique key for replay detection.
+Build a unique replay key.
 
-**Input:** `{ actor: string, nonce: string, chainId-: number, domain-: string }`
+**Input:** `{ actor: string, nonce: string, chainId?: number | null, domain?: string | null }`
 
-**Output:** Colon-separated scope key: `"actor:nonce:chainId:domain"`
+**Output:** Null-byte-delimited scope key: `"actor\0nonce\0chainId\0domain"`. Null chain or domain values use `"*"`.
 
 ---
 
-### `validateReplayWindow(payload, opts): ReplayResult`
+### `validateReplayWindow(payload, opts?): ReplayResult`
 
-Check whether a signed request expired or a replay occurred.
+Check required replay fields, optional chain and domain expectations, expiry, and nonce reuse.
 
 **Input:**
 | Parameter | Type | Description |
 |---|---|---|
-| `payload` | object | Contains `actor`, `nonce`, `expiry`, `chainId`, `domain` |
-| `opts.now` | number | Current timestamp (default: `Date.now()`) |
-| `opts.seenNonceKeys` | Set | Previously seen nonce keys |
-| `opts.expectedChainId` | number- | Required chain ID |
-| `opts.expectedDomain` | string- | Required domain |
+| `payload` | object | Optional `actor`, `nonce`, `expiry`, `chainId`, and `domain` fields |
+| `opts.nowSeconds` | number (optional) | Current Unix timestamp in seconds; defaults to `Math.floor(Date.now() / 1000)` |
+| `opts.seenNonceKeys` | `Set<string>` (optional) | Previously seen nonce keys |
+| `opts.expectedChainId` | `number \| null` (optional) | Expected chain ID |
+| `opts.expectedDomain` | `string \| null` (optional) | Expected domain |
+| `opts.allowedClockSkewSeconds` | number (optional) | Allowed expiry skew in seconds |
 
-**Output:** `{ ok: boolean, code: string, nonceKey-: string }`
+**Output:** `{ ok: boolean, code: string, nonceKey?: string }`
 
 **Codes:** `ok`, `missing_actor`, `missing_nonce`, `missing_expiry`, `chain_mismatch`, `domain_mismatch`, `expired`, `replayed_nonce`
 
 ---
 
-### `buildProtocolSigningDomain(opts): EIP712Domain`
+### `buildProtocolSigningDomain(opts?): EIP712Domain`
 
 Build the EIP-712 signing domain for ALX Protocol.
 
-**Input:** `{ chainId: number, verifyingContract-: string }`
+**Input:** `{ chainId: number, verifyingContract?: string }`. The entire options object is optional and defaults to chain ID `0`.
 
 **Output:** `{ name: "ALXProtocol", version: "1", chainId, verifyingContract }`
 
@@ -471,7 +472,7 @@ Build the EIP-712 signing domain for ALX Protocol.
 
 Normalize and validate a protocol request payload before signature verification.
 
-**Input:** Raw payload object with `actor`, `nonce`, `expiry`, `chainId`, `domain`, `action`, `payloadHash`.
+**Input:** Raw payload object with `actor`, `nonce`, `expiry`, `chainId`, `domain`, `action`, and `payloadHash`.
 
 **Output:** Normalized payload with validated types and formats.
 
@@ -479,27 +480,33 @@ Normalize and validate a protocol request payload before signature verification.
 
 ---
 
-### `verifySignedProtocolPayload(opts, verifyFn-): VerificationResult`
+### `verifySignedProtocolPayload(opts, verifyFn?): VerificationResult`
 
-Verify a signed protocol request including replay, expiry, and signature checks.
+Verify a signed protocol request, including replay, expiry, actor, and signature checks.
 
 **Input:**
 | Parameter | Type | Description |
 |---|---|---|
-| `opts.payload` | object | The signed payload |
+| `opts.payload` | object | Signed payload |
 | `opts.signature` | string | EIP-712 signature |
-| `opts.expectedSigner` | string- | Expected signer address |
-| `opts.seenNonceKeys` | Set- | For replay detection |
+| `opts.expectedSigner` | `string \| null` (optional) | Expected signer address |
+| `opts.expectedChainId` | `number \| null` (optional) | Expected chain ID |
+| `opts.expectedDomain` | `string \| null` (optional) | Expected domain |
+| `opts.seenNonceKeys` | `Set<string>` (optional) | Application-owned replay set |
+| `opts.nowSeconds` | number (optional) | Current Unix timestamp in seconds |
+| `opts.allowedClockSkewSeconds` | number (optional) | Allowed expiry skew in seconds |
+| `opts.verifyingContract` | string (optional) | EIP-712 verifying contract |
+| `verifyFn` | function (optional) | Injected typed-data recovery function |
 
-**Output:** `{ ok: boolean, code: string, signer-: string, nonceKey-: string }`
+**Output:** `{ ok: boolean, code: string, reason?: string, signer?: string, nonceKey?: string }`
 
-**Codes:** `ok`, `invalid_payload`, `invalid_signature`, `signer_mismatch`, `actor_mismatch`, + all replay codes
+**Codes:** `ok`, `invalid_payload`, `invalid_signature`, `signer_mismatch`, `actor_mismatch`, plus all replay codes.
 
 ---
 
 ## Operation Classification
 
-| Operation | Category | Required for conformance- |
+| Operation | Category | Required for conformance? |
 |---|---|---|
 | `canonicalize` | Core | Yes |
 | `deriveBlockHash` | Core | Yes |

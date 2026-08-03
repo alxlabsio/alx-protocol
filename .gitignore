@@ -99,6 +99,7 @@ internal/
 /scripts/docs/*
 !/scripts/docs/export-whitepaper-diagrams.js
 !/scripts/docs/generate-alx-logo.js
+!/scripts/docs/verify-api-signatures.js
 !/scripts/docs/__tests__/
 !/scripts/docs/__tests__/generate-alx-logo.test.js
 
