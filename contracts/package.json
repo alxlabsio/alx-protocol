@@ -11,7 +11,8 @@
     "deploy:mainnet": "hardhat run scripts/deploy.js --network base-mainnet"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "5.0.0",
-    "hardhat": "2.22.4"
+    "@nomicfoundation/hardhat-toolbox": "6.1.0",
+    "hardhat": "2.29.0",
+    "hardhat-gas-reporter": "2.3.0"
   }
 }

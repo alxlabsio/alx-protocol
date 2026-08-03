@@ -13,7 +13,7 @@
     "@alx-protocol/sdk": "workspace:*"
   },
   "optionalDependencies": {
-    "ethers": "^6.13.4"
+    "ethers": "^6.17.0"
   },
   "files": [
     "bin",
