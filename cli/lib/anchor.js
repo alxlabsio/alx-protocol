@@ -1,37 +1,39 @@
 /**
  * ALXAnchor transaction helpers.
  *
- * Submits anchor() and anchorBlockSet() transactions to ALXAnchor on Base.
- * Contract address: protocol/chains/base-mainnet.json → contracts.alxAnchor.address
+ * Submits anchor() and anchorBatch() transactions to ALXAnchor on Base.
+ * Contract address: protocol/chains/base-mainnet.json → contracts.anchor.deployment.address
  * ABI: contracts/abis/ALXAnchor.json
  *
  * Environment variables (process.env fallback when opts omit the value):
- *   ALX_BASE_RPC_URL   — Base RPC endpoint
+ *   ALX_BASE_SEPOLIA_RPC_URL — Base Sepolia RPC endpoint
  *   ALX_DEPLOY_KEY     — Hex private key for signing transactions
  *   ALX_ANCHOR_ADDRESS — Override contract address
  */
 
 import { ethers } from "ethers";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { loadAnchorAbi, loadBaseMainnetConfig } from "./base-contracts.js";
+import {
+  loadAnchorAbi,
+  loadBaseMainnetConfig,
+  resolveContractAddress,
+  resolveContractNetwork,
+  resolveNetwork,
+  resolveRpcUrl,
+} from "./base-contracts.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, "../..");
 
-/** Aligns with protocol parent limit (LIMIT-001). */
-export const MAX_BLOCKSET_SIZE = 256;
+/** Application batch ceiling matching the v1 parent-count maximum. */
+export const MAX_BATCH_SIZE = 256;
 
-const BLOCK_SET_ANCHORED_TOPIC = ethers.id(
-  "BlockSetAnchored(bytes32,address,uint256,uint256)",
+const BATCH_ANCHORED_TOPIC = ethers.id(
+  "BatchAnchored(bytes32,address,uint256,uint256)",
 );
 
 function resolveAddress(opts) {
   const override = opts.address || process.env.ALX_ANCHOR_ADDRESS;
   if (override) return override;
   const config = loadBaseMainnetConfig();
-  const address = config.contracts?.alxAnchor?.address;
+  const address = resolveContractAddress(config, "anchor");
   if (!address) {
     throw new Error(
       "ALXAnchor address not set in protocol/chains/base-mainnet.json. " +
@@ -41,14 +43,23 @@ function resolveAddress(opts) {
   return address;
 }
 
+function resolveAnchorNetwork(config) {
+  const networkId = resolveContractNetwork(config, "anchor");
+  const network = resolveNetwork(config, networkId);
+  if (!network || !Number.isInteger(network.chainId) || network.chainId <= 0) {
+    throw new Error("Invalid anchor deployment network in base-mainnet.json");
+  }
+  return { networkId, network };
+}
+
 function buildProvider(opts) {
   const config = loadBaseMainnetConfig();
-  const url = opts.rpcUrl || process.env.ALX_BASE_RPC_URL || config.rpc?.defaultUrl || "https://mainnet.base.org";
-  const chainId = config.chainId;
-  if (!Number.isInteger(chainId) || chainId <= 0) {
-    throw new Error("Invalid chainId in base-mainnet.json");
+  const { networkId, network } = resolveAnchorNetwork(config);
+  const url = opts.rpcUrl || resolveRpcUrl(config, networkId);
+  if (!url) {
+    throw new Error(`RPC URL required for ${networkId}. Set ${network.rpcUrlEnv} or pass --rpc-url.`);
   }
-  return new ethers.JsonRpcProvider(url, chainId);
+  return new ethers.JsonRpcProvider(url, network.chainId);
 }
 
 async function assertProviderChain(provider, expectedChainId) {
@@ -72,17 +83,17 @@ function buildContract(signerOrProvider, opts) {
 }
 
 /**
- * Parse newlyAnchored count from BlockSetAnchored log (falls back to 0).
+ * Parse newlyAnchored count from BatchAnchored log (falls back to 0).
  * @param {import("ethers").ContractTransactionReceipt} receipt
  * @returns {number}
  */
-export function parseBlockSetAnchoredCount(receipt) {
+function parseBatchAnchoredCount(receipt) {
   const iface = new ethers.Interface(loadAnchorAbi());
   for (const log of receipt.logs) {
-    if (log.topics[0] !== BLOCK_SET_ANCHORED_TOPIC) continue;
+    if (log.topics[0] !== BATCH_ANCHORED_TOPIC) continue;
     try {
       const parsed = iface.parseLog({ topics: log.topics, data: log.data });
-      if (parsed?.name === "BlockSetAnchored") {
+      if (parsed?.name === "BatchAnchored") {
         return Number(parsed.args.count);
       }
     } catch {
@@ -101,7 +112,8 @@ export function parseBlockSetAnchoredCount(receipt) {
 export async function anchorBlock(blockHash, opts = {}) {
   const config = loadBaseMainnetConfig();
   const provider = buildProvider(opts);
-  await assertProviderChain(provider, config.chainId);
+  const { network } = resolveAnchorNetwork(config);
+  await assertProviderChain(provider, network.chainId);
   const signer = buildSigner(provider, opts);
   const contract = buildContract(signer, opts);
 
@@ -117,47 +129,48 @@ export async function anchorBlock(blockHash, opts = {}) {
 }
 
 /**
- * Anchor a blockset (minimum 2 hashes) on Base.
+ * Anchor a batch (minimum 2 hashes) on Base.
  * The contract skips already-anchored hashes; count is newly anchored only.
- * @param {string} setId - 0x-prefixed 64-char hex setId
+ * @param {string} batchId - 0x-prefixed 64-char hex batchId
  * @param {string[]} blockHashes - Array of 0x-prefixed blockHashes (minimum 2, max 256)
  * @param {{ rpcUrl?, privateKey?, address? }} opts
- * @returns {Promise<{ txHash, setId, count, anchoredAt }>}
+ * @returns {Promise<{ txHash, batchId, count, anchoredAt }>}
  */
-export async function anchorBlockSet(setId, blockHashes, opts = {}) {
+export async function anchorBatch(batchId, blockHashes, opts = {}) {
   if (blockHashes.length < 2) {
-    throw new Error(`blockset requires at least 2 hashes; received ${blockHashes.length}`);
+    throw new Error(`batch requires at least 2 hashes; received ${blockHashes.length}`);
   }
-  if (blockHashes.length > MAX_BLOCKSET_SIZE) {
-    throw new Error(`blockset exceeds maximum of ${MAX_BLOCKSET_SIZE} hashes`);
+  if (blockHashes.length > MAX_BATCH_SIZE) {
+    throw new Error(`batch exceeds maximum of ${MAX_BATCH_SIZE} hashes`);
   }
 
   const config = loadBaseMainnetConfig();
   const provider = buildProvider(opts);
-  await assertProviderChain(provider, config.chainId);
+  const { network } = resolveAnchorNetwork(config);
+  await assertProviderChain(provider, network.chainId);
   const signer = buildSigner(provider, opts);
   const contract = buildContract(signer, opts);
 
-  const tx = await contract.anchorBlockSet(setId, blockHashes);
+  const tx = await contract.anchorBatch(batchId, blockHashes);
   const receipt = await tx.wait();
   const block = await provider.getBlock(receipt.blockNumber);
-  const count = parseBlockSetAnchoredCount(receipt);
+  const count = parseBatchAnchoredCount(receipt);
 
   return {
     txHash: receipt.hash,
-    setId,
+    batchId,
     count,
     anchoredAt: block.timestamp,
   };
 }
 
 /**
- * Derive a deterministic setId from a list of blockHashes.
+ * Derive a deterministic batchId from a list of blockHashes.
  * Produces keccak256(concat(sorted blockHashes)) — consistent with Solidity abi.encodePacked.
  * @param {string[]} blockHashes
- * @returns {string} 0x-prefixed 64-char hex setId
+ * @returns {string} 0x-prefixed 64-char hex batchId
  */
-export function deriveSetId(blockHashes) {
+export function deriveBatchId(blockHashes) {
   const sorted = [...blockHashes].map(h => h.toLowerCase()).sort();
   return ethers.keccak256(ethers.concat(sorted.map(h => ethers.getBytes(h))));
 }
@@ -171,7 +184,8 @@ export function deriveSetId(blockHashes) {
 export async function queryAnchor(blockHash, opts = {}) {
   const config = loadBaseMainnetConfig();
   const provider = buildProvider(opts);
-  await assertProviderChain(provider, config.chainId);
+  const { network } = resolveAnchorNetwork(config);
+  await assertProviderChain(provider, network.chainId);
   const contract = buildContract(provider, opts);
 
   const [ts, by] = await Promise.all([

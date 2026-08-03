@@ -1,8 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/defs.schema.json",
   "title": "ALX Shared Schema Definitions",
-  "$comment": "Shared structural definitions only. These definitions do not verify cryptographic derivation, graph semantics, signature validity, or trace truth.",
+  "$comment": "Public schema URL: [Placeholder]. Shared structural definitions only. These definitions do not verify cryptographic derivation, graph semantics, signature validity, or trace truth.",
   "$defs": {
     "hash": {
       "type": "string",

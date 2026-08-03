@@ -1,9 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/content-envelope.schema.json",
-  "title": "ALX Content Envelope",
+  "title": "ALX Optional Content Profile Envelope",
   "description": "Machine-readable structure for typed content stored inside Block.content. Using this envelope is optional — opaque content remains valid without it.",
-  "$comment": "This schema defines optional content semantics only. It does not change core Block validity, Block identity, or hash derivation.",
+  "$comment": "Public schema URL: [Placeholder]. This v1 schema defines optional application content semantics only. It is not required for core conformance and does not change Block validity, Block identity, or hash derivation.",
   "type": "object",
   "properties": {
     "definitionLevel": {

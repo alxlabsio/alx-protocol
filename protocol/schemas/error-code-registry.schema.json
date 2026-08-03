@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ALX Error Code Registry",
+  "description": "Schema for core and extension error code registries.",
+  "$comment": "Public schema URL: [Placeholder].",
+  "type": "object",
+  "required": ["$schema", "$id", "id", "documentVersion", "codes"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "const": "[Placeholder]"
+    },
+    "$id": {
+      "const": "[Placeholder]"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "protocolVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "extensionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "extensionVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "documentVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "codes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "code", "category", "severity"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^(?:ERR|[A-Z]+ERR)-[0-9]{3}$"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^ALX_[A-Z0-9_]+$"
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "severity": {
+            "enum": ["fatal", "error", "warning"]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "extensionRegistries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["extensionId", "path"],
+        "additionalProperties": false,
+        "properties": {
+          "extensionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "required": ["protocolVersion", "extensionRegistries"],
+      "not": {
+        "anyOf": [
+          { "required": ["extensionId"] },
+          { "required": ["extensionVersion"] }
+        ]
+      }
+    },
+    {
+      "required": ["extensionId", "extensionVersion"],
+      "not": {
+        "anyOf": [
+          { "required": ["protocolVersion"] },
+          { "required": ["extensionRegistries"] }
+        ]
+      }
+    }
+  ]
+}

@@ -33,10 +33,18 @@ export {
   normalizeHash,
   normalizeHashLenient,
   normalizeHashes,
+  sanitizeImportedParentHashes,
   compareHashesConstantTime,
   hexToBytes,
   bytesToHex,
   concatBytes,
+} from "./hash-utils.js";
+export type {
+  RejectedParentHashReason,
+  RejectedParentHash,
+  DuplicateParentHash,
+  ParentHashCollectionError,
+  SanitizedParentHashes,
 } from "./hash-utils.js";
 
 // ── Layer 2: Hash ───────────────────────────────────────────────────────────
@@ -52,7 +60,13 @@ export {
   validateSignedBlock,
 } from "./block.js";
 
-export type { Block, SignedBlock, BlockValidation, AttestationValidation } from "./block.js";
+export type {
+  Block,
+  SignedBlock,
+  HashValidationResult,
+  BlockValidation,
+  AttestationValidation,
+} from "./block.js";
 
 // ── Layer 3: Validate ───────────────────────────────────────────────────────
 
@@ -84,8 +98,8 @@ export type {
 } from "./verification-context.js";
 
 // ── Merkle (checkpoint proofs) ───────────────────────────────────────────────
-// Off-chain Merkle tree for generating inclusion proofs verified on-chain
-// by CheckpointRegistry.verifyInclusion.
+// Off-chain Merkle tree support is available from the explicit
+// @alx-protocol/sdk/merkle entry point.
 
 
 // ── Signing (orthogonal) ────────────────────────────────────────────────────

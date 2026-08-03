@@ -1,9 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/verification-context.schema.json",
   "title": "ALX Verification Context",
   "description": "Validation context passed to graph verification operations. Declares the validation mode, graph root, and any external parent boundaries.",
-  "$comment": "This schema validates context shape only. It does not itself authorize open-world validation, prove Graph validity, or define mixed-version compatibility semantics.",
+  "$comment": "Public schema URL: [Placeholder]. This schema validates context shape only. It does not itself authorize open-world validation, prove Graph validity, or define mixed-version compatibility semantics.",
   "type": "object",
   "properties": {
     "protocolVersion": {

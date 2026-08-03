@@ -1,0 +1,19 @@
+{
+  "id": "content-profile",
+  "extensionVersion": "1.0.0",
+  "lifecycle": "provisional",
+  "requiredForCore": false,
+  "compatibleProtocolVersions": ["1"],
+  "deprecated": false,
+  "supersedes": null,
+  "vectors": [],
+  "runner": {
+    "type": "schema-only"
+  },
+  "schemas": [
+    {
+      "id": "content-envelope",
+      "path": "protocol/schemas/content-envelope.schema.json"
+    }
+  ]
+}

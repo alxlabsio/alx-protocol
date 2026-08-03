@@ -1,4 +1,4 @@
-# Conformance Runner
+# Protocol conformance runner
 
 This directory contains the ALX conformance runner.
 
@@ -24,13 +24,15 @@ Test an external implementation:
 node conformance/bin/run.js --impl "node sdk/conformance-adapter.js"
 ```
 
-## Conformance Model
+## Protocol conformance model
 
-Conformance is suite-specific.
+Protocol conformance is suite-specific.
 
 Canonicalization vectors require exact byte output. Other suites assert protocol semantics, including hash identity, validation behavior, lineage behavior, trace correctness, and extension behavior.
 
 A conformant implementation satisfies the expected outputs or semantic assertions defined by each suite.
+
+The JSON adapter cannot transport language-native values such as negative zero, `undefined`, `NaN`, cyclic references, `BigInt`, or `Symbol`. The external runner reports these cases as skipped. A full conformance claim requires the applicable native implementation suite in addition to the portable adapter run.
 
 ## Core Suite Inventory
 
@@ -40,6 +42,7 @@ A conformant implementation satisfies the expected outputs or semantic assertion
 | `canonicalization-negative` | semantic |
 | `canonicalization-depth` | semantic |
 | `block-identity` | semantic |
+| `parent-normalization` | semantic |
 | `parent-limits` | semantic |
 | `attribution-trace` | semantic |
 | `lineage-negative` | semantic |
@@ -78,6 +81,8 @@ On failure, the implementation should return:
 | `deriveContentHash` | `{ "content": ... }` | hash string |
 | `createBlock` | `{ "content": ..., "parentHashes": [...] }` | Block |
 | `validateBlock` | Block | validation result |
+| `normalizeHashes` | array of candidate hashes | normalized hash array |
+| `validateLineage` | Block hash, parents, optional known hashes and context | lineage validation result |
 | `traceAttribution` | `{ "rootHash": "0x...", "graph": {...} }` | Attribution Trace |
 | `validateGraph` | graph input | graph validation result |
 | `verifyTrace` | trace + graph + context | trace verification result |

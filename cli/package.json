@@ -27,7 +27,7 @@
     "access": "public"
   },
   "engines": {
-    "node": ">=20 <23"
+    "node": ">=20.12 <23"
   },
   "license": "MIT",
   "repository": {

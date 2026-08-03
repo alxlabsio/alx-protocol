@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sdk from "../lib/sdk.js";
@@ -98,6 +98,45 @@ describe("cli-args", () => {
     ]);
     assert.equal(parsed.outPath, outPath);
     assert.deepEqual(parsed.parents, []);
+  });
+
+  it("wraps Markdown using basename, media type, and exact text", () => {
+    const markdownPath = join(workDir, "review.md");
+    writeFileSync(markdownPath, Buffer.from([0xef, 0xbb, 0xbf, ...Buffer.from("# Review\r\n\r\nExact.\n")]));
+    const parsed = parseBlockCreateArgs([markdownPath]);
+    assert.deepEqual(parsed.content, {
+      type: "document",
+      name: "review.md",
+      mediaType: "text/markdown",
+      text: "# Review\r\n\r\nExact.\n",
+    });
+  });
+
+  it("combines repeatable --parent and comma-separated --parents", () => {
+    const parsed = parseBlockCreateArgs([
+      contentPath,
+      "--parent",
+      "0x" + "11".repeat(32),
+      "--parents",
+      "0x" + "22".repeat(32) + ",0x" + "33".repeat(32),
+      "--validate-parents",
+    ]);
+    assert.equal(parsed.parents.length, 3);
+    assert.equal(parsed.validateParents, true);
+  });
+
+  it("rejects invalid UTF-8, NUL text, and directories", () => {
+    const invalidPath = join(workDir, "invalid.txt");
+    writeFileSync(invalidPath, Buffer.from([0xc3, 0x28]));
+    assert.throws(() => parseBlockCreateArgs([invalidPath]), /valid UTF-8/);
+
+    const nulPath = join(workDir, "nul.txt");
+    writeFileSync(nulPath, Buffer.from("a\0b"));
+    assert.throws(() => parseBlockCreateArgs([nulPath]), /NUL/);
+
+    const directoryPath = join(workDir, "directory.md");
+    mkdirSync(directoryPath);
+    assert.throws(() => parseBlockCreateArgs([directoryPath]), /directory/);
   });
 
   it("parseBlockLinkArgs prefers --parent over positional parent", () => {

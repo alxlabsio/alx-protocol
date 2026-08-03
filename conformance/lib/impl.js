@@ -6,6 +6,7 @@
  */
 
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 
 export const green = (s) => `\x1b[32m${s}\x1b[0m`;
 export const red = (s) => `\x1b[31m${s}\x1b[0m`;
@@ -17,13 +18,14 @@ export const dim = (s) => `\x1b[2m${s}\x1b[0m`;
  * Avoids module-level mutable state and CQS-violating side-effectful globals.
  */
 export function createRunner() {
-  let passed = 0, failed = 0, total = 0;
+  let passed = 0, failed = 0, skipped = 0, total = 0;
   const suiteResults = [];
   return {
     pass(id, desc) { passed++; total++; console.log(`  ${green("✓")} ${id}: ${desc}`); },
     fail(id, desc, detail) { failed++; total++; console.log(`  ${red("✗")} ${id}: ${desc}`); if (detail) console.log(`    ${detail}`); },
+    skip(id, desc) { skipped++; total++; console.log(`  ${dim("-")} ${id}: ${desc}`); },
     pushSuite(result) { suiteResults.push(result); },
-    getState() { return { passed, failed, total, suiteResults }; },
+    getState() { return { passed, failed, skipped, total, suiteResults }; },
   };
 }
 
@@ -64,7 +66,16 @@ export function parseCommand(cmd) {
  */
 export function createExternalImpl(cmd) {
   const parts = parseCommand(cmd);
-  const child = spawn(parts[0], parts.slice(1), { stdio: ["pipe", "pipe", "pipe"] });
+  let executable = parts[0];
+  if (
+    process.platform === "win32"
+    && /[\\/]/.test(executable)
+    && !existsSync(executable)
+    && existsSync(`${executable}.exe`)
+  ) {
+    executable = `${executable}.exe`;
+  }
+  const child = spawn(executable, parts.slice(1), { stdio: ["pipe", "pipe", "pipe"] });
 
   const pending = [];
   let lineBuf = "";

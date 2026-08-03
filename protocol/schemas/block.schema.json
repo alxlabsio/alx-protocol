@@ -1,9 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/block.schema.json",
   "title": "ALX Block",
   "description": "The ALX Protocol primitive — binds artifact content and parent lineage into a single deterministic blockHash.",
-  "$comment": "This schema validates structural shape only. It does not verify contentHash, blockHash derivation, parent hash ordering, graph completeness, graph acyclicity, signature validity, or trace relational correctness.",
+  "$comment": "Public schema URL: [Placeholder]. This schema validates structural shape only. It does not verify contentHash, blockHash derivation, parent hash ordering, graph completeness, graph acyclicity, signature validity, or trace relational correctness.",
   "type": "object",
   "properties": {
     "blockHash": {
@@ -20,6 +19,11 @@
     },
     "content": {
       "description": "Opaque JSON-serializable artifact payload. The protocol does not inspect or interpret content."
+    },
+    "protocolVersion": {
+      "type": "string",
+      "const": "1",
+      "description": "Protocol algorithm version. Optional in v1, treated as version 1 when absent, and excluded from Block hash derivation."
     }
   },
   "required": [

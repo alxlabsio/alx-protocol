@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * ALX Protocol Conformance Runner
+ * ALX Protocol conformance Runner
  *
  * Tests any implementation against the core canonical test vectors.
  *
@@ -41,6 +41,20 @@ function suiteHeading(suiteId, title) {
   console.log(`\n  ${bold(title)} ${dim(`[${suite.comparison}]`)}`);
 }
 
+function getProtocolErrorCode(error) {
+  if (typeof error?.code === "string") return error.code;
+  return String(error?.message ?? error).match(/\[([A-Z][A-Z0-9_]+)\]/)?.[1];
+}
+
+function assertExpectedError(runner, vector, error) {
+  const actual = getProtocolErrorCode(error);
+  if (actual === vector.expected.errorCode) {
+    runner.pass(vector.id, vector.description);
+  } else {
+    runner.fail(vector.id, vector.description, `errorCode: ${actual ?? "missing"} vs ${vector.expected.errorCode}`);
+  }
+}
+
 // --- Implementation interface ---
 
 /**
@@ -59,9 +73,9 @@ async function createImpl(mode, implCmd) {
 async function createSelfTestImpl() {
   function lib(name) { return pathToFileURL(resolve(LIB_DIR, name)).href; }
   const { canonicalizeProtocolJson } = await import(lib("canonicalization.js"));
-  const { deriveBlockHash, deriveContentHash, createBlock, validateBlock } = await import(lib("block.js"));
+  const { deriveBlockHash, deriveContentHash, createBlock, validateBlock, normalizeHashes } = await import(lib("block.js"));
   const { traceAttribution, verifyTrace } = await import(lib("block-trace.js"));
-  const { validateGraph, validateIncrementalBlock, verifyGraph } = await import(lib("block-lineage.js"));
+  const { validateLineage, validateGraph, validateIncrementalBlock, verifyGraph } = await import(lib("block-lineage.js"));
 
   return {
     async call(operation, input) {
@@ -76,6 +90,13 @@ async function createSelfTestImpl() {
         case "deriveContentHash": return deriveContentHash(input.content);
         case "createBlock": return createBlock(input.content, input.parentHashes ?? []);
         case "validateBlock": return validateBlock(input);
+        case "normalizeHashes": return normalizeHashes(input);
+        case "validateLineage": return validateLineage(
+          input.blockHash,
+          input.parentHashes ?? [],
+          input.knownHashes,
+          input.context,
+        );
         case "traceAttribution": {
           const graph = new Map(Object.entries(input.graph));
           return traceAttribution(input.rootHash, graph, input.context);
@@ -105,13 +126,22 @@ async function createSelfTestImpl() {
 // Each suite function receives the implementation handle and the test runner.
 // The runner accumulates pass/fail counts without module-level mutable state.
 
-async function runCanonicalizationVectors(impl, runner) {
+async function runCanonicalizationVectors(impl, isExternal, runner) {
   suiteHeading("canonicalization", "Canonicalization");
   const data = loadVectors("canonicalization");
 
   for (const v of data.vectors) {
+    if (isExternal && (v.id === "C4" || v.id === "C10")) {
+      runner.skip(v.id, v.description + " requires an in-language test");
+      continue;
+    }
     try {
-      const result = await impl.call("canonicalize", v.input);
+      const input = v.id === "C4"
+        ? -0
+        : v.id === "C10"
+          ? { a: 1, b: undefined, c: 3 }
+          : v.input;
+      const result = await impl.call("canonicalize", input);
       if (result === v.expected) runner.pass(v.id, v.description);
       else runner.fail(v.id, v.description, `expected: ${JSON.stringify(v.expected)}, got: ${JSON.stringify(result)}`);
     } catch (e) {
@@ -128,19 +158,51 @@ async function runBlockIdentityVectors(impl, runner) {
     try {
       const checks = [];
 
+      const checkExpectedBlock = async (label, input, block, expected) => {
+        if (block.blockHash !== expected.blockHash) checks.push(`${label}.blockHash: ${block.blockHash} vs ${expected.blockHash}`);
+        if (block.contentHash !== expected.contentHash) checks.push(`${label}.contentHash: ${block.contentHash} vs ${expected.contentHash}`);
+        if (JSON.stringify(block.parentHashes) !== JSON.stringify(expected.parentHashes)) {
+          checks.push(`${label}.parentHashes: ${JSON.stringify(block.parentHashes)} vs ${JSON.stringify(expected.parentHashes)}`);
+        }
+        const envelope = await impl.call("canonicalize", {
+          content: input.content ?? null,
+          parentHashes: block.parentHashes,
+        });
+        const envelopeHex = Buffer.from(envelope, "utf8").toString("hex");
+        if (envelopeHex !== expected.canonicalEnvelopeHex) {
+          checks.push(`${label}.canonicalEnvelopeHex: ${envelopeHex} vs ${expected.canonicalEnvelopeHex}`);
+        }
+      };
+
       if (v.input) {
         const block = await impl.call("createBlock", { content: v.input.content, parentHashes: v.input.parentHashes ?? [] });
         const block2 = await impl.call("createBlock", { content: v.input.content, parentHashes: v.input.parentHashes ?? [] });
+        await checkExpectedBlock("block", v.input, block, v.expected);
         if (block.blockHash !== block2.blockHash) checks.push("non-deterministic");
-        if (!/^0x[a-f0-9]{64}$/.test(block.blockHash)) checks.push(`invalid hash format: ${block.blockHash}`);
+        const derivedBlockHash = await impl.call("deriveBlockHash", v.input);
+        const derivedContentHash = await impl.call("deriveContentHash", { content: v.input.content });
+        if (derivedBlockHash !== v.expected.blockHash) checks.push(`derived blockHash: ${derivedBlockHash} vs ${v.expected.blockHash}`);
+        if (derivedContentHash !== v.expected.contentHash) checks.push(`derived contentHash: ${derivedContentHash} vs ${v.expected.contentHash}`);
+        if (JSON.stringify(block.content) !== JSON.stringify(v.input.content)) checks.push("content was not preserved");
+        if (v.assertions?.some((assertion) => assertion.includes("blockHash != contentHash")) && block.blockHash === block.contentHash) {
+          checks.push("blockHash should differ from contentHash");
+        }
       } else if (v.input_a && v.input_b) {
         const a = await impl.call("createBlock", { content: v.input_a.content, parentHashes: v.input_a.parentHashes ?? [] });
         const b = await impl.call("createBlock", { content: v.input_b.content, parentHashes: v.input_b.parentHashes ?? [] });
+        await checkExpectedBlock("a", v.input_a, a, v.expected_a);
+        await checkExpectedBlock("b", v.input_b, b, v.expected_b);
         for (const assertion of v.assertions ?? []) {
           if (assertion.includes("!=") && assertion.includes("blockHash")) {
             if (a.blockHash === b.blockHash) checks.push("blockHash should differ");
           } else if (assertion.includes("==") && assertion.includes("blockHash")) {
             if (a.blockHash !== b.blockHash) checks.push(`blockHash should be equal: ${a.blockHash} vs ${b.blockHash}`);
+          } else if (assertion.includes("!=") && assertion.includes("contentHash")) {
+            if (a.contentHash === b.contentHash) checks.push("contentHash should differ");
+          } else if (assertion.includes("==") && assertion.includes("contentHash")) {
+            if (a.contentHash !== b.contentHash) checks.push(`contentHash should be equal: ${a.contentHash} vs ${b.contentHash}`);
+          } else if (assertion.includes("==") && assertion.includes("parentHashes")) {
+            if (JSON.stringify(a.parentHashes) !== JSON.stringify(b.parentHashes)) checks.push("parentHashes should be equal");
           }
         }
       }
@@ -163,7 +225,7 @@ async function runCanonicalizationDepthVectors(impl, runner) {
       else runner.fail(v.id, v.description, "expected error");
     } catch (e) {
       if (v.expected.ok) runner.fail(v.id, v.description, `ERROR: ${e.message}`);
-      else runner.pass(v.id, v.description);
+      else assertExpectedError(runner, v, e);
     }
   }
 }
@@ -188,7 +250,7 @@ async function runParentLimitVectors(impl, runner) {
       }
     } catch (e) {
       if (v.expected.ok) runner.fail(v.id, v.description, `ERROR: ${e.message}`);
-      else runner.pass(v.id, v.description);
+      else assertExpectedError(runner, v, e);
     }
   }
 }
@@ -199,14 +261,18 @@ async function runAttributionTraceVectors(impl, runner) {
 
   for (const v of data.vectors) {
     try {
-      const trace = await impl.call("traceAttribution", { rootHash: v.root, graph: v.graph });
+      const trace = await impl.call("traceAttribution", { rootHash: v.root, graph: v.graph, context: v.context });
       const checks = [];
       const exp = v.expected;
 
+      if (trace.root !== v.root) checks.push(`root: ${trace.root} vs ${v.root}`);
       if (exp.nodeCount !== undefined && trace.nodes.length !== exp.nodeCount) checks.push(`nodeCount: ${trace.nodes.length} vs ${exp.nodeCount}`);
       if (exp.edgeCount !== undefined && trace.edges.length !== exp.edgeCount) checks.push(`edgeCount: ${trace.edges.length} vs ${exp.edgeCount}`);
+      if (exp.leafCount !== undefined && trace.leaves.length !== exp.leafCount) checks.push(`leafCount: ${trace.leaves.length} vs ${exp.leafCount}`);
       if (exp.maxDepth !== undefined && trace.maxDepth !== exp.maxDepth) checks.push(`maxDepth: ${trace.maxDepth} vs ${exp.maxDepth}`);
       if (exp.cycle !== undefined && trace.cycle !== exp.cycle) checks.push(`cycle: ${trace.cycle} vs ${exp.cycle}`);
+      if (exp.validationMode !== undefined && trace.validationMode !== exp.validationMode) checks.push(`validationMode: ${trace.validationMode} vs ${exp.validationMode}`);
+      if (exp.complete !== undefined && trace.complete !== exp.complete) checks.push(`complete: ${trace.complete} vs ${exp.complete}`);
       if (exp.leaves) {
         const el = JSON.stringify([...exp.leaves].sort());
         const al = JSON.stringify([...trace.leaves].sort());
@@ -219,8 +285,36 @@ async function runAttributionTraceVectors(impl, runner) {
           else if (node.pathCount !== count) checks.push(`${hash.slice(0, 10)}... pathCount: ${node.pathCount} vs ${count}`);
         }
       }
+      if (exp.nodes) {
+        for (const [hash, assertions] of Object.entries(exp.nodes)) {
+          const node = trace.nodes.find((candidate) => candidate.hash === hash);
+          if (!node) {
+            checks.push(`missing node ${hash.slice(0, 10)}...`);
+            continue;
+          }
+          for (const [key, value] of Object.entries(assertions)) {
+            if (node[key] !== value) checks.push(`${hash.slice(0, 10)}... ${key}: ${node[key]} vs ${value}`);
+          }
+        }
+      }
+      if (exp.allLeafPathCount !== undefined) {
+        for (const node of trace.nodes.filter((candidate) => candidate.hash !== v.root)) {
+          if (node.pathCount !== exp.allLeafPathCount) checks.push(`${node.hash.slice(0, 10)}... pathCount: ${node.pathCount} vs ${exp.allLeafPathCount}`);
+        }
+      }
+      if (exp.allLeafChildCount !== undefined) {
+        for (const node of trace.nodes.filter((candidate) => candidate.hash !== v.root)) {
+          if (node.childCount !== exp.allLeafChildCount) checks.push(`${node.hash.slice(0, 10)}... childCount: ${node.childCount} vs ${exp.allLeafChildCount}`);
+        }
+      }
+      if (exp.missingParents && JSON.stringify(trace.missingParents ?? []) !== JSON.stringify(exp.missingParents)) {
+        checks.push(`missingParents: ${JSON.stringify(trace.missingParents ?? [])} vs ${JSON.stringify(exp.missingParents)}`);
+      }
+      if (exp.externalParents && JSON.stringify(trace.externalParents ?? []) !== JSON.stringify(exp.externalParents)) {
+        checks.push(`externalParents: ${JSON.stringify(trace.externalParents ?? [])} vs ${JSON.stringify(exp.externalParents)}`);
+      }
       // Determinism check
-      const trace2 = await impl.call("traceAttribution", { rootHash: v.root, graph: v.graph });
+      const trace2 = await impl.call("traceAttribution", { rootHash: v.root, graph: v.graph, context: v.context });
       if (JSON.stringify(trace) !== JSON.stringify(trace2)) checks.push("non-deterministic");
 
       if (checks.length === 0) runner.pass(v.id, v.description);
@@ -315,40 +409,86 @@ async function runSemanticIntegrityVectors(impl, runner) {
 
 async function runCanonicalizationNegativeVectors(impl, isExternal, runner) {
   suiteHeading("canonicalization-negative", "Canonicalization (rejection)");
+  const data = loadVectors("canonicalization-negative");
+  const vectorById = new Map(data.vectors.map((vector) => [vector.id, vector]));
 
   if (isExternal) {
-    // NaN, Infinity, -Infinity cannot be sent via JSON.
+    // Language-native and cyclic values cannot be sent via JSON.
     // External implementations MUST test these in-language.
     // We test only JSON-representable rejection cases.
-    runner.pass("CN1", "NaN MUST be rejected " + dim("(in-language only — skipped for external)"));
-    runner.pass("CN2", "Infinity MUST be rejected " + dim("(in-language only — skipped for external)"));
-    runner.pass("CN3", "-Infinity MUST be rejected " + dim("(in-language only — skipped for external)"));
+    runner.skip("CN1", "NaN rejection requires an in-language test");
+    runner.skip("CN2", "Infinity rejection requires an in-language test");
+    runner.skip("CN3", "-Infinity rejection requires an in-language test");
+    runner.skip("CN7", "cyclic-reference rejection requires an in-language test");
+    runner.skip("CN8", "BigInt rejection requires an applicable in-language test");
+    runner.skip("CN9", "Symbol rejection requires an applicable in-language test");
   } else {
     const nonJsonNegatives = [
-      { id: "CN1", description: "NaN MUST be rejected", input: NaN },
-      { id: "CN2", description: "Infinity MUST be rejected", input: Infinity },
-      { id: "CN3", description: "-Infinity MUST be rejected", input: -Infinity },
+      { ...vectorById.get("CN1"), input: NaN },
+      { ...vectorById.get("CN2"), input: Infinity },
+      { ...vectorById.get("CN3"), input: -Infinity },
     ];
     for (const v of nonJsonNegatives) {
       try { await impl.call("canonicalize", v.input); runner.fail(v.id, v.description, "expected error"); }
-      catch { runner.pass(v.id, v.description); }
+      catch (e) { assertExpectedError(runner, v, e); }
     }
   }
 
-  const jsonNegatives = [
-    { id: "CN4", description: "integer above MAX_SAFE_INTEGER MUST be rejected", input: 9007199254740992 },
-    { id: "CN5", description: "integer below MIN_SAFE_INTEGER MUST be rejected", input: -9007199254740992 },
-  ];
+  const jsonNegatives = [vectorById.get("CN4"), vectorById.get("CN5")];
   for (const v of jsonNegatives) {
     try { await impl.call("canonicalize", v.input); runner.fail(v.id, v.description, "expected error"); }
-    catch { runner.pass(v.id, v.description); }
+    catch (e) { assertExpectedError(runner, v, e); }
   }
 
   // Depth overflow — build 129-level nested object
   let deep = { value: "leaf" };
   for (let i = 0; i < 129; i++) deep = { nested: deep };
-  try { await impl.call("canonicalize", deep); runner.fail("CN6", "depth >128 MUST be rejected", "expected error"); }
-  catch { runner.pass("CN6", "depth >128 MUST be rejected"); }
+  const depthVector = vectorById.get("CN6");
+  try { await impl.call("canonicalize", deep); runner.fail(depthVector.id, depthVector.description, "expected error"); }
+  catch (e) { assertExpectedError(runner, depthVector, e); }
+
+  if (!isExternal) {
+    const cyclic = {};
+    cyclic.self = cyclic;
+    const nativeNegatives = [
+      { ...vectorById.get("CN7"), input: cyclic },
+      { ...vectorById.get("CN8"), input: 1n },
+      { ...vectorById.get("CN9"), input: Symbol("x") },
+    ];
+    for (const v of nativeNegatives) {
+      try { await impl.call("canonicalize", v.input); runner.fail(v.id, v.description, "expected error"); }
+      catch (e) { assertExpectedError(runner, v, e); }
+    }
+  }
+}
+
+async function runParentNormalizationVectors(impl, runner) {
+  suiteHeading("parent-normalization", "Parent Normalization");
+  const data = loadVectors("parent-normalization");
+
+  for (const vector of data.vectors) {
+    const input = vector.inputMode === "omitted" ? undefined : vector.input;
+    try {
+      const normalized = await impl.call("normalizeHashes", input);
+      if (!vector.expected.ok) {
+        runner.fail(vector.id, vector.description, "expected error " + vector.expected.errorCode);
+      } else if (JSON.stringify(normalized) !== JSON.stringify(vector.expected.normalized)) {
+        runner.fail(
+          vector.id,
+          vector.description,
+          "normalized: " + JSON.stringify(normalized) + " vs " + JSON.stringify(vector.expected.normalized),
+        );
+      } else {
+        runner.pass(vector.id, vector.description);
+      }
+    } catch (error) {
+      if (vector.expected.ok) {
+        runner.fail(vector.id, vector.description, "ERROR: " + error.message);
+      } else {
+        assertExpectedError(runner, vector, error);
+      }
+    }
+  }
 }
 
 async function runLineageNegativeVectors(impl, runner) {
@@ -358,7 +498,11 @@ async function runLineageNegativeVectors(impl, runner) {
   for (const v of data.vectors) {
     try {
       if (v.input && v.expected.selfRef !== undefined) {
-        runner.pass(v.id, v.description + " (structural — tested via validateLineage)");
+        const result = await impl.call("validateLineage", v.input);
+        const checks = [];
+        if (result.ok !== v.expected.ok) checks.push(`ok: ${result.ok} vs ${v.expected.ok}`);
+        if (result.selfRef !== v.expected.selfRef) checks.push(`selfRef: ${result.selfRef} vs ${v.expected.selfRef}`);
+        checks.length === 0 ? runner.pass(v.id, v.description) : runner.fail(v.id, v.description, checks.join("; "));
       } else if (v.graph && v.expected.hasCycle) {
         const trace = await impl.call("traceAttribution", {
           rootHash: Object.keys(v.graph)[0],
@@ -366,14 +510,26 @@ async function runLineageNegativeVectors(impl, runner) {
         });
         if (trace.cycle === true) runner.pass(v.id, v.description);
         else runner.fail(v.id, v.description, "expected cycle=true");
-      } else if (v.expected.duplicates || v.expected.normalized) {
-        runner.pass(v.id, v.description + " (structural — tested via validateLineage)");
+      } else if (v.expected.duplicates) {
+        const result = await impl.call("validateLineage", v.input);
+        if (JSON.stringify(result.duplicates) === JSON.stringify(v.expected.duplicates)) runner.pass(v.id, v.description);
+        else runner.fail(v.id, v.description, `duplicates: ${JSON.stringify(result.duplicates)} vs ${JSON.stringify(v.expected.duplicates)}`);
+      } else if (v.expected.errorCode) {
+        try {
+          await impl.call("normalizeHashes", v.input.parentHashes);
+          runner.fail(v.id, v.description, "expected error " + v.expected.errorCode);
+        } catch (error) {
+          assertExpectedError(runner, v, error);
+        }
+      } else if (v.expected.normalized) {
+        const normalized = await impl.call("normalizeHashes", v.input.parentHashes);
+        if (JSON.stringify(normalized) === JSON.stringify(v.expected.normalized)) runner.pass(v.id, v.description);
+        else runner.fail(v.id, v.description, `normalized: ${JSON.stringify(normalized)} vs ${JSON.stringify(v.expected.normalized)}`);
       } else {
-        runner.pass(v.id, v.description);
+        runner.fail(v.id, v.description, "unsupported lineage vector shape");
       }
     } catch (e) {
-      // Some of these may throw, which is also acceptable
-      runner.pass(v.id, v.description + " (rejected with error)");
+      runner.fail(v.id, v.description, `ERROR: ${e.message}`);
     }
   }
 }
@@ -384,7 +540,7 @@ const args = process.argv.slice(2);
 
 if (args.includes("--help") || args.includes("-h")) {
   console.log(`
-${bold("ALX Protocol Conformance Runner")}
+${bold("ALX Protocol conformance Runner")}
 
 Usage:
   node conformance/bin/run.js --self-test
@@ -422,7 +578,7 @@ if (args.includes("--self-test")) {
   process.exit(2);
 }
 
-console.log(`\n${bold("ALX Conformance Suite")} ${dim(`protocol v1`)}\n`);
+console.log(`\n${bold("ALX conformance Suite")} ${dim(`protocol v1`)}\n`);
 if (mode === "self-test") {
   console.log(`  Mode: ${bold("self-test")} (TypeScript reference implementation)`);
 } else {
@@ -434,10 +590,11 @@ const testRunner = createRunner();
 const isExternal = mode === "external";
 
 const suiteRunners = {
-  canonicalization: (i, r) => runCanonicalizationVectors(i, r),
+  canonicalization: (i, r) => runCanonicalizationVectors(i, isExternal, r),
   "canonicalization-negative": (i, r) => runCanonicalizationNegativeVectors(i, isExternal, r),
   "canonicalization-depth": (i, r) => runCanonicalizationDepthVectors(i, r),
   "block-identity": (i, r) => runBlockIdentityVectors(i, r),
+  "parent-normalization": (i, r) => runParentNormalizationVectors(i, r),
   "parent-limits": (i, r) => runParentLimitVectors(i, r),
   "attribution-trace": (i, r) => runAttributionTraceVectors(i, r),
   "lineage-negative": (i, r) => runLineageNegativeVectors(i, r),
@@ -457,22 +614,25 @@ for (const suite of SUITES_MANIFEST.core.suites) {
     comparison: suite.comparison,
     passed: after.passed - before.passed,
     failed: after.failed - before.failed,
+    skipped: after.skipped - before.skipped,
   });
 }
 
 await impl.close();
 
-const { passed, failed, total, suiteResults } = testRunner.getState();
+const { passed, failed, skipped, total, suiteResults } = testRunner.getState();
 
 console.log(`\n  ${"\u2500".repeat(44)}`);
-console.log(`  ${bold("Total:")} ${passed}/${total} passed` + (failed > 0 ? `, ${red(`${failed} failed`)}` : ""));
+console.log(`  ${bold("Total:")} ${passed}/${total} passed` + (failed > 0 ? `, ${red(`${failed} failed`)}` : "") + (skipped > 0 ? `, ${skipped} native-only checks skipped` : ""));
 const exactSuiteCount = suiteResults.filter((s) => s.comparison === "exact").length;
 const semanticSuiteCount = suiteResults.filter((s) => s.comparison === "semantic").length;
 console.log(`  ${bold("Coverage:")} ${exactSuiteCount} exact-output suite(s), ${semanticSuiteCount} semantic suite(s)`);
 console.log();
 
-if (failed === 0) {
+if (failed === 0 && skipped === 0) {
   console.log(`  ${green("\u2713")} ${green("CONFORMANT")} with ALX Protocol v1`);
+} else if (failed === 0) {
+  console.log(`  ${green("\u2713")} ${green("PORTABLE CHECKS PASSED")} — run native suites for ${skipped} skipped case(s)`);
 } else {
   console.log(`  ${red("\u2717")} ${red("NOT CONFORMANT")} — ${failed} vector(s) failed`);
 }

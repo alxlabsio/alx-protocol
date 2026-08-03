@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * ALX Protocol Conformance Adapter — TypeScript Reference Implementation
+ * ALX Protocol conformance Adapter — TypeScript Reference Implementation
  *
  * This adapter exposes the TypeScript reference implementation via the
  * standard conformance interface (stdin/stdout JSON protocol).
@@ -27,7 +27,7 @@ function lib(name) { return pathToFileURL(resolve(distDir, name)).href; }
 const { canonicalizeProtocolJson } = await import(lib("canonicalization.js"));
 const { deriveBlockHash, deriveContentHash, createBlock, validateBlock, validateSignedBlock, normalizeHashes } = await import(lib("block.js"));
 const { traceAttribution, verifyTrace } = await import(lib("block-trace.js"));
-const { validateGraph, validateIncrementalBlock, verifyGraph } = await import(lib("block-lineage.js"));
+const { validateLineage, validateGraph, validateIncrementalBlock, verifyGraph } = await import(lib("block-lineage.js"));
 const { buildMerkleTree, verifyMerkleProof } = await import(lib("merkle.js"));
 const { Ed25519Verifier } = await import(lib("ed25519.js"));
 const { P256Verifier } = await import(lib("p256.js"));
@@ -61,6 +61,16 @@ async function handle(op) {
 
     case "normalizeHashes":
       return { output: normalizeHashes(op.input) };
+
+    case "validateLineage":
+      return {
+        output: validateLineage(
+          op.input.blockHash,
+          op.input.parentHashes ?? [],
+          op.input.knownHashes,
+          op.input.context,
+        ),
+      };
 
     case "validateSignedBlockFixture": {
       const verifier = {

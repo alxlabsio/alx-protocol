@@ -1,6 +1,6 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://xandrlabs.github.io/alx-protocol/extensions/signing/1/error-codes.json",
+  "$schema": "[Placeholder]",
+  "$id": "[Placeholder]",
   "id": "signing-error-codes",
   "extensionId": "signing",
   "extensionVersion": "1.0.0",

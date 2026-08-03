@@ -42,7 +42,9 @@ impl Verifier for P256Verifier {
         let public_bytes = hex::decode(expected.trim_start_matches("0x")).map_err(|e| e.to_string())?;
         let verifying_key = VerifyingKey::from_sec1_bytes(&public_bytes).map_err(|e| e.to_string())?;
         let sig_bytes = hex::decode(signature.trim_start_matches("0x")).map_err(|e| e.to_string())?;
-        let signature = Signature::from_slice(&sig_bytes).map_err(|e| e.to_string())?;
+        let Ok(signature) = Signature::from_slice(&sig_bytes) else {
+            return Ok((false, expected.to_string()));
+        };
         if data.len() != 32 {
             return Ok((false, expected.to_string()));
         }

@@ -14,9 +14,9 @@ Extension manifests declare independent lifecycle and compatibility metadata, in
 
 | Extension | Purpose | Manifest | Runner |
 |---|---|---|---|
+| [`content-profile/`](./content-profile/) | optional typed structure inside `Block.content` | [`content-profile/extension.json`](./content-profile/extension.json) | schema validation |
 | [`merkle/`](./merkle/) | checkpoint inclusion proofs | [`merkle/extension.json`](./merkle/extension.json) | `alx extension-conformance merkle` |
 | [`signing/`](./signing/) | signed Block attestations | [`signing/extension.json`](./signing/extension.json) | `alx extension-conformance signing` |
-| [`ipfs-artifact-package/`](./ipfs-artifact-package/) | IPFS CID package manifest (schema-only) | [`ipfs-artifact-package/extension.json`](./ipfs-artifact-package/extension.json) | schema validation + fixtures |
 
 Machine-readable suite discovery begins at [`../suites.json`](../suites.json).
 

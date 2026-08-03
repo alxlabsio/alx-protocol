@@ -22,7 +22,6 @@ Core capabilities are required for protocol conformance. Extension and tooling c
 | EIP-712 signing | Yes | No | No | Optional Ethereum-compatible signing suite |
 | IPFS package manifest validation | Yes | No | No | Optional package tooling |
 | CLI package verification | Yes | No | No | Tooling |
-| Receipt replay CLI | Yes | No | No | Tooling |
 
 ## Notes
 
@@ -30,11 +29,14 @@ Core capabilities are required for protocol conformance. Extension and tooling c
 - Python and Rust are real peer implementations for core protocol behavior.
 - Optional extensions are not required for core conformance.
 - EIP-712 is intentionally not required for Python or Rust parity.
-- IPFS package manifest validation: the `ipfs-artifact-package` extension defines a JSON Schema, manifest format, and schema-only conformance vectors under `protocol/extensions/ipfs-artifact-package/test-vectors/`. Validation is schema-based only.
-- IPFS package verification is currently implemented as repository tooling and CLI behavior, not as core protocol validity.
 
-## Conformance Boundary
+## Protocol conformance boundary
 
 Canonicalization vectors require exact byte output.
 
 Other suites assert protocol semantics, including hash identity, validation behavior, lineage behavior, trace correctness, and extension behavior.
+
+## Related Documents
+
+- [Protocol specification](../protocol/spec.md)
+- [Conformance runner](../conformance/README.md)

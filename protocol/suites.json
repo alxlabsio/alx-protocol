@@ -28,6 +28,12 @@
         "comparison": "semantic"
       },
       {
+        "id": "parent-normalization",
+        "path": "protocol/test-vectors/parent-normalization.json",
+        "required": true,
+        "comparison": "semantic"
+      },
+      {
         "id": "parent-limits",
         "path": "protocol/test-vectors/parent-limits.json",
         "required": true,
@@ -67,6 +73,12 @@
   },
   "extensions": [
     {
+      "id": "content-profile",
+      "path": "protocol/extensions/content-profile/",
+      "manifest": "protocol/extensions/content-profile/extension.json",
+      "requiredForCore": false
+    },
+    {
       "id": "merkle",
       "path": "protocol/extensions/merkle/",
       "manifest": "protocol/extensions/merkle/extension.json",
@@ -76,12 +88,6 @@
       "id": "signing",
       "path": "protocol/extensions/signing/",
       "manifest": "protocol/extensions/signing/extension.json",
-      "requiredForCore": false
-    },
-    {
-      "id": "ipfs-artifact-package",
-      "path": "protocol/extensions/ipfs-artifact-package/",
-      "manifest": "protocol/extensions/ipfs-artifact-package/extension.json",
       "requiredForCore": false
     }
   ]

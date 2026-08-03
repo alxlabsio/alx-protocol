@@ -9,10 +9,11 @@ from alx_protocol.signatures import BlockAttestation, Signer, Verifier
 
 HASH_PATTERN = re.compile(r"^0x[a-f0-9]{64}$")
 MAX_PARENTS = 256
+_OMITTED_PARENT_HASHES = object()
 
 
-def derive_block_hash(content: Any, parent_hashes: Optional[List[str]] = None) -> str:
-    parents = normalize_hashes(parent_hashes or [])
+def derive_block_hash(content: Any, parent_hashes: Any = _OMITTED_PARENT_HASHES) -> str:
+    parents = normalize_hashes(parent_hashes)
     canonical = canonicalize({"content": content, "parentHashes": parents})
     return "0x" + keccak(canonical.encode("utf-8")).hex()
 
@@ -22,8 +23,8 @@ def derive_content_hash(content: Any) -> str:
     return "0x" + keccak(canonical.encode("utf-8")).hex()
 
 
-def create_block(content: Any, parent_hashes: Optional[List[str]] = None) -> Dict[str, Any]:
-    parents = normalize_hashes(parent_hashes or [])
+def create_block(content: Any, parent_hashes: Any = _OMITTED_PARENT_HASHES) -> Dict[str, Any]:
+    parents = normalize_hashes(parent_hashes)
     return {
         "blockHash": derive_block_hash(content, parents),
         "contentHash": derive_content_hash(content),
@@ -60,8 +61,9 @@ def validate_block(block: Dict[str, Any]) -> Dict[str, Any]:
     version = block.get("protocolVersion")
     if version is not None and version != "1":
         raise ValueError(f"[ALX_UNSUPPORTED_VERSION] Unsupported protocolVersion: \"{version}\". Only \"1\" is recognized.")
-    canonical_parents = normalize_hashes(block.get("parentHashes", []))
-    expected = derive_block_hash(block.get("content"), block.get("parentHashes", []))
+    parent_hashes = block["parentHashes"] if "parentHashes" in block else _OMITTED_PARENT_HASHES
+    canonical_parents = normalize_hashes(parent_hashes)
+    expected = derive_block_hash(block.get("content"), parent_hashes)
     actual = normalize_hash(block["blockHash"])
     expected_content_hash = derive_content_hash(block.get("content"))
     actual_content_hash = normalize_hash(block["contentHash"])
@@ -116,19 +118,23 @@ def validate_signed_block(signed_block: Dict[str, Any], verifier: Verifier | dic
 
 
 def normalize_hash(h: str) -> str:
-    s = str(h).strip().lower()
+    if not isinstance(h, str):
+        raise ValueError("[ALX_INVALID_HASH] hash must be a string")
+    s = h.strip().lower()
     if not HASH_PATTERN.match(s):
-        raise ValueError(f"invalid hash: {h}")
+        raise ValueError(f"[ALX_INVALID_HASH] invalid hash: {h}")
     return s
 
 
-def normalize_hashes(hashes: List[str]) -> List[str]:
+def normalize_hashes(hashes: Any = _OMITTED_PARENT_HASHES) -> List[str]:
+    if hashes is _OMITTED_PARENT_HASHES:
+        return []
+    if not isinstance(hashes, list):
+        raise ValueError("[ALX_INVALID_HASH] parentHashes must be an array")
     result = set()
     for h in hashes:
-        s = str(h).strip().lower()
-        if HASH_PATTERN.match(s):
-            result.add(s)
+        result.add(normalize_hash(h))
     normalized = sorted(result)
     if len(normalized) > MAX_PARENTS:
-        raise ValueError(f"parentHashes exceeds maximum of {MAX_PARENTS} after normalization")
+        raise ValueError(f"[ALX_TOO_MANY_PARENTS] parentHashes exceeds maximum of {MAX_PARENTS} after normalization")
     return normalized

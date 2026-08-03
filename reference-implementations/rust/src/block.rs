@@ -163,19 +163,18 @@ pub fn validate_signed_block(signed_block: &SignedBlock, verifiers: &[&dyn Verif
 
 pub fn normalize_hash(h: &str) -> Result<String, String> {
     let s = h.trim().to_lowercase();
-    if !HASH_RE.is_match(&s) { return Err(format!("invalid hash: {h}")); }
+    if !HASH_RE.is_match(&s) { return Err(format!("[ALX_INVALID_HASH] invalid hash: {h}")); }
     Ok(s)
 }
 
 pub fn normalize_hashes(hashes: &[String]) -> Result<Vec<String>, String> {
     let mut set = BTreeSet::new();
     for h in hashes {
-        let s = h.trim().to_lowercase();
-        if HASH_RE.is_match(&s) { set.insert(s); }
+        set.insert(normalize_hash(h)?);
     }
     let normalized: Vec<String> = set.into_iter().collect();
     if normalized.len() > MAX_PARENTS {
-        return Err(format!("parentHashes exceeds maximum of {MAX_PARENTS} after normalization"));
+        return Err(format!("[ALX_TOO_MANY_PARENTS] parentHashes exceeds maximum of {MAX_PARENTS} after normalization"));
     }
     Ok(normalized)
 }

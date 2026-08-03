@@ -1,4 +1,5 @@
 import { ErrorCode, protocolError } from "./errors.js";
+import { buildProtocolSigningDomain, loadVerifyTypedData } from "./protocol-payload.js";
 
 // ── Algorithm-agnostic signing interfaces ─────────────────────────────────
 

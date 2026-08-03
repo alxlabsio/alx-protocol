@@ -15,7 +15,6 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { readProtocolVersion } from "../lib/protocol-version.js";
 import sdk from "../lib/sdk.js";
-import { runTestVectors } from "../lib/test-vectors.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -92,22 +91,16 @@ async function parseJsonBody(req, res) {
 
 function createLib() {
   const {
-    canonicalizeProtocolJson,
     createBlock,
     validateBlock,
-    deriveBlockHash,
     deriveContentHash,
-    normalizeHash,
     traceAttribution,
   } = sdk;
 
   return {
-    canonicalizeProtocolJson,
     createBlock,
     validateBlock,
-    deriveBlockHash,
     deriveContentHash,
-    normalizeHash,
     traceAttribution,
   };
 }
@@ -205,15 +198,6 @@ async function handleTrace(req, res, lib) {
   }
 }
 
-function handleTestVectors(_req, res, lib) {
-  try {
-    const results = runTestVectors(lib);
-    sendJson(res, 200, results);
-  } catch (err) {
-    sendJson(res, 500, { error: `Test vector execution failed: ${err.message}` });
-  }
-}
-
 // ── Server ──────────────────────────────────────────────────────────────────
 
 /**
@@ -283,16 +267,12 @@ export async function startServer(port) {
         return await handleBlockCreate(req, res, lib);
       }
 
-      if (req.method === "POST" && (path === "/block/validate" || path === "/validate")) {
+      if (req.method === "POST" && path === "/block/validate") {
         return await handleBlockValidate(req, res, lib);
       }
 
       if (req.method === "POST" && path === "/trace") {
         return await handleTrace(req, res, lib);
-      }
-
-      if (req.method === "POST" && path === "/test-vectors/run") {
-        return handleTestVectors(req, res, lib);
       }
 
       // 404 for everything else

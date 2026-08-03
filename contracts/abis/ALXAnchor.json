@@ -1,0 +1,13 @@
+[
+  "error AlreadyAnchored(bytes32 blockHash)",
+  "error BatchTooSmall(uint256 provided, uint256 minimum)",
+  "error BatchTooLarge(uint256 provided, uint256 maximum)",
+  "function MAX_BATCH_SIZE() view returns (uint256)",
+  "event Anchored(bytes32 indexed blockHash, address indexed by, uint256 at)",
+  "event BatchAnchored(bytes32 indexed batchId, address indexed by, uint256 at, uint256 count)",
+  "function anchor(bytes32 blockHash) external",
+  "function anchorBatch(bytes32 batchId, bytes32[] calldata blockHashes) external",
+  "function anchoredAt(bytes32 blockHash) view returns (uint256)",
+  "function anchoredBy(bytes32 blockHash) view returns (address)",
+  "function isAnchored(bytes32 blockHash) view returns (bool)"
+]

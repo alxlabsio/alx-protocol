@@ -26,7 +26,7 @@
  *   - pathCount is exact (not approximated)
  */
 
-import { normalizeHashLenient, normalizeHash, HASH_PATTERN } from "./hash-utils.js";
+import { normalizeHashLenient, HASH_PATTERN } from "./hash-utils.js";
 import { ErrorCode, protocolError } from "./errors.js";
 
 /** A node in an attribution trace. */

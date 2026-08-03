@@ -5,7 +5,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const root = resolve(__dirname, "../../../../");
+const root = resolve(__dirname, "../../../");
 
 function loadJson(...segments) {
   return JSON.parse(readFileSync(resolve(root, ...segments), "utf-8"));
@@ -22,7 +22,10 @@ test("core Block schema excludes signing metadata and enforces MAX_PARENTS", () 
 test("signing extension schema wraps core Block and owns signing metadata", () => {
   const schema = loadJson("protocol", "extensions", "signing", "schemas", "signed-block.schema.json");
   assert.equal(schema.additionalProperties, false);
-  assert.equal(schema.properties.block.$ref, "../../../schemas/block.schema.json");
+  assert.equal(
+    schema.properties.block.$ref,
+    "../../../schemas/block.schema.json",
+  );
   assert.ok(schema.properties.attestation);
   assert.ok(schema.properties.attestations);
 });

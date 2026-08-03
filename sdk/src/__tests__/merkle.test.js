@@ -97,7 +97,7 @@ test("single leaf: empty proof verifies", () => {
   assert.ok(valid);
 });
 
-// ── Conformance: off-chain proof matches on-chain verification ──
+// ── conformance: off-chain proof matches on-chain verification ──
 
 test("VECTOR M1: two-leaf tree produces deterministic root and proof", () => {
   const leaves = [blocks[0], blocks[1]];

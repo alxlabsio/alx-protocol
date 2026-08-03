@@ -16,6 +16,7 @@ Rules:
 import json
 import math
 import re
+from decimal import Decimal
 from typing import Any
 
 MAX_DEPTH = 128
@@ -27,20 +28,23 @@ def _format_float_js(value: float) -> str:
     """Format a float to match JavaScript JSON.stringify output exactly.
 
     JS uses decimal when 1e-6 <= |value| < 1e21, scientific otherwise.
-    We format with 20 decimal places then strip trailing zeros for the
-    decimal range, and fix exponent zero-padding for the scientific range.
+    Python repr() already produces the shortest round-trippable decimal.
+    Convert scientific notation to decimal only in the range where
+    ECMAScript Number::toString requires decimal notation.
     """
     abs_val = abs(value)
 
+    shortest = repr(value)
+
     if abs_val != 0 and 1e-6 <= abs_val < 1e21:
-        # JS uses decimal notation here — format and strip trailing zeros
-        formatted = f"{value:.20f}"
-        formatted = formatted.rstrip('0').rstrip('.')
-        if float(formatted) == value:
-            return formatted
+        if "e" in shortest.lower():
+            shortest = format(Decimal(shortest), "f")
+        if "." in shortest:
+            shortest = shortest.rstrip("0").rstrip(".")
+        return shortest
 
     # Scientific notation — strip exponent zero-padding to match JS
-    s = repr(value)
+    s = shortest
 
     def fix_exp(m):
         sign = m.group(1)
@@ -50,9 +54,12 @@ def _format_float_js(value: float) -> str:
     return re.sub(r'e([+-])(\d+)', fix_exp, s)
 
 
-def canonicalize(value: Any, _depth: int = 0) -> str:
+def canonicalize(value: Any, _depth: int = 0, _seen: set[int] | None = None) -> str:
     if _depth > MAX_DEPTH:
-        raise ValueError(f"Canonicalization depth exceeded {MAX_DEPTH}")
+        raise ValueError(f"[ALX_CANONICALIZATION_DEPTH] Canonicalization depth exceeded {MAX_DEPTH}")
+
+    if _seen is None:
+        _seen = set()
 
     if value is None:
         return "null"
@@ -62,12 +69,12 @@ def canonicalize(value: Any, _depth: int = 0) -> str:
 
     if isinstance(value, int) and not isinstance(value, bool):
         if value > MAX_SAFE_INTEGER or value < MIN_SAFE_INTEGER:
-            raise ValueError(f"Integer out of safe range: {value}")
+            raise ValueError(f"[ALX_CANONICALIZATION_UNSAFE_INTEGER] Integer out of safe range: {value}")
         return str(value)
 
     if isinstance(value, float):
         if not math.isfinite(value):
-            raise ValueError(f"Non-finite number not allowed: {value}")
+            raise ValueError(f"[ALX_CANONICALIZATION_NON_FINITE] Non-finite number not allowed: {value}")
         if value == 0.0 and math.copysign(1.0, value) == -1.0:
             return "0"  # -0 → 0
         if value == int(value) and MIN_SAFE_INTEGER <= value <= MAX_SAFE_INTEGER:
@@ -78,13 +85,31 @@ def canonicalize(value: Any, _depth: int = 0) -> str:
         return json.dumps(value, ensure_ascii=False)
 
     if isinstance(value, list):
-        return "[" + ",".join(canonicalize(v, _depth + 1) for v in value) + "]"
+        identity = id(value)
+        if identity in _seen:
+            raise ValueError("[ALX_CANONICALIZATION_CYCLIC] Cyclic structures cannot be canonicalized")
+        _seen.add(identity)
+        try:
+            return "[" + ",".join(canonicalize(v, _depth + 1, _seen) for v in value) + "]"
+        finally:
+            _seen.remove(identity)
 
     if isinstance(value, dict):
-        keys = sorted(value.keys())
-        parts = []
-        for k in keys:
-            parts.append(json.dumps(str(k), ensure_ascii=False) + ":" + canonicalize(value[k], _depth + 1))
-        return "{" + ",".join(parts) + "}"
+        identity = id(value)
+        if identity in _seen:
+            raise ValueError("[ALX_CANONICALIZATION_CYCLIC] Cyclic structures cannot be canonicalized")
+        _seen.add(identity)
+        try:
+            keys = sorted(value.keys())
+            parts = []
+            for k in keys:
+                parts.append(
+                    json.dumps(str(k), ensure_ascii=False)
+                    + ":"
+                    + canonicalize(value[k], _depth + 1, _seen)
+                )
+            return "{" + ",".join(parts) + "}"
+        finally:
+            _seen.remove(identity)
 
-    raise TypeError(f"Unsupported type for canonicalization: {type(value).__name__}")
+    raise TypeError(f"[ALX_CANONICALIZATION_UNSUPPORTED_TYPE] Unsupported type for canonicalization: {type(value).__name__}")

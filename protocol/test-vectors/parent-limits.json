@@ -24,7 +24,7 @@
       },
       "expected": {
         "ok": false,
-        "error": "too_many_parents"
+        "errorCode": "ALX_TOO_MANY_PARENTS"
       }
     }
   ]

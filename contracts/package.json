@@ -1,0 +1,17 @@
+{
+  "name": "@alx-protocol/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ALXAnchor — existence-time registry for ALX Protocol Blocks on Base. Deployment artifact only — not an npm package.",
+  "type": "commonjs",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network base-sepolia",
+    "deploy:mainnet": "hardhat run scripts/deploy.js --network base-mainnet"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "5.0.0",
+    "hardhat": "2.22.4"
+  }
+}

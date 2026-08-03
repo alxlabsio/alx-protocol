@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * ALX Merkle Extension Conformance Runner
+ * ALX Merkle Extension conformance Runner
  *
  * Tests implementations that claim support for the optional Merkle extension.
  * This suite is intentionally separate from core ALX conformance.
@@ -44,7 +44,7 @@ async function main() {
   const runner = createRunner();
   const data = JSON.parse(readFileSync(VECTORS_FILE, "utf-8"));
 
-  console.log(`\n${bold("ALX Merkle Extension Conformance")} ${dim("optional extension")}\n`);
+  console.log(`\n${bold("ALX Merkle Extension conformance")} ${dim("optional extension")}\n`);
 
   for (const v of data.vectors) {
     try {

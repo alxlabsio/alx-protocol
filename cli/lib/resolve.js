@@ -2,16 +2,14 @@
  * Block resolution and IPFS publishing utilities.
  *
  * Resolution strategies (applied in order):
- *   0. Explicit CID (from opts.cid, e.g. Base pointer registry)
- *   1. Base mainnet pointer registry when opts.chain === "base"
- *   2. HTTP retrieval endpoint (GET /block/{blockHash}) when --endpoint is set
- *   3. Local registry (~/.alx/registry.json) → IPFS gateway fetch
+ *   1. HTTP retrieval endpoint (GET /block/{blockHash}) when --endpoint is set
+ *   2. Local CID map (~/.alx/cid-map.json) → IPFS gateway fetch
  *
  * Publishing strategy:
- *   Kubo HTTP API (POST /api/v0/add) → stores CID in local registry
+ *   Kubo HTTP API (POST /api/v0/add) → records the CID in the local CID map
  *
- * The local registry maps blockHash → { cid, source, registeredAt }.
- * It persists across CLI invocations and is updated by `alx publish`.
+ * The local CID map maps blockHash → { cid, source, recordedAt }.
+ * It persists across CLI invocations and is updated by `alx block publish`.
  */
 
 import { homedir } from "node:os";
@@ -21,44 +19,44 @@ import sdk from "./sdk.js";
 
 const { validateBlock } = sdk;
 
-const DEFAULT_REGISTRY_PATH = join(homedir(), ".alx", "registry.json");
+const DEFAULT_CID_MAP_PATH = join(homedir(), ".alx", "cid-map.json");
 const DEFAULT_IPFS_GATEWAY = "https://ipfs.io/ipfs";
 const FETCH_TIMEOUT_MS = 10_000;
 
-// ── Registry ─────────────────────────────────────────────────────────────────
+// ── Local CID map ────────────────────────────────────────────────────────────
 
-function resolveRegistryPath(custom) {
-  return custom || DEFAULT_REGISTRY_PATH;
+function resolveCidMapPath(custom) {
+  return custom || DEFAULT_CID_MAP_PATH;
 }
 
-function loadRegistry(registryFilePath) {
-  const rp = resolveRegistryPath(registryFilePath);
-  if (!existsSync(rp)) return { version: "1", entries: {} };
+function loadCidMap(cidMapFilePath) {
+  const rp = resolveCidMapPath(cidMapFilePath);
+  if (!existsSync(rp)) return { version: "1", mappings: {} };
   try {
     const raw = readFileSync(rp, "utf-8");
     const parsed = JSON.parse(raw);
-    if (!parsed.entries || typeof parsed.entries !== "object") return { version: "1", entries: {} };
+    if (!parsed.mappings || typeof parsed.mappings !== "object") return { version: "1", mappings: {} };
     return parsed;
   } catch {
-    return { version: "1", entries: {} };
+    return { version: "1", mappings: {} };
   }
 }
 
-function saveRegistry(registry, registryFilePath) {
-  const rp = resolveRegistryPath(registryFilePath);
+function saveCidMap(cidMap, cidMapFilePath) {
+  const rp = resolveCidMapPath(cidMapFilePath);
   mkdirSync(dirname(rp), { recursive: true });
-  writeFileSync(rp, JSON.stringify(registry, null, 2) + "\n");
+  writeFileSync(rp, JSON.stringify(cidMap, null, 2) + "\n");
 }
 
-export function registerCid(blockHash, cid, source, registryFilePath) {
-  const registry = loadRegistry(registryFilePath);
-  registry.entries[blockHash.toLowerCase()] = {
+export function recordCidMapping(blockHash, cid, source, cidMapFilePath) {
+  const cidMap = loadCidMap(cidMapFilePath);
+  cidMap.mappings[blockHash.toLowerCase()] = {
     cid,
     source: source || "ipfs",
-    registeredAt: new Date().toISOString(),
+    recordedAt: new Date().toISOString(),
   };
-  saveRegistry(registry, registryFilePath);
-  return registry;
+  saveCidMap(cidMap, cidMapFilePath);
+  return cidMap;
 }
 
 // ── Resolution ────────────────────────────────────────────────────────────────
@@ -67,33 +65,12 @@ export function registerCid(blockHash, cid, source, registryFilePath) {
  * Resolve a Block by blockHash using available sources.
  *
  * @param {string} blockHash - 0x-prefixed 64-char hex hash
- * @param {{ registry?: string, gateway?: string, endpoint?: string, chain?: string, rpcUrl?: string, cid?: string, cidSource?: string }} opts
+ * @param {{ cidMap?: string, gateway?: string, endpoint?: string }} opts
  * @returns {Promise<{ block: object, source: string, url: string } | null>}
  */
 export async function resolveBlock(blockHash, opts = {}) {
   const normalizedHash = blockHash.toLowerCase();
   const gateway = (opts.gateway || DEFAULT_IPFS_GATEWAY).replace(/\/$/, "");
-
-  if (opts.chain === "base") {
-    try {
-      const { resolveBlockFromBase } = await import("./chain-resolve.js");
-      const fromChain = await resolveBlockFromBase(normalizedHash, {
-        rpcUrl: opts.rpcUrl,
-        gateway,
-        registry: opts.registry,
-      });
-      if (fromChain) return fromChain;
-    } catch (err) {
-      if (!opts.endpoint && !opts.registry) throw err;
-    }
-  }
-
-  // Strategy: explicit CID (e.g. from on-chain pointer registry)
-  if (opts.cid) {
-    const url = `${gateway}/${opts.cid}`;
-    const result = await fetchAndVerify(url, normalizedHash, opts.cidSource || "on-chain-cid");
-    if (result) return result;
-  }
 
   // Strategy 1: HTTP retrieval endpoint
   if (opts.endpoint) {
@@ -103,11 +80,11 @@ export async function resolveBlock(blockHash, opts = {}) {
     if (result) return result;
   }
 
-  // Strategy 2: registry lookup → IPFS gateway
-  const registry = loadRegistry(opts.registry);
-  const entry = registry.entries[normalizedHash];
-  if (entry?.cid) {
-    const url = `${gateway}/${entry.cid}`;
+  // Strategy 2: local CID-map lookup → IPFS gateway
+  const cidMap = loadCidMap(opts.cidMap);
+  const mapping = cidMap.mappings[normalizedHash];
+  if (mapping?.cid) {
+    const url = `${gateway}/${mapping.cid}`;
     const result = await fetchAndVerify(url, normalizedHash, "ipfs-gateway");
     if (result) return result;
   }

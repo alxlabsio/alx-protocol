@@ -1,9 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/attribution-trace.schema.json",
   "title": "ALX Attribution Trace",
   "description": "Derivation graph structure computed from a root Block — captures path counts, depths, and lineage topology.",
-  "$comment": "This schema validates structural shape only. It does not prove root membership, edge endpoint membership, leaf truth, depth correctness, pathCount correctness, or graph consistency.",
+  "$comment": "Public schema URL: [Placeholder]. This schema validates structural shape only. It does not prove root membership, edge endpoint membership, leaf truth, depth correctness, pathCount correctness, or graph consistency.",
   "type": "object",
   "properties": {
     "root": {

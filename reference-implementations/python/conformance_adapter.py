@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ALX Protocol Conformance Adapter — Python Reference Implementation
+ALX Protocol conformance Adapter — Python Reference Implementation
 
 Exposes the Python reference implementation via the standard conformance
 interface (stdin/stdout JSON protocol).
@@ -30,6 +30,7 @@ from alx_protocol import (
     validate_block,
     validate_signed_block,
     normalize_hashes,
+    validate_lineage,
     trace_attribution,
     validate_graph,
     validate_incremental_block,
@@ -71,7 +72,17 @@ def handle(op: dict) -> dict:
         return {"output": result}
 
     elif operation == "normalizeHashes":
-        result = normalize_hashes(inp)
+        result = normalize_hashes(inp) if "input" in op else normalize_hashes()
+        return {"output": result}
+
+    elif operation == "validateLineage":
+        known_hashes = set(inp.get("knownHashes", [])) if "knownHashes" in inp else None
+        result = validate_lineage(
+            inp.get("blockHash", ""),
+            inp.get("parentHashes", []),
+            known_hashes,
+            inp.get("context"),
+        )
         return {"output": result}
 
     elif operation == "validateSignedBlockFixture":

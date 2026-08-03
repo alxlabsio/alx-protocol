@@ -33,9 +33,10 @@ test("detects missing parents", () => {
   assert.ok(result.missing.length > 0);
 });
 
-test("no known hashes = no missing check", () => {
+test("no known hashes means declared parents are missing in closed-world validation", () => {
   const result = validateLineage(h(1), [h(2)]);
-  assert.equal(result.ok, true); // no known set = can't check missing
+  assert.equal(result.ok, false);
+  assert.deepEqual(result.missing, [h(2)]);
 });
 
 // ── validateGraph ──

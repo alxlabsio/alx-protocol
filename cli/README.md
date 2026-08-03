@@ -26,13 +26,10 @@ alx block inspect decision.block.json
 # Trace attribution from a block through its lineage
 alx graph trace 0xabc123... --file graph.json
 
-# Verify a complete artifact package
-alx package verify artifact-packages/adaptive-interface-state --json
-
-# Replay-check a stored receipt against current package files
-alx receipt verify artifact-packages/security-review-decision/verification.json \
-  --package artifact-packages/security-review-decision \
-  --json
+# Create a three-step local chain
+alx block create research.json
+alx block create analysis.md --parent @last
+alx block create decision.json --parent @last
 
 # Run the official conformance test suite
 alx test-vectors run
@@ -43,27 +40,23 @@ alx test-vectors run
 ```
 alx init [dir] [--provider s3|ipfs|retrieval]
                               Create a starter project; optionally append storage provider env stubs
-alx block verify <file>            Validate a block or graph (JSON)
+alx block show <reference>          Print a Block by hash, prefix, @last, or file
+alx block verify <reference>        Validate a Block by hash, prefix, @last, or file
 alx block inspect <file>             Explain a block field-by-field
-alx block create [<content.json>] [out.block.json] [--dry-run]
+alx block create <file> [--parent <reference>] [--parents <references>] [--dry-run]
                               Content: --content, --content-file, --from-ipfs, --from-s3,
                               --from-url, positional path, or stdin
                               --dry-run: compute hash only, no file writes or state changes
 alx block link [<content.json>] <parent>[,...] [out.block.json] [--dry-run]
-                              Parent: file path, 0x hash, @latest, or @parent
+                              Parent: file path, 0x hash, @last, @latest, or @parent
                               --dry-run: compute hash only, no file writes or state changes
-alx block list [--recent N] [--json]
-                              Blocks from .alx/state.json and cwd *.block.json
+alx block list [--recent N|--all] [--json]
+                              Recent or all indexed project Blocks
 alx block types [--json]       List known advisory content types with field schemas
-alx blockset validate --hashes <h1,h2,...>
-                              Validate blockset (min 2 hashes)
-alx blockset manifest --hashes <h1,h2,...> [--label <name>] [--out file.json]
-                              Write blockset manifest (setId + hashes) for anchor workflows
-alx index validate <file>       Validate alx.index Block
-alx registry validate <file>    Validate alx.registry Block
-alx package verify <dir>       Verify an artifact package directory
-alx receipt verify <receipt> --package <dir>
-                              Replay-check a stored receipt
+alx anchor create <block.json>      Anchor one validated Block
+alx anchor create --hashes <h1,h2,...> [--batch-id <id>]
+                              Anchor a transaction batch of Block hashes
+alx anchor status <blockHash> Query on-chain anchor status
 alx graph trace <hash> --file <f>    Trace attribution through a graph
 alx test-vectors run           Run official conformance tests
 alx conformance run            Run cross-implementation conformance suite
@@ -84,8 +77,8 @@ Add `--json` to any command for machine-readable output:
 # Create a block from inline content
 alx block create --content '{"type":"ai.response","text":"analysis results"}' --json
 
-# Create a block from a remote artifact — IPFS, S3, or any URL
-alx block create --from-ipfs QmYwAPJzv5CZsnA... --out ipfs-artifact.block.json
+# Create a block from remote content — IPFS, S3, or any URL
+alx block create --from-ipfs QmYwAPJzv5CZsnA... --out ipfs-content.block.json
 alx block create --from-s3 s3://my-bucket/reports/q4.pdf --out q4-report.block.json
 alx block create --from-url https://example.com/data.json --out remote.block.json
 
@@ -95,18 +88,15 @@ alx block create --content '{"type":"ai.prompt","text":"Summarize Q4"}' --dry-ru
 # Link with positional args (content, parent, out)
 alx block link ./decision-content.json research.block.json decision.block.json
 
-# Chain using @latest (requires prior --out to record state)
-alx block link ./follow-up.json @latest next.block.json
-alx block list --recent
+# Chain using the automatically persisted last Block
+alx block create ./follow-up.json --parent @last
+alx block list --all
 
 # Or flags + content file
 alx block link --content-file ./decision-content.json \
   --parent research.block.json \
   --out decision.block.json \
   --append-graph graph.json
-
-# Blockset manifest before optional on-chain anchor
-alx blockset manifest --hashes 0x<hash1>,0x<hash2> --label "audit bundle" --out release.blockset.json
 
 # List known advisory content types
 alx block types
@@ -144,9 +134,7 @@ docker run -p 8080:8080 alx-server
 | GET | `/openapi.yaml` | OpenAPI 3.1 spec ([`openapi.yaml`](./openapi.yaml)) |
 | POST | `/block/create` | Create a block from content + parents |
 | POST | `/block/validate` | Validate a block's integrity |
-| POST | `/validate` | Alias for `/block/validate` |
 | POST | `/trace` | Trace attribution through a graph |
-| POST | `/test-vectors/run` | Run conformance suite |
 
 ### Example
 
@@ -159,8 +147,6 @@ curl -X POST http://localhost:8080/block/create \
   -H "Content-Type: application/json" \
   -d '{"content":{"type":"ai.response","text":"Market analysis complete"},"parentHashes":[]}'
 
-# Run conformance tests
-curl -X POST http://localhost:8080/test-vectors/run
 ```
 
 ### Limits
@@ -198,7 +184,7 @@ OpenAPI spec: [`protocol/retrieval-api.yaml`](../protocol/retrieval-api.yaml) ·
 
 ### Team workflow
 
-Alice runs a shared retrieval store; Bob resolves by `blockHash` without a local registry:
+Alice runs a shared retrieval store; Bob resolves by `blockHash` without a local CID map:
 
 ```bash
 # Alice
@@ -209,13 +195,7 @@ alx block publish research.block.json --endpoint http://alice:8081 --ipfs http:/
 alx block resolve 0xabc... --endpoint http://alice:8081
 ```
 
-This is the **default team path** — no blockchain. For public trustless fetch by `blockHash`, opt in to chain (rare):
-
-```bash
-alx block resolve 0x<blockHash> --chain base --rpc-url https://mainnet.base.org
-```
-
-Catalogs and product discovery: [`registry-blocks.md`](../docs/integrators/registry-blocks.md). When (not) to use Base: [`on-chain-base.md`](../docs/integrators/on-chain-base.md).
+This is the default team path and requires no blockchain. Public discovery belongs to the planned XNDR.network layer described in [`docs/decisions/008-storage-and-discovery-boundaries.md`](../docs/decisions/008-storage-and-discovery-boundaries.md).
 
 ### Example
 
@@ -243,3 +223,8 @@ In the protocol repository, pnpm workspaces include `sdk` (`@alx-protocol/sdk`) 
 ## License
 
 MIT
+
+## Related Documents
+
+- [SDK](../sdk/README.md)
+- [Protocol specification](../protocol/spec.md)

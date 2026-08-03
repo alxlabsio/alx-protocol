@@ -27,7 +27,18 @@ import sha3pkg from "js-sha3";
 
 const { keccak_256 } = sha3pkg;
 
-export { normalizeHash, normalizeHashes } from "./hash-utils.js";
+export {
+  normalizeHash,
+  normalizeHashes,
+  sanitizeImportedParentHashes,
+} from "./hash-utils.js";
+export type {
+  RejectedParentHashReason,
+  RejectedParentHash,
+  DuplicateParentHash,
+  ParentHashCollectionError,
+  SanitizedParentHashes,
+} from "./hash-utils.js";
 
 /** A content-addressed container with lineage. */
 export interface Block {
@@ -55,16 +66,29 @@ export interface AttestationValidation {
   reason?: string;
 }
 
-/** Result of block validation. */
+/** Comparison between a stored hash and the value recomputed during validation. */
+export interface HashValidationResult {
+  stored: string;
+  recomputed: string;
+  match: boolean;
+}
+
+/** Result of Block validation. */
 export interface BlockValidation {
   ok: boolean;
+  /** Recomputed blockHash. Retained for backward compatibility. */
   expected: string;
+  /** Normalized stored blockHash. Retained for backward compatibility. */
   actual: string;
   expectedContentHash?: string;
   actualContentHash?: string;
   canonicalParents?: string[];
   parentsCanonical?: boolean;
   selfRef?: boolean;
+  /** Structured comparison for full Block identity. */
+  blockHash: HashValidationResult;
+  /** Structured comparison for content-only identity. */
+  contentHash: HashValidationResult;
   /** First attestation result (backwards compatible). */
   attestation?: AttestationValidation;
   /** All attestation results. */
@@ -208,12 +232,14 @@ export function validateBlock(block: Block): BlockValidation {
   const actual = normalizeHash(block.blockHash);
   const expectedContentHash = deriveContentHash(block.content);
   const actualContentHash = normalizeHash(block.contentHash);
+  const blockHashMatch = compareHashesConstantTime(expected, actual);
+  const contentHashMatch = compareHashesConstantTime(expectedContentHash, actualContentHash);
   const parentsCanonical = JSON.stringify(block.parentHashes) === JSON.stringify(canonicalParents);
   const selfRef = canonicalParents.includes(actual);
   return {
     ok:
-      compareHashesConstantTime(expected, actual) &&
-      compareHashesConstantTime(expectedContentHash, actualContentHash) &&
+      blockHashMatch &&
+      contentHashMatch &&
       parentsCanonical &&
       !selfRef,
     expected,
@@ -223,6 +249,16 @@ export function validateBlock(block: Block): BlockValidation {
     canonicalParents,
     parentsCanonical,
     selfRef,
+    blockHash: {
+      stored: actual,
+      recomputed: expected,
+      match: blockHashMatch,
+    },
+    contentHash: {
+      stored: actualContentHash,
+      recomputed: expectedContentHash,
+      match: contentHashMatch,
+    },
   };
 }
 

@@ -10,8 +10,7 @@
 
 import http from "node:http";
 import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { createRetrievalStore, normalizeBlockHash } from "../lib/retrieval-store.js";
 import {
   loadRetrievalGuardConfig,
@@ -22,7 +21,6 @@ import {
 } from "../lib/retrieval-guard.js";
 import { REPO_ROOT } from "../lib/repo-root.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const RETRIEVAL_OPENAPI_PATH = resolve(REPO_ROOT, "protocol/retrieval-api.yaml");
 
 const MAX_BODY_SIZE = 10 * 1024 * 1024;
@@ -172,7 +170,7 @@ function createHandlers(store, defaultGateway) {
       }
     },
 
-    handleGetBlock(req, res, blockHash) {
+    handleGetBlock(_req, res, blockHash) {
       handleGetBlock(blockHash, res, true);
     },
 

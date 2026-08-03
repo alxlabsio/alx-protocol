@@ -4,9 +4,9 @@ import { mkdtempSync, writeFileSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sdk from "../lib/sdk.js";
-import { recordBlockWrite, stateFilePath } from "../lib/cli-state.js";
+import { persistBlockWrite, stateFilePath } from "../lib/cli-state.js";
 import {
-  resolveParentTokenToPath,
+  resolveBlockReferenceToPath,
   resolveParentTokensToHashes,
   findBlockFileByHash,
 } from "../lib/parent-resolve.js";
@@ -31,7 +31,7 @@ describe("parent-resolve", () => {
   });
 
   it("resolves parent file path", () => {
-    const path = resolveParentTokenToPath("research.block.json", { cwd });
+    const path = resolveBlockReferenceToPath("research.block.json", { cwd });
     assert.equal(path, parentPath);
   });
 
@@ -45,16 +45,16 @@ describe("parent-resolve", () => {
     const childPath = join(cwd, "child.block.json");
     const child = createBlock({ type: "ai.response", text: "Output" }, [parentBlock.blockHash]);
     writeFileSync(childPath, JSON.stringify(child, null, 2));
-    recordBlockWrite({ block: child, outPath: childPath, cwd });
+    const persisted = persistBlockWrite({ block: child, outPath: childPath, cwd });
 
-    const resolved = resolveParentTokenToPath("@latest", { cwd });
-    assert.equal(resolved, childPath);
+    const resolved = resolveBlockReferenceToPath("@latest", { cwd });
+    assert.equal(resolved, persisted.canonicalPath);
     assert.ok(existsSync(stateFilePath(cwd)));
   });
 
   it("@latest fails when state is empty", () => {
     assert.throws(
-      () => resolveParentTokenToPath("@latest", { cwd }),
+      () => resolveBlockReferenceToPath("@latest", { cwd }),
       (err) => err instanceof CliInputError,
     );
   });
@@ -65,5 +65,18 @@ describe("parent-resolve", () => {
       validateSeal: validateBlock,
     });
     assert.deepEqual(hashes, [parentBlock.blockHash]);
+  });
+
+  it("accepts an exact unavailable hash when validation is disabled", () => {
+    const unknown = "0x" + "ab".repeat(32);
+    assert.deepEqual(resolveParentTokensToHashes([unknown], { cwd }), [unknown]);
+  });
+
+  it("requires exact hashes to resolve locally when parent validation is enabled", () => {
+    const unknown = "0x" + "ab".repeat(32);
+    assert.throws(
+      () => resolveParentTokensToHashes([unknown], { cwd, validateSeal: validateBlock }),
+      (err) => err instanceof CliInputError && /No available local Block/.test(err.message),
+    );
   });
 });

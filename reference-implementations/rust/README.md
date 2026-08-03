@@ -30,7 +30,7 @@ cd reference-implementations/rust
 cargo test --all-targets
 ```
 
-## Build Conformance Adapter
+## Build the conformance adapter
 
 ```bash
 cd reference-implementations/rust
@@ -55,7 +55,7 @@ node conformance/bin/run.js --impl "./reference-implementations/rust/target/rele
 | `src/signatures.rs` | Signing model |
 | `src/ed25519.rs` | Ed25519 backend |
 | `src/p256_backend.rs` | P-256 backend |
-| `src/bin/conformance_adapter.rs` | Conformance adapter binary |
+| `src/bin/conformance_adapter.rs` | conformance adapter binary |
 | `tests/` | Rust test suite |
 
 ## Known Differences

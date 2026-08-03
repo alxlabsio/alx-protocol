@@ -1,8 +1,8 @@
 /**
- * ALX Protocol Conformance Test Vectors
+ * ALX Protocol conformance Test Vectors
  *
  * These vectors define the canonical expected outputs for given inputs.
- * Any conforming implementation in any language MUST produce identical results.
+ * Any conformant implementation in any language MUST produce identical results.
  *
  * If a test in this file fails, the protocol has been broken.
  *
@@ -17,15 +17,37 @@ import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { canonicalizeProtocolJson } from "../../dist/canonicalization.js";
-import { deriveBlockHash, deriveContentHash, createBlock, validateBlock } from "../../dist/block.js";
+import { deriveBlockHash, deriveContentHash, createBlock, validateBlock, normalizeHashes } from "../../dist/block.js";
 import { traceAttribution } from "../../dist/block-trace.js";
-import { validateGraph, validateIncrementalBlock } from "../../dist/block-lineage.js";
+import { validateLineage, validateGraph, validateIncrementalBlock } from "../../dist/block-lineage.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const vectorsDir = resolve(__dirname, "../../../../protocol/test-vectors");
+const vectorsDir = resolve(__dirname, "../../../protocol/test-vectors");
 
 function loadVectors(file) {
   return JSON.parse(readFileSync(resolve(vectorsDir, file), "utf-8"));
+}
+
+function assertProtocolError(action, errorCode) {
+  let caught;
+  try {
+    action();
+  } catch (error) {
+    caught = error;
+  }
+  assert.ok(caught instanceof Error, `expected [${errorCode}] error`);
+  assert.match(caught.message, new RegExp(`\\[${errorCode}\\]`));
+}
+
+function assertExpectedBlock(input, block, expected) {
+  assert.equal(block.blockHash, expected.blockHash);
+  assert.equal(block.contentHash, expected.contentHash);
+  assert.deepEqual(block.parentHashes, expected.parentHashes);
+  const envelope = canonicalizeProtocolJson({
+    content: input.content ?? null,
+    parentHashes: block.parentHashes,
+  });
+  assert.equal(Buffer.from(envelope, "utf8").toString("hex"), expected.canonicalEnvelopeHex);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -48,13 +70,18 @@ test("protocol/test-vectors/attribution-trace.json", async (t) => {
   for (const v of suite.vectors) {
     await t.test(`VECTOR ${v.id}: ${v.description}`, () => {
       const graph = new Map(Object.entries(v.graph));
-      const trace = traceAttribution(v.root, graph);
+      const trace = traceAttribution(v.root, graph, v.context);
       const exp = v.expected;
 
+      assert.equal(trace.root, v.root);
       if (exp.nodeCount !== undefined) assert.equal(trace.nodes.length, exp.nodeCount);
       if (exp.edgeCount !== undefined) assert.equal(trace.edges.length, exp.edgeCount);
       if (exp.maxDepth !== undefined) assert.equal(trace.maxDepth, exp.maxDepth);
       if (exp.cycle !== undefined) assert.equal(trace.cycle, exp.cycle);
+      if (exp.validationMode !== undefined) assert.equal(trace.validationMode, exp.validationMode);
+      if (exp.complete !== undefined) assert.equal(trace.complete, exp.complete);
+      if (exp.missingParents !== undefined) assert.deepEqual(trace.missingParents, exp.missingParents);
+      if (exp.externalParents !== undefined) assert.deepEqual(trace.externalParents, exp.externalParents);
       if (exp.leaves !== undefined) assert.deepEqual(trace.leaves, exp.leaves);
       if (exp.leafCount !== undefined) assert.equal(trace.leaves.length, exp.leafCount);
 
@@ -96,6 +123,79 @@ test("protocol/test-vectors/attribution-trace.json", async (t) => {
   }
 });
 
+test("protocol/test-vectors/lineage-negative.json", async (t) => {
+  const suite = loadVectors("lineage-negative.json");
+  for (const v of suite.vectors) {
+    await t.test(`VECTOR ${v.id}: ${v.description}`, () => {
+      if (v.input && v.expected.selfRef !== undefined) {
+        const result = validateLineage(v.input.blockHash, v.input.parentHashes);
+        assert.equal(result.ok, v.expected.ok);
+        assert.equal(result.selfRef, v.expected.selfRef);
+        return;
+      }
+      if (v.graph && v.expected.hasCycle) {
+        const root = Object.keys(v.graph)[0];
+        assert.equal(traceAttribution(root, new Map(Object.entries(v.graph))).cycle, true);
+        return;
+      }
+      if (v.expected.duplicates) {
+        const result = validateLineage(v.input.blockHash, v.input.parentHashes);
+        assert.deepEqual(result.duplicates, v.expected.duplicates);
+        return;
+      }
+      if (v.expected.errorCode) {
+        assertProtocolError(() => normalizeHashes(v.input.parentHashes), v.expected.errorCode);
+        return;
+      }
+      if (v.expected.normalized) {
+        assert.deepEqual(normalizeHashes(v.input.parentHashes), v.expected.normalized);
+        return;
+      }
+      assert.fail(`unsupported lineage vector shape: ${v.id}`);
+    });
+  }
+});
+
+test("protocol/test-vectors/canonicalization-negative.json", async (t) => {
+  const suite = loadVectors("canonicalization-negative.json");
+  const cyclic = {};
+  cyclic.self = cyclic;
+  const inputs = new Map([
+    ["CN1", NaN],
+    ["CN2", Infinity],
+    ["CN3", -Infinity],
+    ["CN7", cyclic],
+    ["CN8", 1n],
+    ["CN9", Symbol("x")],
+  ]);
+  for (const v of suite.vectors) {
+    await t.test(`VECTOR ${v.id}: ${v.description}`, () => {
+      let input = inputs.has(v.id) ? inputs.get(v.id) : v.input;
+      if (v.id === "CN6") {
+        input = { value: "leaf" };
+        for (let i = 0; i < 129; i++) input = { nested: input };
+      }
+      assertProtocolError(() => canonicalizeProtocolJson(input), v.expected.errorCode);
+    });
+  }
+});
+
+test("protocol/test-vectors/block-identity.json", async (t) => {
+  const suite = loadVectors("block-identity.json");
+  for (const v of suite.vectors) {
+    await t.test(`VECTOR ${v.id}: ${v.description}`, () => {
+      if (v.input) {
+        assertExpectedBlock(v.input, createBlock(v.input.content, v.input.parentHashes), v.expected);
+        return;
+      }
+      const a = createBlock(v.input_a.content, v.input_a.parentHashes);
+      const b = createBlock(v.input_b.content, v.input_b.parentHashes);
+      assertExpectedBlock(v.input_a, a, v.expected_a);
+      assertExpectedBlock(v.input_b, b, v.expected_b);
+    });
+  }
+});
+
 test("protocol/test-vectors/parent-limits.json", async (t) => {
   const suite = loadVectors("parent-limits.json");
   const generatedParents = (count) => Array.from({ length: count }, (_, i) => "0x" + i.toString(16).padStart(64, "0"));
@@ -106,7 +206,23 @@ test("protocol/test-vectors/parent-limits.json", async (t) => {
         const block = createBlock(v.input.content, parents);
         assert.equal(block.parentHashes.length, v.expected.normalizedParentCount);
       } else {
-        assert.throws(() => createBlock(v.input.content, parents));
+        assertProtocolError(() => createBlock(v.input.content, parents), v.expected.errorCode);
+      }
+    });
+  }
+});
+
+test("protocol/test-vectors/parent-normalization.json", async (t) => {
+  const suite = loadVectors("parent-normalization.json");
+  for (const v of suite.vectors) {
+    await t.test("VECTOR " + v.id + ": " + v.description, () => {
+      const action = () => v.inputMode === "omitted"
+        ? normalizeHashes()
+        : normalizeHashes(v.input);
+      if (v.expected.ok) {
+        assert.deepEqual(action(), v.expected.normalized);
+      } else {
+        assertProtocolError(action, v.expected.errorCode);
       }
     });
   }
@@ -121,7 +237,7 @@ test("protocol/test-vectors/canonicalization-depth.json", async (t) => {
       if (v.expected.ok) {
         assert.doesNotThrow(() => canonicalizeProtocolJson(value));
       } else {
-        assert.throws(() => canonicalizeProtocolJson(value));
+        assertProtocolError(() => canonicalizeProtocolJson(value), v.expected.errorCode);
       }
     });
   }

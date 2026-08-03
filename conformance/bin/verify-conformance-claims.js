@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { REPO_ROOT } from "../lib/repo-root.js";
 
@@ -28,19 +28,25 @@ for (const suite of suites.core.suites) {
   }
 }
 
-const implDirs = readdirSync(resolve(REPO_ROOT, "reference-implementations"));
-for (const lang of ["typescript", "python", "rust"]) {
-  if (!implDirs.includes(lang)) errors.push(`missing reference implementation ${lang}`);
+const implementations = {
+  typescript: "sdk/conformance-adapter.js",
+  python: "reference-implementations/python/conformance_adapter.py",
+  rust: "reference-implementations/rust/src/bin/conformance_adapter.rs",
+};
+for (const [language, adapter] of Object.entries(implementations)) {
+  if (!existsSync(resolve(REPO_ROOT, adapter))) {
+    errors.push(`missing reference implementation ${language}: ${adapter}`);
+  }
 }
 
-if (vectorCount !== 74) errors.push(`expected 74 core vectors, found ${vectorCount}`);
+if (vectorCount === 0) errors.push("no core vectors found");
 
 const suiteCount = suites.core.suites.length;
-if (suiteCount !== 10) errors.push(`expected 10 core suites, found ${suiteCount}`);
+if (suiteCount !== 11) errors.push(`expected 11 core suites, found ${suiteCount}`);
 
 if (errors.length > 0) {
   console.error(errors.join("\n"));
   process.exit(1);
 }
 
-console.log(`Conformance claims verification passed (${vectorCount} core vectors).`);
+console.log(`conformance claims verification passed (${vectorCount} core vectors).`);

@@ -285,7 +285,7 @@ function classifyParents(
   const selfRef = unique.includes(blockHash);
   const mode = context?.validationMode ?? "closed-world";
   const declaredExternal = new Set((context?.externalParents ?? []).map((e) => normalize(e.hash)));
-  const unresolved = unique.filter((p) => knownHashes.size > 0 && !knownHashes.has(p));
+  const unresolved = unique.filter((p) => !knownHashes.has(p));
   const external = mode === "open-world" ? unresolved.filter((p) => declaredExternal.has(p)) : [];
   const missing = unresolved.filter((p) => !external.includes(p));
 

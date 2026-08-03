@@ -10,9 +10,9 @@ npm install @alx-protocol/sdk
 
 ## Quickstart
 
-ALX gives every AI-generated artifact a tamper-proof cryptographic identity, without inspecting its content and without depending on any particular storage.
+ALX Protocol derives deterministic Block identity from content and parent hashes. `validateBlock()` recomputes stored identities, and Graph operations validate and traverse declared lineage. Applications select their own storage layer.
 
-The example below demonstrates a real-world workflow: an AI generates a financial risk report, a compliance reviewer flags issues and signs their review, and an approver signs off. Any tampering at any step is instantly detected.
+The example creates a financial risk report Block, adds a signed compliance review, validates the Graph, traces lineage, and detects modified Block data.
 
 ```ts
 import {
@@ -79,7 +79,7 @@ const tampered = { ...report, content: { ...report.content, riskLevel: "low" } }
 console.log(validateBlock(tampered).ok);  // false — integrity broken
 ```
 
-**What you just built:** an immutable, end-to-end verifiable audit trail where the AI output is sealed, the reviewer's attestation is cryptographically bound, and any modification is instantly detected. The protocol never inspects the financial data (content opacity), and these blocks can be stored in PostgreSQL, S3, IPFS, or a flat file (storage independence).
+The workflow produces linked Blocks for a report and review. The attestation remains outside Block identity. `validateBlock()` detects changes when stored identities no longer match recomputed values. PostgreSQL, S3, IPFS, and flat files are application storage options.
 
 ## API Overview
 
@@ -93,7 +93,7 @@ console.log(validateBlock(tampered).ok);  // false — integrity broken
 | Merkle Proofs | `buildMerkleTree`, `getMerkleProof`, `verifyMerkleProof` |
 | EIP-712 Signing | `Eip712Signer`, `Eip712Verifier` (requires `ethers` peer dependency) |
 | Replay Protection | `buildReplayScopeKey`, `validateReplayWindow` |
-| Hash Utilities | `normalizeHash`, `normalizeHashes`, `HASH_PATTERN`, `compareHashesConstantTime` |
+| Hash Utilities | `normalizeHash`, `normalizeHashes`, `sanitizeImportedParentHashes`, `HASH_PATTERN`, `compareHashesConstantTime` |
 | Error Codes | `ErrorCode`, `protocolError` (all errors prefixed with `ALX_*`) |
 
 Sub-path imports are available for tree-shaking:
@@ -104,13 +104,41 @@ import { buildMerkleTree } from "@alx-protocol/sdk/merkle";
 import { Eip712Signer } from "@alx-protocol/sdk/eip712";
 ```
 
+## Imported Parent Hashes
+
+Use `sanitizeImportedParentHashes()` when an importer must inspect untrusted lineage data before deciding whether to reject, quarantine, or repair a source record.
+
+```ts
+import {
+  createBlock,
+  sanitizeImportedParentHashes,
+} from "@alx-protocol/sdk";
+
+const importedParents: unknown = [
+  "0x" + "A".repeat(64),
+  "invalid",
+];
+const inspection = sanitizeImportedParentHashes(importedParents);
+
+if (!inspection.ok) {
+  console.error(inspection.rejected, inspection.collectionErrors);
+} else {
+  const block = createBlock(
+    { task: "review-imported-market-research" },
+    inspection.parentHashes,
+  );
+  console.log(block.blockHash);
+}
+```
+
+The result reports rejected values, normalized duplicates, and collection overflow. `parentHashes` is sorted and unique. Callers use it only when `ok` is `true`. Core Block creation does not call the sanitizer and remains fail closed.
+
 ## Documentation
 
 - [Five-Minute Quickstart](https://github.com/xandrlabs/alx-protocol/blob/main/docs/integrators/quickstart.md)
 - [API Reference](https://github.com/xandrlabs/alx-protocol/blob/main/docs/integrators/api-reference.md)
 - [FAQ](https://github.com/xandrlabs/alx-protocol/blob/main/docs/integrators/faq.md)
 - [Troubleshooting](https://github.com/xandrlabs/alx-protocol/blob/main/docs/integrators/troubleshooting.md)
-- [Real-World Workflow Examples](https://github.com/xandrlabs/alx-protocol/blob/main/docs/integrators/workflows.md)
 - [ALX Protocol Specification](https://github.com/xandrlabs/alx-protocol/blob/main/protocol/spec.md)
 - [Full Documentation Index](https://github.com/xandrlabs/alx-protocol/blob/main/docs/README.md)
 
@@ -118,14 +146,19 @@ import { Eip712Signer } from "@alx-protocol/sdk/eip712";
 
 This SDK is the protocol core. Optional [adapters](https://github.com/xandrlabs/alx-protocol/tree/main/adapters) extend it to external systems (IPFS, MCP, EAS) without changing Block identity, hashing, or validation semantics. Adapters import from `@alx-protocol/sdk` — the protocol flows outward, never inward.
 
-## Conformance
+## Protocol conformance
 
-This SDK is a conformant reference implementation. It passes all 50 canonical test vectors with byte-identical output to the Python and Rust implementations.
+This SDK passes all 92 core conformance vectors. External TypeScript, Python, and Rust adapter runs cover 84 portable cases; native suites cover the eight language-specific cases.
 
 ```bash
-npx alx test-vectors run
+npx @alx-protocol/cli test-vectors run
 ```
 
 ## License
 
 MIT
+
+## Related Documents
+
+- [Protocol specification](../protocol/spec.md)
+- [Canonical test vectors](../protocol/test-vectors/README.md)

@@ -19,7 +19,7 @@ info:
     ## Resolution order (recommended)
 
     1. HTTP retrieval endpoint: GET /block/{blockHash} (shared team store)
-    2. Local registry: ~/.alx/registry.json (blockHash → CID mapping)
+    2. Local CID map: ~/.alx/cid-map.json (blockHash → CID mapping)
     3. IPFS gateway: https://ipfs.io/ipfs/{cid} if CID is known
 
     ## Integrity guarantee

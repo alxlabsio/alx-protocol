@@ -3,10 +3,10 @@
  *
  * Builds a Merkle tree from an array of block hashes and generates
  * inclusion proofs. The tree uses sorted-pair hashing (same as the
- * on-chain _hashPair in CheckpointRegistry.sol) to ensure canonical
- * tree construction — same leaves always produce the same root.
+ * external verification adapters) to ensure consistent
+ * proof verification across layers.
  *
- * This is the off-chain complement to CheckpointRegistry.verifyInclusion.
+ * This module provides the SDK's optional off-chain Merkle proof support.
  */
 
 import { ErrorCode, protocolError } from "./errors.js";
@@ -107,7 +107,7 @@ export function getMerkleProof(leaves: string[], leaf: string): MerkleProof | nu
 }
 
 /**
- * Verify a Merkle proof off-chain (mirrors CheckpointRegistry.verifyProof).
+ * Verify a Merkle proof off-chain.
  */
 export function verifyMerkleProof(root: string, leaf: string, proof: string[]): boolean {
   let hash = leaf.toLowerCase();

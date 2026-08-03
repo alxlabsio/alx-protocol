@@ -1,4 +1,5 @@
 packages:
   - "sdk"
+  - "adapters"
   - "cli"
   - "contracts"

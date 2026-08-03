@@ -25,9 +25,9 @@ Block storage and lookup over HTTP are defined in [`protocol/retrieval-api.yaml`
 
 See [`PARITY.md`](./PARITY.md) for current capability parity.
 
-## Conformance Model
+## Protocol conformance model
 
-Conformance is suite-specific.
+Protocol conformance is suite-specific.
 
 Canonicalization suites require exact byte output. Other suites assert protocol semantics, including hash identity, validation behavior, lineage behavior, trace correctness, and extension behavior.
 
@@ -71,3 +71,8 @@ node conformance/bin/run.js --impl "./reference-implementations/rust/target/rele
 Use the protocol files first, then implement a conformance adapter.
 
 Start with [`../docs/implementers/implementer-guide.md`](../docs/implementers/implementer-guide.md).
+
+## Related Documents
+
+- [Protocol specification](../protocol/spec.md)
+- [Conformance runner](../conformance/README.md)

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * ALX Signing Extension Conformance Runner
+ * ALX Signing Extension conformance Runner
  *
  * Tests implementations that claim support for the optional signing extension.
  * This suite is intentionally separate from core ALX conformance.
@@ -65,7 +65,7 @@ async function main() {
   const impl = await createImpl(args);
   const runner = createRunner();
 
-  console.log(`\n${bold("ALX Signing Extension Conformance")} ${dim("optional extension")}\n`);
+  console.log(`\n${bold("ALX Signing Extension conformance")} ${dim("optional extension")}\n`);
 
   for (const vectorsFile of VECTOR_FILES) {
     const data = JSON.parse(readFileSync(vectorsFile, "utf-8"));

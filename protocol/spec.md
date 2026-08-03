@@ -63,11 +63,19 @@ Block = { blockHash, contentHash, parentHashes, content }
 4. parentHashes are an unordered set of parent Block hashes — implementations MUST normalize parentHashes to sorted lexicographic order for deterministic hashing. Application-level ordering is a content concern.
 5. Content is opaque — the protocol never inspects it
 6. `null` and `undefined` content are equivalent (both canonicalize to `"null"`)
-7. Implementations MUST silently drop invalid parent hashes during normalization
+7. Implementations MUST reject a supplied parentHashes collection containing an invalid parent hash or non-string entry
 8. Implementations MUST enforce a maximum of 256 parent hashes after normalization
 9. `protocolVersion`, if present, MUST equal `"1"`. Implementations MUST reject Blocks declaring an unrecognized `protocolVersion`. If absent, implementations MUST treat the Block as `protocolVersion: "1"`. `protocolVersion` MUST NOT be included in the hash derivation input.
 
 If normalized `parentHashes` contains more than 256 hashes, implementations MUST reject Block creation or hash derivation rather than truncating the set.
+
+### Parent Hash Normalization
+
+An omitted `parentHashes` argument produces an empty array. A supplied `parentHashes` value MUST be an array. `null`, strings, objects, and other non-array values MUST be rejected with `ALX_INVALID_HASH`.
+
+Each array entry MUST be a string. Implementations MUST trim surrounding whitespace, convert ASCII hexadecimal letters to lowercase, and then require the `0x`-prefixed 32-byte hexadecimal hash format. An invalid entry MUST reject the complete operation with `ALX_INVALID_HASH`. Implementations MUST NOT return a partial parent set.
+
+Implementations MUST deduplicate normalized hashes, sort them lexicographically, and then enforce the 256-parent limit. More than 256 distinct normalized hashes MUST be rejected with `ALX_TOO_MANY_PARENTS`.
 
 ---
 
@@ -431,3 +439,9 @@ The following are explicitly outside the protocol's scope. The items listed are 
 | **Identity / authentication** | Block identity is deterministic, derived from content and parentHashes. Actor identity is orthogonal (EIP-712 signing). |
 | **Ordering / consensus** | parentHashes are an unordered set. Sequencing is a content-level or application-level concern. |
 | **Transport** | Blocks can be sent over any channel. Wire format and network protocol remain outside the protocol scope. |
+
+## Related Documents
+
+- [Protocol schemas](./schemas/)
+- [Canonical test vectors](./test-vectors/README.md)
+- [Protocol error codes](./error-codes.json)

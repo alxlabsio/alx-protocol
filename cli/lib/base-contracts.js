@@ -1,13 +1,11 @@
 /**
- * Load Base mainnet integration metadata (informative, non-normative).
+ * Load Base network and contract deployment configuration (informative, non-normative).
  */
 
 import { readFileSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { REPO_ROOT } from "./repo-root.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = join(REPO_ROOT, "protocol/chains/base-mainnet.json");
 
 /** @returns {object} */
@@ -20,42 +18,58 @@ export function loadBaseMainnetConfig() {
 
 /**
  * Load the ALXAnchor human-readable ABI from contracts/abis/ALXAnchor.json.
- * Single source — imported by anchor.js and chain-resolve.js.
+ * Single source imported by anchor.js.
  * @returns {string[]}
  */
 export function loadAnchorAbi() {
-  const abiPath = join(REPO_ROOT, "contracts/abis/ALXAnchor.json");
-  return JSON.parse(readFileSync(abiPath, "utf-8"));
+  const abi = loadContractAbi(loadBaseMainnetConfig(), "anchor");
+  if (!abi) throw new Error("Missing contracts.anchor.abi in base-mainnet.json");
+  return abi;
+}
+
+/** Load the ABI declared by a contract entry in the deployment config. */
+function loadContractAbi(config, contractId) {
+  const abiRel = config.contracts?.[contractId]?.abi;
+  if (!abiRel) return null;
+  const abiPath = join(REPO_ROOT, abiRel);
+  if (!existsSync(abiPath)) {
+    throw new Error(`Contract ABI not found: ${abiRel}`);
+  }
+  const abi = JSON.parse(readFileSync(abiPath, "utf-8"));
+  if (!Array.isArray(abi)) throw new Error(`Contract ABI must be an array: ${abiRel}`);
+  return abi;
 }
 
 /**
  * @param {object} config
- * @param {"alxAnchor"|"pointerRegistry"|"checkpointRegistry"|"platformRegistry"} role
+ * @param {"anchor"} contractId
  */
-export function resolveContractAddress(config, role) {
-  const entry = config.contracts?.[role];
+export function resolveContractAddress(config, contractId) {
+  const entry = config.contracts?.[contractId];
   if (!entry) return null;
 
-  const envKey = entry.envOverride;
+  const envKey = entry.deployment?.addressEnv;
   if (envKey && process.env[envKey]?.trim()) {
     return process.env[envKey].trim();
   }
 
-  return entry.address || null;
+  return entry.deployment?.address || null;
 }
 
-export function resolveRpcUrl(config) {
-  const envKey = config.rpc?.envOverride;
+export function resolveContractNetwork(config, contractId) {
+  return config.contracts?.[contractId]?.deployment?.network || null;
+}
+
+export function resolveNetwork(config, networkId) {
+  return config.networks?.[networkId] || null;
+}
+
+export function resolveRpcUrl(config, networkId = "base-mainnet") {
+  const network = resolveNetwork(config, networkId);
+  if (!network) throw new Error(`Unknown network in base-mainnet.json: ${networkId}`);
+  const envKey = network.rpcUrlEnv;
   if (envKey && process.env[envKey]?.trim()) {
     return process.env[envKey].trim();
   }
-  return config.rpc?.defaultUrl || "https://mainnet.base.org";
-}
-
-export function blockHashToBytes32(blockHash) {
-  const normalized = String(blockHash).trim().toLowerCase();
-  if (!/^0x[a-f0-9]{64}$/.test(normalized)) {
-    throw new Error(`Invalid blockHash: ${blockHash}`);
-  }
-  return normalized;
+  return network.rpcUrl || null;
 }

@@ -9,6 +9,7 @@ Language-agnostic canonical input/output pairs for **core** ALX Protocol conform
 | [`canonicalization.json`](canonicalization.json) | Canonicalization | `recursive-json-sort-v1` serialization |
 | [`canonicalization-depth.json`](canonicalization-depth.json) | Canonicalization depth | normative recursion-depth boundary |
 | [`block-identity.json`](block-identity.json) | Block Identity | `createBlock`, `deriveBlockHash`, parent normalization |
+| [`parent-normalization.json`](parent-normalization.json) | Parent normalization | fail-closed collection and entry validation, normalization, deduplication, and sorting |
 | [`attribution-trace.json`](attribution-trace.json) | Attribution | `traceAttribution` lineage resolution |
 | [`lineage-negative.json`](lineage-negative.json) | Lineage | invalid graph and parent cases |
 | [`lineage-boundaries.json`](lineage-boundaries.json) | Lineage boundaries | partial availability and out-of-order arrival |
@@ -23,7 +24,6 @@ Optional extensions keep their vectors outside the core directory:
 |---|---|
 | Merkle | [`../extensions/merkle/test-vectors/`](../extensions/merkle/test-vectors/) |
 | Signing | [`../extensions/signing/test-vectors/`](../extensions/signing/test-vectors/) |
-| IPFS artifact package | [`../extensions/ipfs-artifact-package/test-vectors/`](../extensions/ipfs-artifact-package/test-vectors/) |
 
 Machine-readable suite discovery is defined in [`../suites.json`](../suites.json).
 
@@ -61,3 +61,9 @@ SDKs and implementations load core vectors from this directory and assert their 
 1. Add the vector to the appropriate JSON file
 2. Update all SDK/implementation test runners to cover the new vector
 3. Ensure all implementations claiming support for that suite produce byte-identical outputs
+
+## Related Documents
+
+- [Protocol specification](../spec.md)
+- [Conformance suite registry](../suites.json)
+- [Protocol schemas](../schemas/)

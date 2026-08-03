@@ -9,9 +9,8 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
   contact:
-    name: Xandr Labs
-    url: https://xandrlabs.ai
-    email: team@xandrlabs.ai
+    name: ALX Foundation
+    url: https://github.com/xandrlabs/alx-protocol
 
 servers:
   - url: http://localhost:8080
@@ -85,7 +84,7 @@ paths:
                   items:
                     type: string
                     pattern: "^0x[a-f0-9]{64}$"
-                  description: Sorted, deduplicated dependency set. Invalid hashes are silently dropped.
+                  description: Sorted, deduplicated dependency set. Malformed entries reject Block creation.
             example:
               content:
                 type: ai.response
@@ -137,32 +136,6 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
-  /validate:
-    post:
-      summary: Validate a Block (alias)
-      description: Alias for /block/validate.
-      operationId: validateBlockAlias
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Block"
-      responses:
-        "200":
-          description: Validation result
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  valid:
-                    type: boolean
-                  ok:
-                    type: boolean
-        "400":
-          $ref: "#/components/responses/BadRequest"
-
   /trace:
     post:
       summary: Trace attribution
@@ -203,40 +176,6 @@ paths:
                 $ref: "#/components/schemas/AttributionTrace"
         "400":
           $ref: "#/components/responses/BadRequest"
-
-  /test-vectors/run:
-    post:
-      summary: Run conformance tests
-      description: Executes the canonical test vector suite and returns results.
-      operationId: runTestVectors
-      responses:
-        "200":
-          description: Conformance results
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  passed:
-                    type: integer
-                  failed:
-                    type: integer
-                  total:
-                    type: integer
-                  conformant:
-                    type: boolean
-                  results:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        status:
-                          type: string
-                          enum: [passed, failed, skipped]
-                        message:
-                          type: string
 
 components:
   schemas:

@@ -130,13 +130,22 @@ test("normalizeHashes deduplicates and sorts", () => {
   assert.deepEqual(result, [b, a]); // sorted: a < b
 });
 
-test("normalizeHashes drops invalid entries", () => {
+test("normalizeHashes rejects invalid entries without returning a partial set", () => {
   const valid = "0x" + "a".repeat(64);
-  const result = normalizeHashes([valid, "invalid", "", null]);
-  assert.deepEqual(result, [valid]);
+  assert.throws(
+    () => normalizeHashes([valid, "invalid"]),
+    { message: /^\[ALX_INVALID_HASH\]/ },
+  );
 });
 
-test("normalizeHashes returns empty for non-array", () => {
-  assert.deepEqual(normalizeHashes(null), []);
+test("normalizeHashes accepts omission and rejects supplied non-arrays", () => {
   assert.deepEqual(normalizeHashes(undefined), []);
+  assert.throws(
+    () => normalizeHashes(null),
+    { message: /^\[ALX_INVALID_HASH\]/ },
+  );
+  assert.throws(
+    () => normalizeHashes("not-an-array"),
+    { message: /^\[ALX_INVALID_HASH\]/ },
+  );
 });

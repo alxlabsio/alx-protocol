@@ -34,12 +34,17 @@ if (existsSync(rustPath)) {
 }
 
 const vectors = JSON.parse(readFileSync(resolve(REPO_ROOT, "protocol/test-vectors/block-identity.json"), "utf-8"));
-const sampleInputs = vectors.vectors.filter((v) => v.input).slice(0, 5).map((v) => v.input);
+const cases = vectors.vectors.flatMap((vector) => vector.input
+  ? [{ id: vector.id, label: "input", input: vector.input, expected: vector.expected }]
+  : [
+      { id: vector.id, label: "input_a", input: vector.input_a, expected: vector.expected_a },
+      { id: vector.id, label: "input_b", input: vector.input_b, expected: vector.expected_b },
+    ]);
 
 const available = [];
 for (const impl of impls) {
   try {
-    callAdapter(impl.cmd, impl.args, "createBlock", sampleInputs[0]);
+    callAdapter(impl.cmd, impl.args, "createBlock", cases[0].input);
     available.push(impl);
   } catch (err) {
     console.error(`Skipping ${impl.name}: ${err.message}`);
@@ -51,15 +56,33 @@ if (available.length < 2) {
   process.exit(1);
 }
 
-for (const input of sampleInputs) {
-  const hashes = available.map((impl) => callAdapter(impl.cmd, impl.args, "createBlock", input).blockHash);
-  const first = hashes[0];
-  for (const hash of hashes.slice(1)) {
-    if (hash !== first) {
-      console.error(`Differential mismatch for input ${JSON.stringify(input)}: ${hashes.join(" != ")}`);
+for (const testCase of cases) {
+  for (const impl of available) {
+    const block = callAdapter(impl.cmd, impl.args, "createBlock", testCase.input);
+    const envelope = callAdapter(impl.cmd, impl.args, "canonicalize", {
+      content: testCase.input.content ?? null,
+      parentHashes: block.parentHashes,
+    });
+    const envelopeHex = Buffer.from(envelope, "utf8").toString("hex");
+    const actual = {
+      blockHash: block.blockHash,
+      contentHash: block.contentHash,
+      parentHashes: block.parentHashes,
+      canonicalEnvelopeHex: envelopeHex,
+    };
+    for (const [field, expected] of Object.entries(testCase.expected)) {
+      if (JSON.stringify(actual[field]) !== JSON.stringify(expected)) {
+        console.error(`${testCase.id}.${testCase.label} ${impl.name} ${field}: ${JSON.stringify(actual[field])} != ${JSON.stringify(expected)}`);
+        process.exit(1);
+      }
+    }
+    const inputContent = callAdapter(impl.cmd, impl.args, "canonicalize", testCase.input.content);
+    const blockContent = callAdapter(impl.cmd, impl.args, "canonicalize", block.content);
+    if (blockContent !== inputContent) {
+      console.error(`${testCase.id}.${testCase.label} ${impl.name}: content was not preserved`);
       process.exit(1);
     }
   }
 }
 
-console.log(`Differential core check passed across ${available.map((i) => i.name).join(", ")}.`);
+console.log(`Differential core check passed for ${cases.length} Block inputs across ${available.map((i) => i.name).join(", ")}.`);

@@ -1,6 +1,6 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/error-codes.v1.json",
+  "$schema": "[Placeholder]",
+  "$id": "[Placeholder]",
   "id": "error-codes",
   "protocolVersion": "1",
   "documentVersion": "1.0.0",
@@ -48,7 +48,8 @@
     { "id": "ERR-112", "code": "ALX_INVALID_TIMESTAMP", "category": "attestation", "severity": "fatal" },
     { "id": "ERR-113", "code": "ALX_ATTESTATION_HASH_MISMATCH", "category": "attestation", "severity": "fatal" },
     { "id": "ERR-114", "code": "ALX_ROOT_HASH_REQUIRED", "category": "trace", "severity": "fatal" },
-    { "id": "ERR-115", "code": "ALX_INVALID_GRAPH", "category": "graph", "severity": "fatal" }
+    { "id": "ERR-115", "code": "ALX_INVALID_GRAPH", "category": "graph", "severity": "fatal" },
+    { "id": "ERR-116", "code": "ALX_UNSUPPORTED_VERSION", "category": "version", "severity": "fatal" }
   ],
   "extensionRegistries": [
     {

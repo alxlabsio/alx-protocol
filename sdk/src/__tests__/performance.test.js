@@ -24,7 +24,7 @@ const {
   buildMerkleTree,
   getMerkleProof,
   verifyMerkleProof,
-} = await import(dist("extensions.js"));
+} = await import(dist("merkle.js"));
 
 /** Generate a linear chain of n blocks. */
 function linearChain(n) {
@@ -63,6 +63,13 @@ function timeMs(fn) {
   return { result, ms: performance.now() - start };
 }
 
+function medianTimeMs(fn, runs = 5) {
+  fn(); // Warm up JIT and module caches before sampling.
+  const samples = Array.from({ length: runs }, () => timeMs(fn).ms)
+    .sort((a, b) => a - b);
+  return samples[Math.floor(samples.length / 2)];
+}
+
 describe("performance: linear chain", () => {
   it("1,000-block chain: buildGraph + validateGraph completes", () => {
     const blocks = linearChain(1000);
@@ -87,14 +94,14 @@ describe("performance: linear chain", () => {
   });
 
   it("scaling: 10x input takes <20x time", () => {
-    const small = linearChain(500);
-    const large = linearChain(5000);
+    const small = linearChain(1000);
+    const large = linearChain(10000);
 
-    const { ms: msSmall } = timeMs(() => validateGraph(buildGraph(small)));
-    const { ms: msLarge } = timeMs(() => validateGraph(buildGraph(large)));
+    const msSmall = medianTimeMs(() => validateGraph(buildGraph(small)));
+    const msLarge = medianTimeMs(() => validateGraph(buildGraph(large)));
 
     const ratio = msLarge / Math.max(msSmall, 0.1);
-    console.log(`    500 blocks: ${msSmall.toFixed(1)}ms, 5000 blocks: ${msLarge.toFixed(1)}ms, ratio: ${ratio.toFixed(1)}x`);
+    console.log(`    1000 blocks: ${msSmall.toFixed(1)}ms, 10000 blocks: ${msLarge.toFixed(1)}ms, ratio: ${ratio.toFixed(1)}x`);
     assert.ok(ratio < 20, `Expected <20x scaling, got ${ratio.toFixed(1)}x`);
   });
 });

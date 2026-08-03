@@ -25,7 +25,7 @@ const {
   buildMerkleTree,
   getMerkleProof,
   verifyMerkleProof,
-} = await import(dist("extensions.js"));
+} = await import(dist("merkle.js"));
 
 let fc;
 let fcAvailable = false;

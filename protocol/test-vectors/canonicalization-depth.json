@@ -22,7 +22,8 @@
         "leaf": "value"
       },
       "expected": {
-        "ok": false
+        "ok": false,
+        "errorCode": "ALX_CANONICALIZATION_DEPTH"
       }
     }
   ]

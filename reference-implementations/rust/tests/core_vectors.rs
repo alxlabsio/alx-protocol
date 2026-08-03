@@ -1,4 +1,4 @@
-use alx_protocol::{canonicalize, create_block, derive_block_hash, trace_attribution, validate_block_detailed, validate_graph, validate_incremental_block, verify_graph, verify_trace, Block};
+use alx_protocol::{canonicalize, create_block, derive_block_hash, normalize_hashes, trace_attribution, validate_block_detailed, validate_graph, validate_incremental_block, validate_lineage, verify_graph, verify_trace, Block};
 use serde_json::Value;
 use std::{collections::{HashMap, HashSet}, fs, path::PathBuf};
 
@@ -28,12 +28,38 @@ fn generated_parents(count: usize) -> Vec<String> {
     (0..count).map(|i| format!("0x{i:064x}")).collect()
 }
 
+fn assert_expected_error<T>(result: Result<T, String>, vector: &Value) {
+    match result {
+        Ok(_) => panic!("{}: expected error", vector["id"].as_str().unwrap()),
+        Err(error) => {
+            let code = vector["expected"]["errorCode"].as_str().unwrap();
+            assert!(error.contains(&format!("[{code}]")), "{}: {error}", vector["id"].as_str().unwrap());
+        }
+    }
+}
+
+fn assert_expected_block(input: &Value, block: &Block, expected: &Value, id: &str) {
+    assert_eq!(block.block_hash, expected["blockHash"].as_str().unwrap(), "{id}");
+    assert_eq!(block.content_hash, expected["contentHash"].as_str().unwrap(), "{id}");
+    let expected_parents: Vec<String> = expected["parentHashes"].as_array().unwrap().iter().map(|value| value.as_str().unwrap().to_string()).collect();
+    assert_eq!(block.parent_hashes, expected_parents, "{id}");
+    let envelope = serde_json::json!({
+        "content": input["content"].clone(),
+        "parentHashes": block.parent_hashes.clone(),
+    });
+    assert_eq!(hex::encode(canonicalize(&envelope).unwrap()), expected["canonicalEnvelopeHex"].as_str().unwrap(), "{id}");
+}
+
 #[test]
 fn replays_canonicalization_vectors_from_manifest() {
     let suite = load_json(&suite_path("canonicalization"));
     for vector in suite["vectors"].as_array().unwrap() {
         let id = vector["id"].as_str().unwrap();
-        if id == "C4" || id == "C10" { continue; }
+        if id == "C4" {
+            assert_eq!(canonicalize(&serde_json::json!(-0.0)).unwrap(), vector["expected"].as_str().unwrap(), "{id}");
+            continue;
+        }
+        if id == "C10" { continue; }
         assert_eq!(canonicalize(&vector["input"]).unwrap(), vector["expected"].as_str().unwrap(), "{id}");
     }
 }
@@ -52,7 +78,7 @@ fn replays_canonicalization_negative_vectors_from_manifest() {
             }
             _ => continue,
         };
-        assert!(result.is_err(), "{id}");
+        assert_expected_error(result, vector);
     }
 }
 
@@ -69,7 +95,7 @@ fn replays_canonicalization_depth_vectors_from_manifest() {
         if vector["expected"]["ok"].as_bool().unwrap() {
             assert!(result.is_ok(), "{id}");
         } else {
-            assert!(result.is_err(), "{id}");
+            assert_expected_error(result, vector);
         }
     }
 }
@@ -82,7 +108,7 @@ fn replays_block_identity_vectors_from_manifest() {
         if let Some(input) = vector.get("input") {
             let parents: Vec<String> = input["parentHashes"].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_string()).collect();
             let block = create_block(input["content"].clone(), &parents).unwrap();
-            assert!(block.block_hash.starts_with("0x"), "{id}");
+            assert_expected_block(input, &block, &vector["expected"], id);
         } else {
             let a = &vector["input_a"];
             let b = &vector["input_b"];
@@ -90,6 +116,8 @@ fn replays_block_identity_vectors_from_manifest() {
             let parents_b: Vec<String> = b["parentHashes"].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_string()).collect();
             let block_a = create_block(a["content"].clone(), &parents_a).unwrap();
             let block_b = create_block(b["content"].clone(), &parents_b).unwrap();
+            assert_expected_block(a, &block_a, &vector["expected_a"], id);
+            assert_expected_block(b, &block_b, &vector["expected_b"], id);
             let assertions = vector["assertions"].as_array().unwrap();
             for assertion in assertions {
                 let assertion = assertion.as_str().unwrap();
@@ -112,7 +140,35 @@ fn replays_parent_limit_vectors_from_manifest() {
         if vector["expected"]["ok"].as_bool().unwrap() {
             assert_eq!(result.unwrap().parent_hashes.len(), vector["expected"]["normalizedParentCount"].as_u64().unwrap() as usize, "{id}");
         } else {
-            assert!(result.is_err(), "{id}");
+            assert_expected_error(result, vector);
+        }
+    }
+}
+
+#[test]
+fn replays_parent_normalization_vectors_from_manifest() {
+    let suite = load_json(&suite_path("parent-normalization"));
+    for vector in suite["vectors"].as_array().unwrap() {
+        let id = vector["id"].as_str().unwrap();
+        if matches!(id, "PN3" | "PN4" | "PN5" | "PN7") {
+            continue;
+        }
+        let parents: Vec<String> = vector
+            .get("input")
+            .and_then(Value::as_array)
+            .map(|items| items.iter().map(|value| value.as_str().unwrap().to_string()).collect())
+            .unwrap_or_default();
+        let result = normalize_hashes(&parents);
+        if vector["expected"]["ok"].as_bool().unwrap() {
+            let expected: Vec<String> = vector["expected"]["normalized"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|value| value.as_str().unwrap().to_string())
+                .collect();
+            assert_eq!(result.unwrap(), expected, "{id}");
+        } else {
+            assert_expected_error(result, vector);
         }
     }
 }
@@ -130,12 +186,40 @@ fn replays_attribution_trace_vectors_from_manifest() {
                 (hash.clone(), parents.as_array().unwrap().iter().map(|p| p.as_str().unwrap().to_string()).collect())
             })
             .collect();
-        let trace = trace_attribution(vector["root"].as_str().unwrap(), &graph, None, None).unwrap();
+        let mode = vector.get("context").and_then(|context| context.get("validationMode")).and_then(Value::as_str);
+        let external: HashSet<String> = vector.get("context")
+            .and_then(|context| context.get("externalParents"))
+            .and_then(Value::as_array)
+            .map(|parents| parents.iter().filter_map(|parent| parent.get("hash").and_then(Value::as_str).map(str::to_string)).collect())
+            .unwrap_or_default();
+        let trace = trace_attribution(vector["root"].as_str().unwrap(), &graph, mode, Some(&external)).unwrap();
         let expected = &vector["expected"];
+        assert_eq!(trace.root, vector["root"].as_str().unwrap(), "{id}");
         if let Some(node_count) = expected.get("nodeCount").and_then(Value::as_u64) { assert_eq!(trace.nodes.len(), node_count as usize, "{id}"); }
         if let Some(edge_count) = expected.get("edgeCount").and_then(Value::as_u64) { assert_eq!(trace.edges.len(), edge_count as usize, "{id}"); }
         if let Some(max_depth) = expected.get("maxDepth").and_then(Value::as_u64) { assert_eq!(trace.max_depth, max_depth as usize, "{id}"); }
         if let Some(cycle) = expected.get("cycle").and_then(Value::as_bool) { assert_eq!(trace.cycle, cycle, "{id}"); }
+        if let Some(leaves) = expected.get("leaves").and_then(Value::as_array) {
+            let expected_leaves: Vec<String> = leaves.iter().map(|value| value.as_str().unwrap().to_string()).collect();
+            assert_eq!(trace.leaves, expected_leaves, "{id}");
+        }
+        if let Some(leaf_count) = expected.get("leafCount").and_then(Value::as_u64) { assert_eq!(trace.leaves.len(), leaf_count as usize, "{id}"); }
+        if let Some(validation_mode) = expected.get("validationMode").and_then(Value::as_str) { assert_eq!(trace.validation_mode, validation_mode, "{id}"); }
+        if let Some(complete) = expected.get("complete").and_then(Value::as_bool) { assert_eq!(trace.complete, complete, "{id}"); }
+        if let Some(missing) = expected.get("missingParents").and_then(Value::as_array) {
+            let expected_missing: Vec<String> = missing.iter().map(|value| value.as_str().unwrap().to_string()).collect();
+            assert_eq!(trace.missing_parents, expected_missing, "{id}");
+        }
+        if let Some(external_parents) = expected.get("externalParents").and_then(Value::as_array) {
+            let expected_external: Vec<String> = external_parents.iter().map(|value| value.as_str().unwrap().to_string()).collect();
+            assert_eq!(trace.external_parents, expected_external, "{id}");
+        }
+        if let Some(path_counts) = expected.get("pathCounts").and_then(Value::as_object) {
+            for (hash, count) in path_counts {
+                let node = trace.nodes.iter().find(|node| node.hash == *hash).unwrap_or_else(|| panic!("{id}: missing node {hash}"));
+                assert_eq!(node.path_count, count.as_u64().unwrap() as usize, "{id}:{hash}:pathCount");
+            }
+        }
         if let Some(nodes) = expected.get("nodes").and_then(Value::as_object) {
             for (hash, assertions) in nodes {
                 let node = trace.nodes.iter().find(|node| node.hash == *hash).unwrap_or_else(|| panic!("{id}: missing node {hash}"));
@@ -145,27 +229,54 @@ fn replays_attribution_trace_vectors_from_manifest() {
                 if let Some(child_count) = assertions.get("childCount").and_then(Value::as_u64) { assert_eq!(node.child_count, child_count as usize, "{id}:{hash}:childCount"); }
             }
         }
+        if let Some(path_count) = expected.get("allLeafPathCount").and_then(Value::as_u64) {
+            for node in trace.nodes.iter().filter(|node| node.hash != trace.root) { assert_eq!(node.path_count, path_count as usize, "{id}"); }
+        }
+        if let Some(child_count) = expected.get("allLeafChildCount").and_then(Value::as_u64) {
+            for node in trace.nodes.iter().filter(|node| node.hash != trace.root) { assert_eq!(node.child_count, child_count as usize, "{id}"); }
+        }
+        if expected.get("deterministic").and_then(Value::as_bool) == Some(true) {
+            let repeated = trace_attribution(vector["root"].as_str().unwrap(), &graph, mode, Some(&external)).unwrap();
+            assert_eq!(format!("{trace:?}"), format!("{repeated:?}"), "{id}");
+        }
     }
 }
 
 #[test]
-fn replays_lineage_negative_cycle_vectors_from_manifest() {
+fn replays_lineage_negative_vectors_from_manifest() {
     let suite = load_json(&suite_path("lineage-negative"));
     for vector in suite["vectors"].as_array().unwrap() {
-        if vector.get("graph").is_none() || vector["expected"].get("hasCycle").and_then(Value::as_bool) != Some(true) {
-            continue;
-        }
         let id = vector["id"].as_str().unwrap();
-        let graph: HashMap<String, Vec<String>> = vector["graph"]
-            .as_object()
-            .unwrap()
-            .iter()
-            .map(|(hash, parents)| {
-                (hash.clone(), parents.as_array().unwrap().iter().map(|p| p.as_str().unwrap().to_string()).collect())
-            })
-            .collect();
-        let root = graph.keys().next().unwrap().clone();
-        assert!(trace_attribution(&root, &graph, None, None).unwrap().cycle, "{id}");
+        let expected = &vector["expected"];
+        if vector.get("input").is_some() && expected.get("selfRef").is_some() {
+            let input = &vector["input"];
+            let parents: Vec<String> = input["parentHashes"].as_array().unwrap().iter().map(|value| value.as_str().unwrap().to_string()).collect();
+            let result = validate_lineage(input["blockHash"].as_str().unwrap(), &parents, None, None, None);
+            assert_eq!(result.ok, expected["ok"].as_bool().unwrap(), "{id}");
+            assert_eq!(result.self_ref, expected["selfRef"].as_bool().unwrap(), "{id}");
+        } else if vector.get("graph").is_some() && expected.get("hasCycle").and_then(Value::as_bool) == Some(true) {
+            let graph: HashMap<String, Vec<String>> = vector["graph"].as_object().unwrap().iter().map(|(hash, parents)| {
+                (hash.clone(), parents.as_array().unwrap().iter().map(|parent| parent.as_str().unwrap().to_string()).collect())
+            }).collect();
+            let root = graph.keys().next().unwrap().clone();
+            assert!(trace_attribution(&root, &graph, None, None).unwrap().cycle, "{id}");
+        } else if expected.get("duplicates").is_some() {
+            let input = &vector["input"];
+            let parents: Vec<String> = input["parentHashes"].as_array().unwrap().iter().map(|value| value.as_str().unwrap().to_string()).collect();
+            let result = validate_lineage(input["blockHash"].as_str().unwrap(), &parents, None, None, None);
+            let duplicates: Vec<String> = expected["duplicates"].as_array().unwrap().iter().map(|value| value.as_str().unwrap().to_string()).collect();
+            assert_eq!(result.duplicates, duplicates, "{id}");
+        } else if expected.get("errorCode").is_some() {
+            let parents: Vec<String> = vector["input"]["parentHashes"].as_array().unwrap().iter().map(|value| value.as_str().unwrap().to_string()).collect();
+            assert_expected_error(normalize_hashes(&parents), vector);
+        } else if expected.get("normalized").is_some() {
+            let parents: Vec<String> = vector["input"]["parentHashes"].as_array().unwrap().iter().map(|value| value.as_str().unwrap().to_string()).collect();
+            let normalized = normalize_hashes(&parents).unwrap();
+            let expected_normalized: Vec<String> = expected["normalized"].as_array().unwrap().iter().map(|value| value.as_str().unwrap().to_string()).collect();
+            assert_eq!(normalized, expected_normalized, "{id}");
+        } else {
+            panic!("{id}: unsupported lineage vector shape");
+        }
     }
 }
 
@@ -239,6 +350,7 @@ fn replays_semantic_validity_vectors_from_manifest() {
                     content_hash: input["contentHash"].as_str().unwrap().to_string(),
                     parent_hashes,
                     content: input["content"].clone(),
+                    protocol_version: input.get("protocolVersion").and_then(Value::as_str).map(str::to_string),
                 };
                 let result = validate_block_detailed(&block).unwrap();
                 assert_eq!(result.ok, vector["expected"]["ok"].as_bool().unwrap(), "{id}");

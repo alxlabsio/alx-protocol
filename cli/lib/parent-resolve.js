@@ -1,172 +1,104 @@
-/**
- * Resolve parent references for block link/create: files, hashes, @latest, @parent.
- */
+/** Resolve local Block references and parent hashes for CLI workflows. */
 
-import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
-import { resolve, basename } from "node:path";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { resolve } from "node:path";
 import { CliInputError } from "./cli-args.js";
-import { loadCliState, listRecentFromState } from "./cli-state.js";
-import { readParentBlockHash, resolveParentHashesFromFiles } from "./block-workflow.js";
+import { findIndexedBlockEntries, loadCliState, listRecentFromState } from "./cli-state.js";
+import { readParentBlockHash } from "./block-workflow.js";
 
-const HASH_RE = /^0x[a-f0-9]{64}$/;
+const HASH_RE = /^0x[a-f0-9]{64}$/i;
 const HASH_PREFIX_RE = /^0x[a-f0-9]{4,64}$/i;
 
-/**
- * @param {string} [cwd]
- * @returns {string[]} absolute paths to *.block.json in cwd (non-recursive)
- */
+function availableEntryPath(entry) {
+  const candidates = [entry?.path, ...(entry?.outputPaths ?? [])].filter(Boolean);
+  return candidates.find((path) => existsSync(path)) ?? null;
+}
+
 export function findBlockJsonFilesInCwd(cwd = process.cwd()) {
   const dir = resolve(cwd);
   if (!existsSync(dir)) return [];
-
-  const files = [];
-  for (const name of readdirSync(dir)) {
-    if (!name.endsWith(".block.json")) continue;
-    const full = resolve(dir, name);
-    try {
-      if (statSync(full).isFile()) files.push(full);
-    } catch {
-      // skip
-    }
-  }
-  return files.sort();
+  return readdirSync(dir)
+    .filter((name) => name.endsWith(".block.json"))
+    .map((name) => resolve(dir, name))
+    .filter((path) => {
+      try { return statSync(path).isFile(); } catch { return false; }
+    })
+    .sort();
 }
 
-/**
- * @param {string} cwd
- * @param {string} hashOrPrefix
- * @returns {string|null} absolute path
- */
+function readHashFromFile(path) {
+  try { return String(JSON.parse(readFileSync(path, "utf-8"))?.blockHash ?? "").toLowerCase(); }
+  catch { return ""; }
+}
+
 export function findBlockFileByHash(cwd, hashOrPrefix) {
   const normalized = String(hashOrPrefix).trim().toLowerCase();
-  const files = findBlockJsonFilesInCwd(cwd);
-  const matches = [];
-
-  for (const file of files) {
-    let block;
-    try {
-      block = JSON.parse(readFileSync(file, "utf-8"));
-    } catch {
-      continue;
-    }
-    const h = String(block?.blockHash || "").toLowerCase();
-    if (!h) continue;
-    if (h === normalized) {
-      matches.push(file);
-      continue;
-    }
-    const needle = normalized.startsWith("0x") ? normalized.slice(2) : normalized;
-    const hay = h.slice(2);
-    if (needle.length >= 4 && hay.startsWith(needle)) {
-      matches.push(file);
-    }
+  const matches = new Map();
+  for (const entry of findIndexedBlockEntries(normalized, cwd)) {
+    const path = availableEntryPath(entry);
+    if (path) matches.set(entry.blockHash, resolve(path));
   }
-
-  if (matches.length === 1) return matches[0];
-  if (matches.length > 1) {
-    throw new CliInputError(
-      `Ambiguous blockHash prefix ${hashOrPrefix} matches ${matches.length} files: ${matches.map((f) => basename(f)).join(", ")}`,
-    );
+  for (const path of findBlockJsonFilesInCwd(cwd)) {
+    const hash = readHashFromFile(path);
+    if (!hash) continue;
+    const needle = normalized.startsWith("0x") ? normalized.slice(2) : normalized;
+    if (hash === normalized || hash.slice(2).startsWith(needle)) matches.set(hash, path);
+  }
+  if (matches.size === 1) return [...matches.values()][0];
+  if (matches.size > 1) {
+    throw new CliInputError("Ambiguous blockHash prefix " + hashOrPrefix + " matches " + matches.size + " Blocks: " + [...matches.keys()].join(", "));
   }
   return null;
 }
 
-/**
- * @param {string} token
- * @param {{ cwd?: string, validateSeal?: (block: object) => { ok: boolean } }} [opts]
- * @returns {string} absolute path to parent Block file
- */
-export function resolveParentTokenToPath(token, opts = {}) {
+export function resolveBlockReferenceToPath(token, opts = {}) {
   const cwd = opts.cwd ?? process.cwd();
-  const trimmed = token.trim();
+  const trimmed = String(token ?? "").trim();
+  if (!trimmed) throw new CliInputError("A Block reference is required");
 
-  if (trimmed === "@latest") {
-    const state = loadCliState(cwd);
-    if (!state.lastBlock?.path || !existsSync(state.lastBlock.path)) {
-      throw new CliInputError(
-        "No @latest block in .alx/state.json. Create or link a Block with --out first, or pass an explicit parent file.",
-      );
-    }
-    return resolve(state.lastBlock.path);
+  if (trimmed === "@last" || trimmed === "@latest") {
+    const path = availableEntryPath(loadCliState(cwd).lastBlock);
+    if (!path) throw new CliInputError("No available local Block is recorded for " + trimmed + ".");
+    return resolve(path);
   }
-
   if (trimmed === "@parent") {
-    const state = loadCliState(cwd);
-    if (!state.lastBlock?.path || !existsSync(state.lastBlock.path)) {
-      throw new CliInputError("No last block for @parent. Run alx block link with --out first.");
-    }
-    const lastPath = resolve(state.lastBlock.path);
+    const lastPath = resolveBlockReferenceToPath("@last", opts);
     let lastBlock;
-    try {
-      lastBlock = JSON.parse(readFileSync(lastPath, "utf-8"));
-    } catch {
-      throw new CliInputError(`Cannot read last block file: ${lastPath}`);
-    }
-    const parents = lastBlock.parentHashes || [];
-    if (parents.length === 0) {
-      throw new CliInputError("Last block has no parentHashes — @parent is undefined.");
-    }
-    if (parents.length > 1) {
-      throw new CliInputError(
-        `Last block has ${parents.length} parents. Use an explicit parent file or hash instead of @parent.`,
-      );
-    }
-    return resolveParentTokenToPath(parents[0], opts);
+    try { lastBlock = JSON.parse(readFileSync(lastPath, "utf-8")); }
+    catch { throw new CliInputError("Cannot read last Block file: " + lastPath); }
+    const parents = Array.isArray(lastBlock.parentHashes) ? lastBlock.parentHashes : [];
+    if (parents.length === 0) throw new CliInputError("Last Block has no parentHashes; @parent is undefined.");
+    if (parents.length > 1) throw new CliInputError("Last Block has multiple parents; use an explicit hash or file.");
+    return resolveBlockReferenceToPath(parents[0], opts);
   }
-
   if (HASH_PREFIX_RE.test(trimmed)) {
-    const file = findBlockFileByHash(cwd, trimmed);
-    if (file) return file;
-    const recent = listRecentFromState(cwd, 5);
-    const hints = recent.map((r) => basename(r.path)).join(", ");
-    throw new CliInputError(
-      `No Block file in ${cwd} for hash ${trimmed}.${hints ? ` Recent: ${hints}.` : ""} Try: alx block list --recent`,
-    );
+    const path = findBlockFileByHash(cwd, trimmed);
+    if (path) return path;
+    const hints = listRecentFromState(cwd, 5).map((entry) => entry.blockHash).join(", ");
+    const suffix = hints ? " Recent: " + hints + "." : "";
+    throw new CliInputError("No available local Block matches " + trimmed + "." + suffix);
   }
-
-  const abs = resolve(cwd, trimmed);
-  if (!existsSync(abs)) {
-    const nearby = findBlockJsonFilesInCwd(cwd)
-      .map((f) => basename(f))
-      .filter((name) => name.includes(trimmed) || trimmed.includes(name.replace(".block.json", "")))
-      .slice(0, 5);
-    const suggestion = nearby.length > 0 ? ` Did you mean: ${nearby.join(", ")}?` : "";
-    throw new CliInputError(`Parent file not found: ${trimmed}.${suggestion}`);
-  }
-  return abs;
+  const path = resolve(cwd, trimmed);
+  if (!existsSync(path)) throw new CliInputError("Block file not found: " + trimmed);
+  try { if (!statSync(path).isFile()) throw new Error("not a file"); }
+  catch { throw new CliInputError("Block reference is not a readable file: " + trimmed); }
+  return path;
 }
 
-/**
- * @param {string[]} tokens — comma-separated tokens may already be split
- * @param {{ cwd?: string, validateSeal?: (block: object) => { ok: boolean } }} [opts]
- * @returns {string[]}
- */
-export function resolveParentTokensToPaths(tokens, opts = {}) {
-  const paths = [];
-  for (const token of tokens) {
-    if (!token) continue;
-    paths.push(resolveParentTokenToPath(token, opts));
+
+function resolveParentTokenToHash(token, opts = {}) {
+  const trimmed = String(token ?? "").trim();
+  if (trimmed === "@parent" && !opts.validateSeal) {
+    const block = JSON.parse(readFileSync(resolveBlockReferenceToPath("@last", opts), "utf-8"));
+    const parents = Array.isArray(block.parentHashes) ? block.parentHashes : [];
+    if (parents.length === 0) throw new CliInputError("Last Block has no parentHashes; @parent is undefined.");
+    if (parents.length > 1) throw new CliInputError("Last Block has multiple parents; use an explicit hash or file.");
+    return String(parents[0]).toLowerCase();
   }
-  return paths;
+  if (HASH_RE.test(trimmed) && !opts.validateSeal) return trimmed.toLowerCase();
+  return readParentBlockHash(resolveBlockReferenceToPath(trimmed, opts), opts);
 }
 
-/**
- * @param {string[]} tokens
- * @param {{ cwd?: string, validateSeal?: (block: object) => { ok: boolean } }} [opts]
- * @returns {string[]} blockHashes
- */
 export function resolveParentTokensToHashes(tokens, opts = {}) {
-  const paths = resolveParentTokensToPaths(tokens, opts);
-  return resolveParentHashesFromFiles(paths, opts);
-}
-
-/**
- * Suggest block files when parent is missing.
- * @param {string} [cwd]
- * @returns {string[]}
- */
-export function suggestBlockFiles(cwd = process.cwd()) {
-  const fromDisk = findBlockJsonFilesInCwd(cwd).map((f) => basename(f));
-  const fromState = listRecentFromState(cwd, 5).map((r) => basename(r.path));
-  return [...new Set([...fromState, ...fromDisk])].slice(0, 8);
+  return tokens.filter(Boolean).map((token) => resolveParentTokenToHash(token, opts));
 }

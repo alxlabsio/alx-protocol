@@ -6,7 +6,12 @@ import { resolve, join } from "node:path";
 import { REPO_ROOT } from "../lib/repo-root.js";
 
 const ajv = new Ajv2020({ strict: false, allErrors: true });
+ajv.addFormat("uri", {
+  type: "string",
+  validate: (value) => /^[A-Za-z][A-Za-z0-9+.-]*:[^\s]*$/.test(value),
+});
 const errors = [];
+const LOCAL_SCHEMA_ORIGIN = "alx-local://schemas/";
 
 function readJson(absPath) {
   return JSON.parse(readFileSync(absPath, "utf-8"));
@@ -14,19 +19,29 @@ function readJson(absPath) {
 
 function listJsonFiles(dirRel) {
   const abs = resolve(REPO_ROOT, dirRel);
-  if (!existsSync(abs)) return [];
-  return readdirSync(abs)
+  if (!existsSync(abs)) {
+    errors.push(`missing fixture directory: ${dirRel}`);
+    return [];
+  }
+  const files = readdirSync(abs)
     .filter((name) => name.endsWith(".json"))
     .map((name) => resolve(abs, name));
+  if (files.length === 0) errors.push(`empty fixture directory: ${dirRel}`);
+  return files;
 }
 
 function registerSchema(schemaRel) {
   const abs = resolve(REPO_ROOT, schemaRel);
   const schema = readJson(abs);
+  const normalized = schemaRel.replaceAll("\\", "/");
+  const localId = new URL(normalized, LOCAL_SCHEMA_ORIGIN).href;
+  if (!ajv.getSchema(localId)) {
+    ajv.addSchema({ ...schema, $id: localId }, localId);
+  }
   if (schema.$id && !ajv.getSchema(schema.$id)) {
     ajv.addSchema(schema, schema.$id);
   }
-  return schema.$id;
+  return schema.$id ?? localId;
 }
 
 function registerCoreSchemas() {
@@ -67,6 +82,37 @@ function validateFixture(schemaId, fixtureAbs, shouldPass) {
   }
 }
 
+function errorRegistryProblems(schemaId, data) {
+  const validate = ajv.getSchema(schemaId);
+  if (!validate) return ["missing compiled schema " + schemaId];
+
+  const problems = [];
+  if (!validate(data)) {
+    problems.push(validate.errors?.[0]?.message ?? "schema validation failed");
+  }
+
+  const ids = new Set();
+  const codes = new Set();
+  for (const entry of data.codes ?? []) {
+    if (ids.has(entry.id)) problems.push("duplicate error id " + entry.id);
+    if (codes.has(entry.code)) problems.push("duplicate error code " + entry.code);
+    ids.add(entry.id);
+    codes.add(entry.code);
+  }
+  return problems;
+}
+
+function validateErrorRegistry(schemaId, registryRel, shouldPass) {
+  const registryAbs = resolve(REPO_ROOT, registryRel);
+  const problems = errorRegistryProblems(schemaId, readJson(registryAbs));
+  if (shouldPass && problems.length > 0) {
+    errors.push("valid error registry rejected: " + registryRel + " (" + problems[0] + ")");
+  }
+  if (!shouldPass && problems.length === 0) {
+    errors.push("invalid error registry accepted: " + registryRel);
+  }
+}
+
 const CHECKS = [
   {
     schema: "protocol/schemas/block.schema.json",
@@ -98,15 +144,38 @@ const CHECKS = [
     valid: ["protocol/extensions/signing/fixtures/valid"],
     invalid: ["protocol/extensions/signing/fixtures/invalid"],
   },
-  {
-    schema: "protocol/extensions/ipfs-artifact-package/schemas/ipfs-artifact-package-manifest.schema.json",
-    valid: ["protocol/extensions/ipfs-artifact-package/fixtures/valid"],
-    invalid: ["protocol/extensions/ipfs-artifact-package/fixtures/invalid"],
-  },
 ];
 
 registerCoreSchemas();
 registerExtensionSchemas();
+
+const errorRegistryId = registerSchema("protocol/schemas/error-code-registry.schema.json");
+for (const registryRel of [
+  "protocol/error-codes.json",
+  "protocol/extensions/merkle/error-codes.json",
+  "protocol/extensions/signing/error-codes.json",
+]) {
+  validateErrorRegistry(errorRegistryId, registryRel, true);
+}
+const coreRegistry = readJson(resolve(REPO_ROOT, "protocol/error-codes.json"));
+const duplicateIdRegistry = structuredClone(coreRegistry);
+duplicateIdRegistry.codes.push({
+  ...duplicateIdRegistry.codes[0],
+  code: "ALX_SYNTHETIC_DUPLICATE_ID",
+});
+const duplicateCodeRegistry = structuredClone(coreRegistry);
+duplicateCodeRegistry.codes.push({
+  ...duplicateCodeRegistry.codes[0],
+  id: "ERR-999",
+});
+for (const [label, registry] of [
+  ["duplicate-id", duplicateIdRegistry],
+  ["duplicate-code", duplicateCodeRegistry],
+]) {
+  if (errorRegistryProblems(errorRegistryId, registry).length === 0) {
+    errors.push("invalid error registry accepted: " + label);
+  }
+}
 
 const extensionManifestId = registerSchema("protocol/schemas/extension-manifest.schema.json");
 for (const extId of readdirSync(resolve(REPO_ROOT, "protocol/extensions"))) {
@@ -140,4 +209,6 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`Fixture schema verification passed (${validCount} valid, ${invalidCount} invalid).`);
+console.log(
+  `Fixture schema verification passed (${validCount} valid, ${invalidCount} invalid; 3 error registries, 2 error-registry negative cases).`,
+);

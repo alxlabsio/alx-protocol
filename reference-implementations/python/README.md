@@ -44,7 +44,7 @@ source .venv/bin/activate
 pytest tests/
 ```
 
-## Conformance Adapter
+## Protocol conformance adapter
 
 The Python conformance adapter is:
 

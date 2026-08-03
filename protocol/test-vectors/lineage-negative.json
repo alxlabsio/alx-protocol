@@ -56,12 +56,12 @@
     },
     {
       "id": "LN5",
-      "description": "invalid hash format MUST be dropped during normalization",
+      "description": "invalid hash format MUST reject normalization",
       "input": {
         "parentHashes": ["not-a-hash", "0xTOOSHORT", "0x0000000000000000000000000000000000000000000000000000000000000001"]
       },
       "expected": {
-        "normalized": ["0x0000000000000000000000000000000000000000000000000000000000000001"]
+        "errorCode": "ALX_INVALID_HASH"
       }
     },
     {

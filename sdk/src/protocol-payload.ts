@@ -27,7 +27,7 @@ type VerifyTypedDataFn = (
 ) => string;
 
 /** Lazily resolve ethers.verifyTypedData. Throws a clear error if ethers is not installed. */
-async function loadVerifyTypedData(): Promise<VerifyTypedDataFn> {
+export async function loadVerifyTypedData(): Promise<VerifyTypedDataFn> {
   try {
     const ethers = await import("ethers");
     return ethers.verifyTypedData as VerifyTypedDataFn;

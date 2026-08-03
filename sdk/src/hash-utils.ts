@@ -1,58 +1,171 @@
 /**
- * hash-utils.ts — Shared hash normalization for ALX Protocol.
- *
- * Single source of truth for hash format validation and normalization.
- * Every module that touches hashes imports from here.
+ * Shared hash normalization for ALX Protocol.
  */
 
 import { ErrorCode, protocolError } from "./errors.js";
 
-/** Matches a valid 0x-prefixed, lowercase, 64-char hex hash. */
+/** Matches a valid 0x-prefixed, lowercase, 64-character hexadecimal hash. */
 export const HASH_PATTERN = /^0x[a-f0-9]{64}$/;
 
-/** Maximum number of parent hashes per block. */
+/** Maximum number of normalized parent hashes per Block. */
 export const MAX_PARENTS = 256;
 
-/**
- * Normalize a single hash to lowercase 0x-prefixed 64-char hex.
- * Throws if the result is not a valid hash.
- */
+/** Reason an imported parent-hash value was rejected. */
+export type RejectedParentHashReason = "not_array" | "invalid_type" | "invalid_format";
+
+/** Rejected collection or entry reported by the import-boundary sanitizer. */
+export interface RejectedParentHash {
+  index: number | null;
+  value: unknown;
+  reason: RejectedParentHashReason;
+}
+
+/** Duplicate entry reported after parent-hash normalization. */
+export interface DuplicateParentHash {
+  index: number;
+  hash: string;
+}
+
+/** Collection-level sanitizer diagnostic. */
+export interface ParentHashCollectionError {
+  reason: "too_many_parents";
+  count: number;
+  maximum: number;
+}
+
+/** Result of tolerant parent-hash inspection at an import boundary. */
+export interface SanitizedParentHashes {
+  /**
+   * True when the normalized result can be passed to the strict core.
+   * Duplicate entries do not make the result unusable.
+   */
+  ok: boolean;
+  /** Sorted unique valid entries. May exceed MAX_PARENTS when ok is false. */
+  parentHashes: string[];
+  rejected: RejectedParentHash[];
+  duplicates: DuplicateParentHash[];
+  collectionErrors: ParentHashCollectionError[];
+}
+
+/** Normalize and validate one hash. */
 export function normalizeHash(hash: string): string {
-  const h = String(hash ?? "").trim().toLowerCase();
-  if (!HASH_PATTERN.test(h)) throw protocolError(ErrorCode.INVALID_HASH, `invalid hash: ${hash}`);
-  return h;
+  if (typeof hash !== "string") {
+    throw protocolError(ErrorCode.INVALID_HASH, "hash must be a string");
+  }
+  const normalized = hash.trim().toLowerCase();
+  if (!HASH_PATTERN.test(normalized)) {
+    throw protocolError(ErrorCode.INVALID_HASH, "invalid hash: " + hash);
+  }
+  return normalized;
 }
 
 /**
- * Normalize a hash without validation — lowercases and trims.
- * Use only when invalid hashes should be filtered downstream
- * (e.g., inside normalizeHashes which filters after this step).
+ * Normalize a hash without format validation.
+ *
+ * This helper still requires a string and does not provide tolerant ingestion.
  */
 export function normalizeHashLenient(hash: string): string {
-  return String(hash ?? "").trim().toLowerCase();
+  if (typeof hash !== "string") {
+    throw protocolError(ErrorCode.INVALID_HASH, "hash must be a string");
+  }
+  return hash.trim().toLowerCase();
 }
 
 /**
- * Normalize and sort an array of hashes.
- * Silently drops invalid entries (parentHashes may contain partial data).
- * Throws if the normalized result exceeds MAX_PARENTS.
+ * Normalize, deduplicate, and sort parent hashes.
+ *
+ * Omitted input produces an empty array. Supplied collections fail closed when
+ * the collection or any entry is invalid.
  */
 export function normalizeHashes(hashes?: string[]): string[] {
-  if (!Array.isArray(hashes)) return [];
-  const result = [...new Set(
-    hashes
-      .map((h) => normalizeHashLenient(h))
-      .filter((h) => HASH_PATTERN.test(h))
-  )].sort();
+  if (hashes === undefined) return [];
+  if (!Array.isArray(hashes)) {
+    throw protocolError(ErrorCode.INVALID_HASH, "parentHashes must be an array");
+  }
+
+  const result = [...new Set(hashes.map((hash) => normalizeHash(hash)))].sort();
   if (result.length > MAX_PARENTS) {
-    throw protocolError(ErrorCode.TOO_MANY_PARENTS, `parentHashes exceeds maximum of ${MAX_PARENTS} after normalization`);
+    throw protocolError(
+      ErrorCode.TOO_MANY_PARENTS,
+      "parentHashes exceeds maximum of " + MAX_PARENTS + " after normalization",
+    );
   }
   return result;
 }
 
 /**
- * Convert a 0x-prefixed hex string to Uint8Array.
+ * Inspect parent hashes from an untrusted import boundary.
+ *
+ * This helper reports malformed entries and duplicates without changing strict
+ * Block creation. Callers must use parentHashes only when ok is true.
  */
+export function sanitizeImportedParentHashes(hashes?: unknown): SanitizedParentHashes {
+  if (hashes === undefined) {
+    return {
+      ok: true,
+      parentHashes: [],
+      rejected: [],
+      duplicates: [],
+      collectionErrors: [],
+    };
+  }
+
+  if (!Array.isArray(hashes)) {
+    return {
+      ok: false,
+      parentHashes: [],
+      rejected: [{ index: null, value: hashes, reason: "not_array" }],
+      duplicates: [],
+      collectionErrors: [],
+    };
+  }
+
+  const accepted = new Set<string>();
+  const rejected: RejectedParentHash[] = [];
+  const duplicates: DuplicateParentHash[] = [];
+
+  hashes.forEach((hash, index) => {
+    if (typeof hash !== "string") {
+      rejected.push({ index, value: hash, reason: "invalid_type" });
+      return;
+    }
+
+    let normalized: string;
+    try {
+      normalized = normalizeHash(hash);
+    } catch {
+      rejected.push({ index, value: hash, reason: "invalid_format" });
+      return;
+    }
+
+    if (accepted.has(normalized)) {
+      duplicates.push({ index, hash: normalized });
+      return;
+    }
+
+    accepted.add(normalized);
+  });
+
+  const parentHashes = [...accepted].sort();
+  const collectionErrors: ParentHashCollectionError[] =
+    parentHashes.length > MAX_PARENTS
+      ? [{
+          reason: "too_many_parents",
+          count: parentHashes.length,
+          maximum: MAX_PARENTS,
+        }]
+      : [];
+
+  return {
+    ok: rejected.length === 0 && collectionErrors.length === 0,
+    parentHashes,
+    rejected,
+    duplicates,
+    collectionErrors,
+  };
+}
+
+/** Convert a 0x-prefixed hexadecimal string to bytes. */
 export function hexToBytes(hex: string): Uint8Array {
   const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
   const bytes = new Uint8Array(clean.length / 2);
@@ -62,28 +175,24 @@ export function hexToBytes(hex: string): Uint8Array {
   return bytes;
 }
 
-/**
- * Concatenate two or more Uint8Arrays into one.
- */
+/** Concatenate byte arrays. */
 export function concatBytes(...arrays: Uint8Array[]): Uint8Array {
-  const total = arrays.reduce((sum, a) => sum + a.length, 0);
+  const total = arrays.reduce((sum, array) => sum + array.length, 0);
   const result = new Uint8Array(total);
   let offset = 0;
-  for (const a of arrays) { result.set(a, offset); offset += a.length; }
+  for (const array of arrays) {
+    result.set(array, offset);
+    offset += array.length;
+  }
   return result;
 }
 
-/**
- * Convert Uint8Array to hex string (no 0x prefix).
- */
+/** Convert bytes to a hexadecimal string without a 0x prefix. */
 export function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-/**
- * Constant-time hash comparison.
- * Prevents timing side-channels by always comparing all characters.
- */
+/** Compare equal-length hashes without data-dependent early exit. */
 export function compareHashesConstantTime(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let diff = 0;

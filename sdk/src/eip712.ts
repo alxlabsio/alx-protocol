@@ -122,8 +122,6 @@ async function loadRecoverFn(): Promise<RecoverFn> {
     const secp = curves.secp256k1;
     cachedRecoverFn = (hash: Uint8Array, signature: string): string => {
       const sigBytes = hexToBytes(signature);
-      const r = sigBytes.slice(0, 32);
-      const s = sigBytes.slice(32, 64);
       const v = sigBytes[64];
       const recovery = v >= 27 ? v - 27 : v;
       const sig = secp.Signature.fromCompact(bytesToHex(sigBytes.slice(0, 64))).addRecoveryBit(recovery);

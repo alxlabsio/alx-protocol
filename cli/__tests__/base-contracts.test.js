@@ -1,10 +1,12 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
+import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import {
+  loadAnchorAbi,
   loadBaseMainnetConfig,
   resolveContractAddress,
+  resolveContractNetwork,
+  resolveNetwork,
   resolveRpcUrl,
-  blockHashToBytes32,
 } from "../lib/base-contracts.js";
 
 describe("base-contracts", () => {
@@ -14,31 +16,54 @@ describe("base-contracts", () => {
     process.env = { ...envSnapshot };
   });
 
-  it("loads pointer registry address from config", () => {
+  it("loads the minimal Base integration configuration", () => {
     const config = loadBaseMainnetConfig();
-    assert.equal(config.chainId, 8453);
-    assert.ok(config.architecture.defaultOffChain.includes("alxIndex"));
-    assert.ok(config.architecture.defaultOffChain.includes("alxRegistry"));
-    const addr = resolveContractAddress(config, "pointerRegistry");
-    assert.equal(addr, "0xD1F216E872a9ed4b90E364825869c2F377155B29");
+    assert.equal(config.configVersion, "1.0.0");
+    assert.equal(config.protocolVersion, "1");
+    assert.equal(config.profile, "minimal-chain");
+    assert.deepEqual(config.defaults.artifactPath, ["blocks", "ipfs"]);
+    assert.equal(config.defaults.onChainWrites, "none");
+    assert.equal(config.optionalOperations.anchor.contract, "anchor");
+    assert.deepEqual(Object.keys(config.contracts), ["anchor"]);
+    assert.deepEqual(config.contracts.anchor.capabilities, ["anchor-block-hash", "anchor-batch"]);
+    assert.equal(config.contracts.anchor.deployment.network, "base-sepolia");
+    assert.equal(config.contracts.anchor.deployment.state, "planned");
   });
 
-  it("env override wins for pointer registry", () => {
+  it("uses declared lifecycle and deployment states consistently", () => {
     const config = loadBaseMainnetConfig();
-    process.env.ALX_POINTER_REGISTRY_ADDRESS = "0x0000000000000000000000000000000000000001";
-    const addr = resolveContractAddress(config, "pointerRegistry");
-    assert.equal(addr, "0x0000000000000000000000000000000000000001");
+    const lifecycleValues = new Set(["planned", "active"]);
+    const deploymentStates = new Set(["planned"]);
+
+    for (const component of Object.values(config.components)) {
+      assert.equal(lifecycleValues.has(component.lifecycle), true);
+    }
+    for (const contract of Object.values(config.contracts)) {
+      assert.equal(lifecycleValues.has(contract.lifecycle), true);
+      assert.equal(deploymentStates.has(contract.deployment.state), true);
+      if (contract.deployment.network) {
+        assert.ok(config.networks[contract.deployment.network]);
+      }
+      assert.equal(contract.deployment.address, null);
+    }
   });
 
-  it("resolveRpcUrl uses default then env", () => {
+  it("loads the anchor ABI and supports its address override", () => {
     const config = loadBaseMainnetConfig();
-    assert.equal(resolveRpcUrl(config), "https://mainnet.base.org");
-    process.env.ALX_BASE_RPC_URL = "https://rpc.example";
-    assert.equal(resolveRpcUrl(config), "https://rpc.example");
+    assert.ok(loadAnchorAbi().some((fragment) => fragment.includes("anchorBatch")));
+    assert.equal(resolveContractAddress(config, "anchor"), null);
+    process.env.ALX_ANCHOR_ADDRESS = "0x0000000000000000000000000000000000000001";
+    assert.equal(resolveContractAddress(config, "anchor"), "0x0000000000000000000000000000000000000001");
   });
 
-  it("blockHashToBytes32 normalizes valid hash", () => {
-    const h = "0x" + "Ab".repeat(32);
-    assert.equal(blockHashToBytes32(h), h.toLowerCase());
+  it("resolves network metadata and network-specific RPC environment variables", () => {
+    const config = loadBaseMainnetConfig();
+    assert.equal(resolveNetwork(config, "base-mainnet").chainId, 8453);
+    assert.equal(resolveNetwork(config, "base-sepolia").chainId, 84532);
+    assert.equal(resolveContractNetwork(config, "anchor"), "base-sepolia");
+    assert.equal(resolveRpcUrl(config, "base-mainnet"), "https://mainnet.base.org");
+    process.env.ALX_BASE_SEPOLIA_RPC_URL = "https://sepolia-rpc.example";
+    assert.equal(resolveRpcUrl(config, "base-sepolia"), "https://sepolia-rpc.example");
   });
+
 });

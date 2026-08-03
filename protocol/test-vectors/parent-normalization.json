@@ -1,0 +1,126 @@
+{
+  "$schema": "../schemas/test-vector.schema.json",
+  "suite": "parent-normalization",
+  "description": "Normative fail-closed parentHashes normalization behavior.",
+  "vectors": [
+    {
+      "id": "PN1",
+      "description": "omitted parentHashes normalizes to an empty array",
+      "operation": "normalizeHashes",
+      "inputMode": "omitted",
+      "expected": {
+        "ok": true,
+        "normalized": []
+      }
+    },
+    {
+      "id": "PN2",
+      "description": "an empty parentHashes array remains empty",
+      "operation": "normalizeHashes",
+      "input": [],
+      "expected": {
+        "ok": true,
+        "normalized": []
+      }
+    },
+    {
+      "id": "PN3",
+      "description": "null parentHashes is rejected",
+      "operation": "normalizeHashes",
+      "input": null,
+      "expected": {
+        "ok": false,
+        "errorCode": "ALX_INVALID_HASH"
+      }
+    },
+    {
+      "id": "PN4",
+      "description": "string parentHashes is rejected",
+      "operation": "normalizeHashes",
+      "input": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "expected": {
+        "ok": false,
+        "errorCode": "ALX_INVALID_HASH"
+      }
+    },
+    {
+      "id": "PN5",
+      "description": "object parentHashes is rejected",
+      "operation": "normalizeHashes",
+      "input": {
+        "hash": "0x0000000000000000000000000000000000000000000000000000000000000001"
+      },
+      "expected": {
+        "ok": false,
+        "errorCode": "ALX_INVALID_HASH"
+      }
+    },
+    {
+      "id": "PN6",
+      "description": "a mixed valid and invalid array rejects the complete operation",
+      "operation": "normalizeHashes",
+      "input": [
+        "0x0000000000000000000000000000000000000000000000000000000000000001",
+        "not-a-hash"
+      ],
+      "expected": {
+        "ok": false,
+        "errorCode": "ALX_INVALID_HASH"
+      }
+    },
+    {
+      "id": "PN7",
+      "description": "a non-string parent entry is rejected",
+      "operation": "normalizeHashes",
+      "input": [
+        "0x0000000000000000000000000000000000000000000000000000000000000001",
+        7
+      ],
+      "expected": {
+        "ok": false,
+        "errorCode": "ALX_INVALID_HASH"
+      }
+    },
+    {
+      "id": "PN8",
+      "description": "an invalid hash string is rejected",
+      "operation": "normalizeHashes",
+      "input": ["0xTOOSHORT"],
+      "expected": {
+        "ok": false,
+        "errorCode": "ALX_INVALID_HASH"
+      }
+    },
+    {
+      "id": "PN9",
+      "description": "uppercase and whitespace-padded hashes normalize",
+      "operation": "normalizeHashes",
+      "input": [
+        "  0x000000000000000000000000000000000000000000000000000000000000000A  "
+      ],
+      "expected": {
+        "ok": true,
+        "normalized": [
+          "0x000000000000000000000000000000000000000000000000000000000000000a"
+        ]
+      }
+    },
+    {
+      "id": "PN10",
+      "description": "duplicate unsorted hashes are deduplicated and sorted",
+      "operation": "normalizeHashes",
+      "input": [
+        "0x000000000000000000000000000000000000000000000000000000000000000b",
+        "0x000000000000000000000000000000000000000000000000000000000000000a",
+        "0x000000000000000000000000000000000000000000000000000000000000000b"
+      ],
+      "expected": {
+        "ok": true,
+        "normalized": [
+          "0x000000000000000000000000000000000000000000000000000000000000000a",
+          "0x000000000000000000000000000000000000000000000000000000000000000b"
+        ]
+      }
+    }
+  ]
+}

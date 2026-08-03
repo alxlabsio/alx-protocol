@@ -1,4 +1,4 @@
-//! ALX Protocol Conformance Adapter — Rust Reference Implementation
+//! ALX Protocol conformance Adapter — Rust Reference Implementation
 //!
 //! Exposes the Rust reference implementation via the standard conformance
 //! interface (stdin/stdout JSON protocol).
@@ -21,6 +21,8 @@ use alx_protocol::{
     create_block,
     validate_block_detailed,
     validate_signed_block,
+    normalize_hashes,
+    validate_lineage,
     validate_graph,
     validate_incremental_block,
     verify_graph,
@@ -62,6 +64,7 @@ fn parse_block(value: &Value) -> Option<Block> {
         content_hash: value.get("contentHash")?.as_str()?.to_string(),
         parent_hashes: extract_string_array(value.get("parentHashes")),
         content: value.get("content").cloned().unwrap_or(Value::Null),
+        protocol_version: value.get("protocolVersion").and_then(Value::as_str).map(str::to_string),
     })
 }
 
@@ -72,6 +75,22 @@ fn parse_signed_block(value: &Value) -> Option<SignedBlock> {
         attestations: value.get("attestations").and_then(|v| v.as_array()).map(|items| items.iter().filter_map(parse_attestation).collect()).unwrap_or_default(),
     })
 }
+
+fn parse_parent_hashes(value: Option<&Value>) -> Result<Vec<String>, String> {
+    let Some(value) = value else { return Ok(vec![]); };
+    let Some(items) = value.as_array() else {
+        return Err("[ALX_INVALID_HASH] parentHashes must be an array".into());
+    };
+    let mut hashes = Vec::with_capacity(items.len());
+    for item in items {
+        let Some(hash) = item.as_str() else {
+            return Err("[ALX_INVALID_HASH] parent hash must be a string".into());
+        };
+        hashes.push(hash.to_string());
+    }
+    Ok(hashes)
+}
+
 fn handle(op: &Value) -> Value {
     let operation = op.get("operation").and_then(|v| v.as_str()).unwrap_or("");
     let input = op.get("input").cloned().unwrap_or(Value::Null);
@@ -98,7 +117,10 @@ fn handle(op: &Value) -> Value {
 
         "deriveBlockHash" => {
             let content = input.get("content").cloned().unwrap_or(Value::Null);
-            let parents = extract_string_array(input.get("parentHashes"));
+            let parents = match parse_parent_hashes(input.get("parentHashes")) {
+                Ok(parents) => parents,
+                Err(error) => return json!({"error": error}),
+            };
             match derive_block_hash(&content, &parents) {
                 Ok(hash) => json!({"output": hash}),
                 Err(e) => json!({"error": e}),
@@ -115,7 +137,10 @@ fn handle(op: &Value) -> Value {
 
         "createBlock" => {
             let content = input.get("content").cloned().unwrap_or(Value::Null);
-            let parents = extract_string_array(input.get("parentHashes"));
+            let parents = match parse_parent_hashes(input.get("parentHashes")) {
+                Ok(parents) => parents,
+                Err(error) => return json!({"error": error}),
+            };
             match create_block(content, &parents) {
                 Ok(block) => json!({"output": {
                     "blockHash": block.block_hash,
@@ -142,6 +167,42 @@ fn handle(op: &Value) -> Value {
                 }}),
                 Err(e) => json!({"error": e}),
             }
+        }
+
+        "normalizeHashes" => {
+            let hashes = match parse_parent_hashes(op.get("input")) {
+                Ok(hashes) => hashes,
+                Err(error) => return json!({"error": error}),
+            };
+            match normalize_hashes(&hashes) {
+                Ok(result) => json!({"output": result}),
+                Err(e) => json!({"error": e}),
+            }
+        }
+
+        "validateLineage" => {
+            let block_hash = input.get("blockHash").and_then(Value::as_str).unwrap_or("");
+            let parent_hashes = extract_string_array(input.get("parentHashes"));
+            let known_hashes: Option<std::collections::HashSet<String>> = input.get("knownHashes")
+                .and_then(Value::as_array)
+                .map(|items| items.iter().filter_map(Value::as_str).map(str::to_string).collect());
+            let mode = input.get("context").and_then(|context| context.get("validationMode")).and_then(Value::as_str);
+            let external_parents: std::collections::HashSet<String> = input.get("context")
+                .and_then(|context| context.get("externalParents"))
+                .and_then(Value::as_array)
+                .map(|parents| parents.iter().filter_map(|parent| parent.get("hash").and_then(Value::as_str).map(str::to_string)).collect())
+                .unwrap_or_default();
+            let result = validate_lineage(block_hash, &parent_hashes, known_hashes.as_ref(), mode, Some(&external_parents));
+            json!({"output": {
+                "ok": result.ok,
+                "blockHash": result.block_hash,
+                "parents": result.parents,
+                "duplicates": result.duplicates,
+                "missing": result.missing,
+                "external": result.external,
+                "selfRef": result.self_ref,
+                "cycle": result.cycle,
+            }})
         }
 
         "validateSignedBlockFixture" => {

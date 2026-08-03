@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/test-vector.schema.json",
   "title": "ALX Core Test Vector Suite",
   "description": "Structural envelope for core conformance vector files under protocol/test-vectors/. Individual vector payloads vary by suite.",
+  "$comment": "Public schema URL: [Placeholder].",
   "type": "object",
   "required": ["suite", "description", "vectors"],
   "additionalProperties": true,
@@ -46,6 +46,11 @@
             "type": "string",
             "enum": ["single", "pair"],
             "description": "Discriminator for multi-input vectors. 'single' = use 'input'; 'pair' = use 'input_a' and 'input_b'. Absent when the vector uses a different field (e.g. 'graph')."
+          },
+          "inputMode": {
+            "type": "string",
+            "enum": ["omitted"],
+            "description": "Requests a language-level omitted argument when the value cannot be represented directly in JSON."
           },
           "operation": {
             "type": "string",

@@ -3,8 +3,8 @@
 /**
  * ALX Protocol CLI
  *
- * Commands include: init, validate, inspect, block create/link, blockset, package verify,
- * receipt verify, trace, proof, test-vectors run, conformance run,
+ * Commands include: init, validate, inspect, block create/link/show/list, hash batch,
+ * trace, proof, test-vectors run, conformance run,
  * extension-conformance, serve, and version.
  */
 
@@ -14,16 +14,16 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { readProtocolVersion } from "../lib/protocol-version.js";
 import sdk from "../lib/sdk.js";
 import {
-  validateArtifactPackage,
-  validateReceiptAgainstPackage,
-} from "../lib/artifact-packages.js";
-import {
   green, red, dim, bold, ok, fail, info, json, die, dieJson, readInput, parseJson,
-  writeBlockJson, appendBlockToGraph,
+  appendBlockToGraph,
 } from "../lib/cli-utils.js";
-import { parseBlockCreateArgs, parseBlockLinkArgs } from "../lib/cli-args.js";
-import { recordBlockWrite, listRecentFromState } from "../lib/cli-state.js";
-import { resolveParentTokensToHashes, findBlockJsonFilesInCwd } from "../lib/parent-resolve.js";
+import { parseBlockCreateArgs, parseBlockLinkArgs, parseParentReferences } from "../lib/cli-args.js";
+import { persistBlockWrite, listRecentFromState, listAllFromState } from "../lib/cli-state.js";
+import {
+  resolveBlockReferenceToPath,
+  resolveParentTokensToHashes,
+  findBlockJsonFilesInCwd,
+} from "../lib/parent-resolve.js";
 import { checkContentType, knownContentTypes, CONTENT_TYPE_SCHEMAS } from "../lib/content-types.js";
 import { fetchFromIpfs, fetchFromS3, fetchFromUrl, s3EnvStatus, ipfsEnvStatus, retrievalEnvStatus } from "../lib/storage-providers.js";
 import { basename } from "node:path";
@@ -31,6 +31,15 @@ import { startServer } from "../server/server.js";
 import { startRetrievalServer } from "../server/retrieval-server.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const localEnvPath = resolve(process.cwd(), ".env");
+if (existsSync(localEnvPath)) {
+  try {
+    process.loadEnvFile(localEnvPath);
+  } catch (err) {
+    die(`Unable to load ${localEnvPath}: ${err.message}`);
+  }
+}
 
 const {
   canonicalizeProtocolJson,
@@ -115,14 +124,16 @@ function cmdInit(args) {
     [research.blockHash, synthesis.blockHash]
   );
 
-  writeFileSync(join(target, "research.block.json"), JSON.stringify(research, null, 2) + "\n");
+  persistBlockWrite({ block: research, outPath: join(target, "research.block.json"), cwd: target });
   ok("Created research.block.json (root block)");
 
-  writeFileSync(join(target, "synthesis.block.json"), JSON.stringify(synthesis, null, 2) + "\n");
+  persistBlockWrite({ block: synthesis, outPath: join(target, "synthesis.block.json"), cwd: target });
   ok(`Created synthesis.block.json (parent: research)`);
 
-  writeFileSync(join(target, "decision.block.json"), JSON.stringify(decision, null, 2) + "\n");
+  persistBlockWrite({ block: decision, outPath: join(target, "decision.block.json"), cwd: target });
   ok(`Created decision.block.json (parents: research + synthesis)`);
+
+  writeFileSync(join(target, ".gitignore"), ".alx/\n");
 
   const graph = [research, synthesis, decision];
   writeFileSync(join(target, "graph.json"), JSON.stringify(graph, null, 2) + "\n");
@@ -135,16 +146,16 @@ function cmdInit(args) {
 
   console.log(`\n${bold("Next steps:")}\n`);
   console.log(`  cd ${dir}`);
-  console.log(`  alx validate research.block.json`);
-  console.log(`  alx validate tampered.block.json`);
-  console.log(`  alx inspect decision.block.json`);
-  console.log(`  alx trace ${decision.blockHash.slice(0, 18)}... --file graph.json`);
+  console.log(`  alx block verify research.block.json`);
+  console.log(`  alx block verify tampered.block.json`);
+  console.log(`  alx block inspect decision.block.json`);
+  console.log(`  alx graph trace ${decision.blockHash.slice(0, 18)}... --file graph.json`);
   console.log(`  alx test-vectors run`);
   console.log();
 }
 function cmdValidate(args) {
   const filePath = args[0];
-  if (!filePath || filePath.startsWith("--")) die("Usage: alx validate <file>");
+  if (!filePath || filePath.startsWith("--")) die("Usage: alx block verify <reference> | alx graph verify <file>");
 
   const input = readInput(filePath);
   const data = parseJson(input);
@@ -203,7 +214,7 @@ function cmdValidate(args) {
 
 function cmdInspect(args) {
   const filePath = args[0];
-  if (!filePath || filePath.startsWith("--")) die("Usage: alx inspect <file>");
+  if (!filePath || filePath.startsWith("--")) die("Usage: alx block inspect <file>");
 
   const input = readInput(filePath);
   const block = parseJson(input);
@@ -234,13 +245,14 @@ function cmdInspect(args) {
   console.log();
 }
 
-function printBlockCreated(block, { outPath, graphPath, label = "Block created" }) {
+function printBlockCreated(block, { storedPath, outPath, graphPath, label = "Block created" }) {
   console.log();
   ok(label);
   console.log(`  ${bold("blockHash")}    ${block.blockHash}`);
   console.log(`  ${bold("contentHash")} ${block.contentHash}`);
   console.log(`  ${bold("parents")}      ${block.parentHashes.length}`);
-  if (outPath) console.log(`  ${bold("saved")}        ${outPath}`);
+  if (storedPath) console.log(`  ${bold("stored")}       ${storedPath}`);
+  if (outPath && outPath !== storedPath) console.log(`  ${bold("copied")}       ${outPath}`);
   if (graphPath) console.log(`  ${bold("graph")}        appended to ${graphPath}`);
   console.log();
   console.log(dim("  Use --json for machine-readable output"));
@@ -290,17 +302,15 @@ async function cmdBlockCreate(args) {
     const graphPath = args.indexOf("--append-graph") !== -1
       ? resolve(process.cwd(), args[args.indexOf("--append-graph") + 1])
       : null;
-    const parentsRaw = args.indexOf("--parents") !== -1
-      ? args[args.indexOf("--parents") + 1]?.split(",").map(h => h.trim()).filter(Boolean)
-      : [];
     parsed = {
       content: fetchedContent,
       contentSource: "fetch",
-      parents: parentsRaw ?? [],
+      parents: parseParentReferences(args),
       outPath,
       graphPath,
       json: useJson,
       dryRun: args.includes("--dry-run"),
+      validateParents: args.includes("--validate-parents"),
     };
   } else {
     try {
@@ -314,7 +324,10 @@ async function cmdBlockCreate(args) {
   let parentHashes = [];
   if (parsed.parents.length > 0) {
     try {
-      parentHashes = resolveParentTokensToHashes(parsed.parents, { cwd: process.cwd() });
+      parentHashes = resolveParentTokensToHashes(parsed.parents, {
+        cwd: process.cwd(),
+        validateSeal: parsed.validateParents ? validateBlock : undefined,
+      });
     } catch (err) {
       dieInput(err, useJson);
       return;
@@ -329,12 +342,15 @@ async function cmdBlockCreate(args) {
     for (const w of warnings) console.log(`  ${dim("⚠")} ${dim(w)}`);
   }
 
+  let persisted = null;
   if (!parsed.dryRun) {
-    if (parsed.outPath) {
-      writeBlockJson(parsed.outPath, block);
-      recordBlockWrite({ block, outPath: parsed.outPath });
+    try {
+      persisted = persistBlockWrite({ block, outPath: parsed.outPath });
+      if (parsed.graphPath) appendBlockToGraph(parsed.graphPath, block);
+    } catch (err) {
+      dieInput(err, useJson);
+      return;
     }
-    if (parsed.graphPath) appendBlockToGraph(parsed.graphPath, block);
   }
 
   if (parsed.json) {
@@ -342,6 +358,7 @@ async function cmdBlockCreate(args) {
     else json(block);
   } else {
     printBlockCreated(block, {
+      storedPath: parsed.dryRun ? null : persisted?.canonicalPath,
       outPath: parsed.dryRun ? null : parsed.outPath,
       graphPath: parsed.dryRun ? null : parsed.graphPath,
       label: parsed.dryRun ? "Block (dry-run)" : "Block created",
@@ -382,12 +399,15 @@ async function cmdBlockLink(args) {
     for (const w of warnings) console.log(`  ${dim("⚠")} ${dim(w)}`);
   }
 
+  let persisted = null;
   if (!parsed.dryRun) {
-    if (parsed.outPath) {
-      writeBlockJson(parsed.outPath, block);
-      recordBlockWrite({ block, outPath: parsed.outPath });
+    try {
+      persisted = persistBlockWrite({ block, outPath: parsed.outPath });
+      if (parsed.graphPath) appendBlockToGraph(parsed.graphPath, block);
+    } catch (err) {
+      dieInput(err, useJson);
+      return;
     }
-    if (parsed.graphPath) appendBlockToGraph(parsed.graphPath, block);
   }
 
   if (parsed.json) {
@@ -395,6 +415,7 @@ async function cmdBlockLink(args) {
     else json(block);
   } else {
     printBlockCreated(block, {
+      storedPath: parsed.dryRun ? null : persisted?.canonicalPath,
       outPath: parsed.dryRun ? null : parsed.outPath,
       graphPath: parsed.dryRun ? null : parsed.graphPath,
       label: parsed.dryRun ? "Block (dry-run)" : "Block linked",
@@ -408,6 +429,7 @@ async function cmdBlockLink(args) {
 }
 
 function cmdBlockList(args) {
+  const showAll = args.includes("--all");
   const recentIdx = args.indexOf("--recent");
   let limit = 10;
   if (recentIdx !== -1) {
@@ -417,19 +439,40 @@ function cmdBlockList(args) {
   }
 
   const cwd = process.cwd();
-  const fromState = listRecentFromState(cwd, limit);
+  const fromState = showAll ? listAllFromState(cwd) : listRecentFromState(cwd, limit);
   const seen = new Set(fromState.map((r) => r.blockHash));
   const diskFiles = findBlockJsonFilesInCwd(cwd);
 
-  const rows = [...fromState];
+  const rows = fromState.map((entry) => {
+    const availablePath = [entry.path, ...(entry.outputPaths ?? [])].find((path) => path && existsSync(path));
+    return {
+      blockHash: entry.blockHash,
+      contentHash: entry.contentHash ?? null,
+      parentHashes: entry.parentHashes ?? [],
+      path: entry.path ?? null,
+      outputPaths: entry.outputPaths ?? [],
+      createdAt: entry.createdAt ?? null,
+      available: Boolean(availablePath),
+      source: "index",
+    };
+  });
   for (const file of diskFiles) {
-    if (rows.length >= limit) break;
+    if (!showAll && rows.length >= limit) break;
     try {
       const block = JSON.parse(readFileSync(file, "utf-8"));
       const hash = String(block.blockHash || "").toLowerCase();
       if (!hash || seen.has(hash)) continue;
       seen.add(hash);
-      rows.push({ path: file, blockHash: hash, at: null, source: "cwd" });
+      rows.push({
+        blockHash: hash,
+        contentHash: block.contentHash ?? null,
+        parentHashes: block.parentHashes ?? [],
+        path: file,
+        outputPaths: [],
+        createdAt: null,
+        available: true,
+        source: "cwd",
+      });
     } catch {
       // skip invalid
     }
@@ -440,16 +483,20 @@ function cmdBlockList(args) {
       cwd,
       count: rows.length,
       blocks: rows.map((r) => ({
-        path: r.path,
         blockHash: r.blockHash,
-        at: r.at ?? null,
-        source: r.source ?? "state",
+        contentHash: r.contentHash,
+        parentHashes: r.parentHashes,
+        path: r.path,
+        outputPaths: r.outputPaths,
+        createdAt: r.createdAt,
+        available: r.available,
+        source: r.source,
       })),
     });
     return;
   }
 
-  console.log(`\n${bold("Recent Blocks")} (${cwd})\n`);
+  console.log(`\n${bold(showAll ? "All Indexed Blocks" : "Recent Blocks")} (${cwd})\n`);
   if (rows.length === 0) {
     info("  No blocks in .alx/state.json or *.block.json in this directory.");
     info("  Create one: alx block create --content-file ./data.json --out research.block.json");
@@ -458,14 +505,42 @@ function cmdBlockList(args) {
   }
 
   for (const row of rows) {
-    const label = basename(row.path);
-    const when = row.at ? dim(`  ${row.at}`) : dim("  (on disk)");
+    const label = row.path ? basename(row.path) : row.blockHash;
+    const when = row.createdAt ? dim(`  ${row.createdAt}`) : dim("  (on disk)");
+    const availability = row.available ? "" : dim("  unavailable");
     info(`  ${label}`);
-    info(`    ${row.blockHash.slice(0, 18)}...${when}`);
+    info(`    ${row.blockHash.slice(0, 18)}...${when}${availability}`);
   }
   console.log();
-  console.log(dim("  Parent shorthand: @latest  @parent  (requires prior --out)"));
+  console.log(dim("  Parent shorthand: @last  @latest  @parent"));
   console.log();
+}
+
+function cmdBlockShow(args) {
+  const reference = args.find((arg) => !arg.startsWith("--"));
+  if (!reference) die("Usage: alx block show <hash|prefix|@last|file>");
+  let path;
+  try {
+    path = resolveBlockReferenceToPath(reference, { cwd: process.cwd() });
+  } catch (err) {
+    dieInput(err, args.includes("--json"));
+    return;
+  }
+  const block = parseJson(readInput(path));
+  json(block);
+}
+
+function cmdBlockVerify(args) {
+  const reference = args.find((arg) => !arg.startsWith("--"));
+  if (!reference) die("Usage: alx block verify <hash|prefix|@last|file>");
+  let path;
+  try {
+    path = resolveBlockReferenceToPath(reference, { cwd: process.cwd() });
+  } catch (err) {
+    dieInput(err, args.includes("--json"));
+    return;
+  }
+  return cmdValidate([path]);
 }
 
 function cmdBlockTypes(args) {
@@ -492,112 +567,14 @@ async function cmdBlock(args) {
   if (sub === "create")  return await cmdBlockCreate(rest);
   if (sub === "link")    return cmdBlockLink(rest);
   if (sub === "list")    return cmdBlockList(rest);
+  if (sub === "show")    return cmdBlockShow(rest);
   if (sub === "types")   return cmdBlockTypes(rest);
-  if (sub === "verify")  return cmdValidate(rest);
+  if (sub === "verify")  return cmdBlockVerify(rest);
   if (sub === "inspect") return cmdInspect(rest);
   if (sub === "proof")   return cmdProof(rest);
   if (sub === "publish") return await cmdPublish(rest);
   if (sub === "resolve") return await cmdResolve(rest);
-  die("Usage: alx block create | link | list | types | verify | inspect | proof | publish | resolve");
-}
-
-async function cmdPackage(args) {
-  const subcommand = args[0];
-  if (subcommand !== "verify") die("Usage: alx package verify <dir> [--json]");
-
-  const packageDir = args[1];
-  if (!packageDir || packageDir.startsWith("--")) die("Usage: alx package verify <dir> [--json]");
-
-  const result = await validateArtifactPackage(packageDir);
-  const output = {
-    ok: result.ok,
-    complete: result.complete,
-    blockHash: result.blockHash,
-    contentHash: result.contentHash,
-    validationMode: result.validationMode,
-    blockCount: result.blockCount,
-    edgeCount: result.edgeCount,
-    missingParents: result.missingParents ?? [],
-    externalParents: result.externalParents ?? [],
-    cidVerified: result.cidVerified,
-    errors: result.issues ?? [],
-    warnings: result.warnings ?? [],
-  };
-
-  if (args.includes("--json")) {
-    json(output);
-  } else {
-    console.log(`\n${bold("Artifact Package Verification")}\n`);
-    console.log(`  ${bold("Package")}        ${packageDir}`);
-    console.log(`  ${bold("Result")}         ${output.ok ? green("valid") : red("INVALID")}`);
-    console.log(`  ${bold("Complete")}       ${output.complete ? green("true") : "false"}`);
-    console.log(`  ${bold("Block")}          ${output.blockHash ?? "(unavailable)"}`);
-    console.log(`  ${bold("Blocks")}         ${output.blockCount ?? 0}`);
-    console.log(`  ${bold("Edges")}          ${output.edgeCount ?? 0}`);
-    console.log(`  ${bold("CIDs")}           ${output.cidVerified ? green("verified") : red("not verified")}`);
-    console.log(`  ${bold("Missing")}        ${output.missingParents.length}`);
-    console.log(`  ${bold("External")}       ${output.externalParents.length}`);
-    if (output.errors.length > 0) {
-      console.log(`\n  ${bold("Errors")}`);
-      for (const error of output.errors) console.log(`    - ${error}`);
-    }
-    if (output.warnings.length > 0) {
-      console.log(`\n  ${bold("Warnings")}`);
-      for (const warning of output.warnings) console.log(`    - ${warning}`);
-    }
-    console.log();
-    console.log(dim("  Use --json for machine-readable output"));
-    console.log();
-  }
-
-  process.exit(result.ok ? 0 : 1);
-}
-
-async function cmdReceipt(args) {
-  const subcommand = args[0];
-  if (subcommand !== "verify") die("Usage: alx receipt verify <receipt.json> --package <dir> [--json]");
-
-  const receiptFile = args[1];
-  const packageIdx = args.indexOf("--package");
-  const packageDir = packageIdx !== -1 ? args[packageIdx + 1] : null;
-  if (!receiptFile || receiptFile.startsWith("--") || !packageDir) {
-    die("Usage: alx receipt verify <receipt.json> --package <dir> [--json]");
-  }
-
-  const result = await validateReceiptAgainstPackage(receiptFile, packageDir);
-  const output = {
-    ok: result.ok,
-    blockHash: result.blockHash,
-    receiptOk: result.receiptOk,
-    replayOk: result.replayOk,
-    receiptComplete: result.receiptComplete,
-    replayComplete: result.replayComplete,
-    receiptMatchesReplay: result.receiptMatchesReplay,
-    errors: result.issues ?? [],
-  };
-
-  if (args.includes("--json")) {
-    json(output);
-  } else {
-    console.log(`\n${bold("Verification Receipt Replay")}\n`);
-    console.log(`  ${bold("Receipt")}       ${receiptFile}`);
-    console.log(`  ${bold("Package")}       ${packageDir}`);
-    console.log(`  ${bold("Result")}        ${output.ok ? green("matches replay") : red("DOES NOT MATCH REPLAY")}`);
-    console.log(`  ${bold("Block")}         ${output.blockHash ?? "(unavailable)"}`);
-    console.log(`  ${bold("Receipt ok")}    ${String(output.receiptOk)}`);
-    console.log(`  ${bold("Replay ok")}     ${String(output.replayOk)}`);
-    console.log(`  ${bold("Receipt full")}  ${String(output.receiptComplete)}`);
-    console.log(`  ${bold("Replay full")}   ${String(output.replayComplete)}`);
-    if (output.errors.length > 0) {
-      console.log(`\n  ${bold("Errors")}`);
-      for (const error of output.errors) console.log(`    - ${error}`);
-    }
-    console.log();
-    console.log(dim("  Use --json for machine-readable output"));
-    console.log();
-  }
-
-  process.exit(result.ok ? 0 : 1);
+  die("Usage: alx block create | link | show | list | types | verify | inspect | proof | publish | resolve");
 }
 
 async function cmdGraph(args) {
@@ -685,7 +662,7 @@ async function cmdConformance(args) {
   if (args[0] !== "run") die("Usage: alx conformance run [--impl <command>]");
 
   const conformancePath = resolve(__dirname, "../../conformance/bin/run.js");
-  if (!existsSync(conformancePath)) die("Conformance runner not found.");
+  if (!existsSync(conformancePath)) die("conformance runner not found.");
 
   // Forward args to conformance runner
   const { execFileSync } = await import("node:child_process");
@@ -825,7 +802,7 @@ function cmdProof(args) {
   // ── Anti-tamper note ──
   console.log(`  ${bold("── Anti-tamper ──")}`);
   console.log(`  Any change to ${bold("content")} or ${bold("parentHashes")} produces a different blockHash.`);
-  console.log(`  ${dim("alx validate")} recomputes from scratch — the stored blockHash is never trusted.`);
+  console.log(`  ${dim("alx block verify")} recomputes from scratch — the stored blockHash is never trusted.`);
   if (contentType && contentType.includes("policy")) {
     console.log(`  ${dim("Example: change content.rules.minLength → blockHash changes → validation fails.")}`);
   } else if (contentType && contentType.includes("validator")) {
@@ -854,20 +831,18 @@ function stripTypeAnnotations(tsCode) {
 }
 
 async function cmdTestRouter(args) {
-  const sub = args[0];
-  const rest = args.slice(1);
-  if (sub === "run") return await cmdTest(rest);
-  // legacy: bare test <file> --against <v> still works
-  return await cmdTest(args);
+  if (args[0] !== "run") {
+    die("Usage: alx test run <tests-block.json> --against <validator-block.json>");
+  }
+  return cmdTest(args.slice(1));
 }
-
 async function cmdTest(args) {
   const testsFile = args[0];
   const againstIdx = args.indexOf("--against");
   const validatorFile = againstIdx !== -1 ? args[againstIdx + 1] : null;
 
   if (!testsFile || !validatorFile) {
-    die("Usage: alx test <tests-block.json> --against <validator-block.json>");
+    die("Usage: alx test run <tests-block.json> --against <validator-block.json>");
   }
 
   const testsBlock = parseJson(readInput(testsFile));
@@ -879,8 +854,8 @@ async function cmdTest(args) {
   // Verify seals before running — refuse to test tampered blocks
   const tv = validateBlock(testsBlock);
   const vv = validateBlock(validatorBlock);
-  if (!tv.ok) die(`Tests block seal is broken — run alx validate to see the diff`);
-  if (!vv.ok) die(`Validator block seal is broken — run alx validate to see the diff`);
+  if (!tv.ok) die(`Tests Block seal is broken — run alx block verify on the tests Block`);
+  if (!vv.ok) die(`Validator Block seal is broken — run alx block verify on the validator Block`);
 
   // Strip TypeScript type annotations, write to a temp CJS file, load via createRequire
   const { createRequire } = await import("node:module");
@@ -941,21 +916,17 @@ async function cmdTest(args) {
 async function cmdResolve(args) {
   const blockHash = args[0];
   if (!blockHash || blockHash.startsWith("--") || !/^0x[a-fA-F0-9]{64}$/.test(blockHash)) {
-    die("Usage: alx resolve <blockHash> [--chain base] [--rpc-url <url>] [--registry <path>] [--gateway <url>] [--endpoint <url>] [--json]");
+    die("Usage: alx block resolve <blockHash> [--cid-map <path>] [--gateway <url>] [--endpoint <url>] [--json]");
   }
 
-  const registryIdx = args.indexOf("--registry");
+  const cidMapIdx = args.indexOf("--cid-map");
   const gatewayIdx = args.indexOf("--gateway");
   const endpointIdx = args.indexOf("--endpoint");
-  const chainIdx = args.indexOf("--chain");
-  const rpcIdx = args.indexOf("--rpc-url");
 
   const opts = {
-    registry: registryIdx !== -1 ? args[registryIdx + 1] : undefined,
+    cidMap: cidMapIdx !== -1 ? args[cidMapIdx + 1] : undefined,
     gateway: gatewayIdx !== -1 ? args[gatewayIdx + 1] : undefined,
     endpoint: endpointIdx !== -1 ? args[endpointIdx + 1] : undefined,
-    chain: chainIdx !== -1 ? args[chainIdx + 1] : undefined,
-    rpcUrl: rpcIdx !== -1 ? args[rpcIdx + 1] : undefined,
   };
 
   const { resolveBlock } = await import("../lib/resolve.js");
@@ -963,10 +934,9 @@ async function cmdResolve(args) {
 
   if (!result) {
     fail(`Block not found: ${blockHash.slice(0, 18)}...`);
-    info(dim("  Publish with: alx publish <block.json> --endpoint <retrieval-url>"));
-    info(dim("  Or pin locally: alx publish <block.json> --ipfs <endpoint>"));
-    info(dim("  Or resolve via: alx resolve <hash> --endpoint <url>"));
-    info(dim("  Or on-chain:      alx resolve <hash> --chain base --rpc-url <url>"));
+    info(dim("  Publish with: alx block publish <block.json> --endpoint <retrieval-url>"));
+    info(dim("  Or pin locally: alx block publish <block.json> --ipfs <endpoint>"));
+    info(dim("  Or resolve via: alx block resolve <hash> --endpoint <url>"));
     console.log();
     process.exit(1);
   }
@@ -988,7 +958,7 @@ async function cmdResolve(args) {
 async function cmdPublish(args) {
   const filePath = args[0];
   if (!filePath || filePath.startsWith("--")) {
-    die("Usage: alx publish <block.json> [--ipfs <endpoint>] [--endpoint <url>] [--api-key <key>] [--registry <path>] [--json]");
+    die("Usage: alx block publish <block.json> [--ipfs <endpoint>] [--endpoint <url>] [--api-key <key>] [--cid-map <path>] [--json]");
   }
 
   const ipfsIdx = args.indexOf("--ipfs");
@@ -997,8 +967,8 @@ async function cmdPublish(args) {
   const hasRetrieval = retrievalIdx !== -1;
   const ipfsEndpoint = hasIpfs ? args[ipfsIdx + 1] : "http://localhost:5001";
   const retrievalEndpoint = hasRetrieval ? args[retrievalIdx + 1] : undefined;
-  const registryIdx = args.indexOf("--registry");
-  const registryPath = registryIdx !== -1 ? args[registryIdx + 1] : undefined;
+  const cidMapIdx = args.indexOf("--cid-map");
+  const cidMapPath = cidMapIdx !== -1 ? args[cidMapIdx + 1] : undefined;
   const gatewayIdx = args.indexOf("--gateway");
   const gatewayUrl = gatewayIdx !== -1 ? args[gatewayIdx + 1] : "https://ipfs.io/ipfs";
   const apiKeyIdx = args.indexOf("--api-key");
@@ -1008,9 +978,9 @@ async function cmdPublish(args) {
   if (!block.blockHash) die("Input must be a Block object with blockHash, content, and parentHashes");
 
   const validation = validateBlock(block);
-  if (!validation.ok) die("Block seal is broken — run alx validate to see the diff");
+  if (!validation.ok) die("Block seal is broken — run alx block verify to see the diff");
 
-  const { publishToIpfs, registerCid, publishToRetrievalEndpoint } = await import("../lib/resolve.js");
+  const { publishToIpfs, recordCidMapping, publishToRetrievalEndpoint } = await import("../lib/resolve.js");
 
   if (!args.includes("--json")) {
     console.log(`\n${bold("Publishing Block")}\n`);
@@ -1027,7 +997,7 @@ async function cmdPublish(args) {
     } catch (err) {
       die(err.message);
     }
-    registerCid(block.blockHash, cid, "ipfs", registryPath);
+    recordCidMapping(block.blockHash, cid, "ipfs", cidMapPath);
   }
 
   if (retrievalEndpoint) {
@@ -1051,16 +1021,16 @@ async function cmdPublish(args) {
       ok(`Pinned to IPFS`);
       info(`  CID:      ${cid}`);
       info(`  Gateway:  ${dim(`${gatewayUrl.replace(/\/$/, "")}/${cid}`)}`);
-      info(`  Registry: updated ~/.alx/registry.json`);
+      info(`  CID map:  updated ~/.alx/cid-map.json`);
     }
     if (retrievalEndpoint) {
       ok(`Published to retrieval server`);
       info(`  Endpoint: ${retrievalEndpoint}`);
     }
     console.log();
-    console.log(dim(`  Resolve later with: alx resolve ${block.blockHash.slice(0, 18)}...`));
+    console.log(dim(`  Resolve later with: alx block resolve ${block.blockHash.slice(0, 18)}...`));
     if (retrievalEndpoint) {
-      console.log(dim(`  Team resolve:       alx resolve ${block.blockHash.slice(0, 18)}... --endpoint ${retrievalEndpoint}`));
+      console.log(dim(`  Team resolve:       alx block resolve ${block.blockHash.slice(0, 18)}... --endpoint ${retrievalEndpoint}`));
     }
     console.log();
   }
@@ -1068,13 +1038,13 @@ async function cmdPublish(args) {
 
 async function cmdAnchorSingle(args) {
   const filePath = args[0];
-  if (!filePath || filePath.startsWith("--")) die("Usage: alx anchor <block.json> [--rpc-url <url>] [--private-key <key>] [--json]");
+  if (!filePath || filePath.startsWith("--")) die("Usage: alx anchor create <block.json> [--rpc-url <url>] [--private-key <key>] [--json]");
 
   const block = parseJson(readInput(filePath));
   if (!block.blockHash) die("Input must be a Block object with blockHash, content, and parentHashes");
 
   const validation = validateBlock(block);
-  if (!validation.ok) die("Block seal is broken — run alx validate before anchoring");
+  if (!validation.ok) die("Block seal is broken — run alx block verify before anchoring");
 
   const rpcIdx = args.indexOf("--rpc-url");
   const keyIdx = args.indexOf("--private-key");
@@ -1101,25 +1071,25 @@ async function cmdAnchorSingle(args) {
     info(`  Hash:   ${result.blockHash.slice(0, 18)}...`);
     info(`  Time:   ${new Date(result.anchoredAt * 1000).toISOString()}`);
     console.log();
-    console.log(dim(`  Verify: alx anchor-query ${result.blockHash.slice(0, 18)}... --rpc-url <url>`));
+    console.log(dim(`  Verify: alx anchor status ${result.blockHash.slice(0, 18)}... --rpc-url <url>`));
     console.log();
   }
 }
 
-async function cmdAnchorBlockSet(args) {
-  const bsIdx = args.indexOf("--blockset");
+async function cmdAnchorBatch(args) {
+  const bsIdx = args.indexOf("--hashes");
   const rawHashes = bsIdx !== -1 && args[bsIdx + 1]
     ? args[bsIdx + 1].split(",").map(h => h.trim()).filter(Boolean)
     : [];
 
-  const { validateBlockset } = await import("../lib/registry-block.js");
-  const blocksetCheck = validateBlockset(rawHashes);
-  if (!blocksetCheck.ok) die(blocksetCheck.issues.join("; "));
+  const { validateBlockHashBatch } = await import("../lib/block-workflow.js");
+  const batchCheck = validateBlockHashBatch(rawHashes);
+  if (!batchCheck.ok) die(batchCheck.issues.join("; "));
 
-  const { anchorBlockSet, deriveSetId } = await import("../lib/anchor.js");
+  const { anchorBatch, deriveBatchId } = await import("../lib/anchor.js");
 
-  const setIdx = args.indexOf("--set-id");
-  const setId = setIdx !== -1 ? args[setIdx + 1] : deriveSetId(rawHashes);
+  const batchIdx = args.indexOf("--batch-id");
+  const batchId = batchIdx !== -1 ? args[batchIdx + 1] : deriveBatchId(rawHashes);
 
   const rpcIdx = args.indexOf("--rpc-url");
   const keyIdx = args.indexOf("--private-key");
@@ -1129,21 +1099,21 @@ async function cmdAnchorBlockSet(args) {
   };
 
   if (!args.includes("--json")) {
-    console.log(`\n${bold("Anchoring blockset on Base")}\n`);
+    console.log(`\n${bold("Anchoring hash batch on Base")}\n`);
     info(`  Hashes:  ${rawHashes.length}`);
-    info(`  Set ID:  ${dim(setId.slice(0, 18))}...`);
+    info(`  Set ID:  ${dim(batchId.slice(0, 18))}...`);
     console.log();
   }
 
   let result;
-  try { result = await anchorBlockSet(setId, rawHashes, opts); }
+  try { result = await anchorBatch(batchId, rawHashes, opts); }
   catch (err) { die(err.message); }
 
   if (args.includes("--json")) { json(result); }
   else {
-    ok(`Blockset anchored`);
+    ok(`Batch anchored`);
     info(`  Tx:       ${dim(result.txHash)}`);
-    info(`  Set ID:   ${result.setId.slice(0, 18)}...`);
+    info(`  Set ID:   ${result.batchId.slice(0, 18)}...`);
     info(`  New:      ${result.count} hash(es) newly anchored`);
     info(`  Time:     ${new Date(result.anchoredAt * 1000).toISOString()}`);
     console.log();
@@ -1154,19 +1124,17 @@ async function cmdAnchor(args) {
   const sub = args[0];
   const rest = args.slice(1);
   if (sub === "create") {
-    if (rest.includes("--blockset")) return cmdAnchorBlockSet(rest);
+    if (rest.includes("--hashes")) return cmdAnchorBatch(rest);
     return cmdAnchorSingle(rest);
   }
-  if (sub === "status") return await cmdAnchorQuery(rest);
-  // legacy: bare anchor <file> or anchor --blockset ... still works
-  if (args.includes("--blockset")) return cmdAnchorBlockSet(args);
-  return cmdAnchorSingle(args);
+  if (sub === "status") return cmdAnchorQuery(rest);
+  die("Usage: alx anchor create <block.json> | alx anchor create --hashes <h1,h2,...> | alx anchor status <blockHash>");
 }
 
 async function cmdAnchorQuery(args) {
   const blockHash = args[0];
   if (!blockHash || blockHash.startsWith("--") || !/^0x[a-fA-F0-9]{64}$/.test(blockHash)) {
-    die("Usage: alx anchor-query <blockHash> [--rpc-url <url>] [--json]");
+    die("Usage: alx anchor status <blockHash> [--rpc-url <url>] [--json]");
   }
 
   const rpcIdx = args.indexOf("--rpc-url");
@@ -1196,191 +1164,6 @@ async function cmdAnchorQuery(args) {
     console.log(dim("  Use --json for machine-readable output"));
     console.log();
   }
-}
-
-async function cmdIndexValidate(args) {
-  const filePath = args[0];
-  if (!filePath || filePath.startsWith("--")) {
-    die("Usage: alx index validate <index.block.json>");
-  }
-
-  const block = parseJson(readInput(filePath));
-  const seal = validateBlock(block);
-  if (!seal.ok) die("Block seal is broken — fix blockHash/content/parentHashes before publishing index");
-
-  const { validateIndexBlockContent } = await import("../lib/registry-block.js");
-  const contentCheck = validateIndexBlockContent(block.content);
-  if (!contentCheck.ok) die(contentCheck.issues.join("; "));
-
-  if (args.includes("--json")) json({ ok: true, blockHash: block.blockHash, entries: block.content.entries?.length ?? 0 });
-  else {
-    ok(`Index Block valid (${block.content.entries?.length ?? 0} entries)`);
-    info(`  Hash: ${block.blockHash.slice(0, 18)}...`);
-    info(`  Issuer: ${block.content.issuer}`);
-  }
-}
-
-async function cmdIndexCheck(args) {
-  const blockHash = args[0];
-  const fileIdx = args.indexOf("--file");
-  const indexPath = fileIdx !== -1 ? args[fileIdx + 1] : null;
-  if (!blockHash || blockHash.startsWith("--") || !indexPath) {
-    die("Usage: alx index check <blockHash> --file <index.block.json> [--approved-only] [--json]");
-  }
-
-  const indexBlock = parseJson(readInput(indexPath));
-  const seal = validateBlock(indexBlock);
-  if (!seal.ok) die("Index Block seal is broken");
-
-  const { validateIndexBlockContent, isBlockHashInIndex } = await import("../lib/registry-block.js");
-  const contentCheck = validateIndexBlockContent(indexBlock.content);
-  if (!contentCheck.ok) die(contentCheck.issues.join("; "));
-
-  const approvedOnly = args.includes("--approved-only");
-  const included = isBlockHashInIndex(blockHash, indexBlock.content, { approvedOnly });
-
-  if (args.includes("--json")) json({ blockHash, included, approvedOnly, indexBlockHash: indexBlock.blockHash });
-  else {
-    if (included) ok(`blockHash is in index${approvedOnly ? " (approved/published)" : ""}`);
-    else fail(`blockHash is not in index${approvedOnly ? " (approved/published)" : ""}`);
-    info(`  Index: ${indexBlock.blockHash.slice(0, 18)}...`);
-    process.exit(included ? 0 : 1);
-  }
-}
-
-async function cmdIndex(args) {
-  const sub = args[0];
-  const rest = args.slice(1);
-  if (sub === "validate") return cmdIndexValidate(rest);
-  if (sub === "check") return cmdIndexCheck(rest);
-  die("Usage: alx index validate <file> | alx index check <blockHash> --file <index.block.json>");
-}
-
-async function cmdRegistryValidate(args) {
-  const filePath = args[0];
-  if (!filePath || filePath.startsWith("--")) {
-    die("Usage: alx registry validate <registry.block.json>");
-  }
-
-  const block = parseJson(readInput(filePath));
-  const seal = validateBlock(block);
-  if (!seal.ok) die("Block seal is broken — fix blockHash/content/parentHashes before publishing registry");
-
-  const { validateRegistryBlockContent } = await import("../lib/registry-block.js");
-  const contentCheck = validateRegistryBlockContent(block.content);
-  if (!contentCheck.ok) die(contentCheck.issues.join("; "));
-
-  if (args.includes("--json")) {
-    json({ ok: true, blockHash: block.blockHash, entries: block.content.entries?.length ?? 0 });
-  } else {
-    ok(`Registry Block valid (${block.content.entries?.length ?? 0} entries)`);
-    info(`  Hash: ${block.blockHash.slice(0, 18)}...`);
-    info(`  Issuer: ${block.content.issuer}`);
-  }
-}
-
-async function cmdRegistry(args) {
-  const sub = args[0];
-  const rest = args.slice(1);
-  if (sub === "validate") return cmdRegistryValidate(rest);
-  die("Usage: alx registry validate <registry.block.json>");
-}
-
-async function cmdBlocksetValidate(args) {
-  const hashesIdx = args.indexOf("--hashes");
-  const raw = hashesIdx !== -1 && args[hashesIdx + 1]
-    ? args[hashesIdx + 1]
-    : args.filter((a) => !a.startsWith("--")).join(",");
-  if (!raw) die("Usage: alx blockset validate --hashes <h1,h2,...> | alx blockset validate <h1,h2,...>");
-
-  const { parseCommaSeparatedBlockHashes, validateBlocksetHashes } = await import("../lib/block-workflow.js");
-  const blockHashes = parseCommaSeparatedBlockHashes(raw);
-  const check = validateBlocksetHashes(blockHashes);
-  if (!check.ok) die(check.issues.join("; "));
-
-  if (args.includes("--json")) json({ ok: true, count: blockHashes.length, blockHashes });
-  else ok(`blockset valid (${blockHashes.length} hashes)`);
-}
-
-async function cmdBlocksetManifest(args) {
-  const hashesIdx = args.indexOf("--hashes");
-  if (hashesIdx === -1 || !args[hashesIdx + 1]) {
-    die("Usage: alx blockset manifest --hashes <h1,h2,...> [--label <name>] [--set-id <id>] [--out file.json]");
-  }
-
-  const { parseCommaSeparatedBlockHashes, buildBlocksetManifest, writeBlocksetManifest } =
-    await import("../lib/block-workflow.js");
-  const blockHashes = parseCommaSeparatedBlockHashes(args[hashesIdx + 1]);
-
-  const labelIdx = args.indexOf("--label");
-  const setIdx = args.indexOf("--set-id");
-  const outIdx = args.indexOf("--out");
-
-  let manifest;
-  try {
-    manifest = buildBlocksetManifest({
-      blockHashes,
-      label: labelIdx !== -1 ? args[labelIdx + 1] : undefined,
-      setId: setIdx !== -1 ? args[setIdx + 1] : undefined,
-    });
-  } catch (err) {
-    die(err.message);
-  }
-
-  const outPath = outIdx !== -1 && args[outIdx + 1] ? resolve(process.cwd(), args[outIdx + 1]) : null;
-  if (outPath) writeBlocksetManifest(outPath, manifest);
-
-  if (args.includes("--json")) json(manifest);
-  else {
-    ok("blockset manifest");
-    info(`  setId:  ${manifest.setId.slice(0, 18)}...`);
-    info(`  hashes: ${manifest.blockHashes.length}`);
-    if (manifest.label) info(`  label:  ${manifest.label}`);
-    if (outPath) info(`  saved:  ${outPath}`);
-    console.log();
-    console.log(dim("  Anchor: alx anchor --blockset <hashes> --set-id <setId>"));
-    console.log();
-  }
-}
-
-async function cmdBlocksetFromGraph(args) {
-  const fileIdx = args.indexOf("--file");
-  const hashesIdx = args.indexOf("--hashes");
-  if (fileIdx === -1 || !args[fileIdx + 1] || hashesIdx === -1 || !args[hashesIdx + 1]) {
-    die("Usage: alx blockset from-graph --file <graph.json> --hashes <h1,h2,...> [--label <name>] [--out file.json]");
-  }
-
-  const graph = parseJson(readInput(args[fileIdx + 1]));
-  const { parseCommaSeparatedBlockHashes, selectBlocksetFromGraph, buildBlocksetManifest, writeBlocksetManifest } =
-    await import("../lib/block-workflow.js");
-  const requested = parseCommaSeparatedBlockHashes(args[hashesIdx + 1]);
-  const picked = selectBlocksetFromGraph(graph, requested);
-  if (!picked.ok) die(picked.issues.join("; "));
-
-  const labelIdx = args.indexOf("--label");
-  const outIdx = args.indexOf("--out");
-  const manifest = buildBlocksetManifest({
-    blockHashes: picked.members,
-    label: labelIdx !== -1 ? args[labelIdx + 1] : undefined,
-  });
-
-  const outPath = outIdx !== -1 && args[outIdx + 1] ? resolve(process.cwd(), args[outIdx + 1]) : null;
-  if (outPath) writeBlocksetManifest(outPath, manifest);
-
-  if (args.includes("--json")) json(manifest);
-  else {
-    ok(`blockset from graph (${manifest.blockHashes.length} hashes)`);
-    if (outPath) info(`  saved: ${outPath}`);
-  }
-}
-
-async function cmdBlockset(args) {
-  const sub = args[0];
-  const rest = args.slice(1);
-  if (sub === "validate") return cmdBlocksetValidate(rest);
-  if (sub === "manifest") return cmdBlocksetManifest(rest);
-  if (sub === "from-graph") return cmdBlocksetFromGraph(rest);
-  die("Usage: alx blockset validate | manifest | from-graph");
 }
 
 function cmdVersion() {
@@ -1434,12 +1217,28 @@ async function cmdDoctor(_args) {
     : "not configured  (ALX_RETRIEVAL_ENDPOINT missing)";
   console.log(`  ${retrievalOk ? green("✓") : dim("–")} Retrieval server ${retrievalLabel}`);
 
-  // RPC / Base
-  const rpcUrl = process.env.ALX_RPC_URL;
-  const privateKey = process.env.ALX_PRIVATE_KEY;
-  const chainConfigured = !!(rpcUrl && privateKey);
-  console.log(`  ${chainConfigured ? green("✓") : dim("–")} Base/EVM ${chainConfigured ? `rpc=${rpcUrl?.slice(0, 40)}` : "not configured  (ALX_RPC_URL / ALX_PRIVATE_KEY missing)"}`);
-
+  // Optional Base anchor extension
+  const {
+    loadBaseMainnetConfig,
+    resolveContractAddress,
+    resolveContractNetwork,
+    resolveNetwork,
+    resolveRpcUrl,
+  } = await import("../lib/base-contracts.js");
+  const chainConfig = loadBaseMainnetConfig();
+  const anchorNetworkId = resolveContractNetwork(chainConfig, "anchor");
+  const anchorNetwork = resolveNetwork(chainConfig, anchorNetworkId);
+  const rpcUrl = resolveRpcUrl(chainConfig, anchorNetworkId);
+  const privateKey = process.env.ALX_DEPLOY_KEY;
+  const anchorAddress = resolveContractAddress(chainConfig, "anchor");
+  const readConfigured = Boolean(rpcUrl && anchorAddress);
+  const writeConfigured = Boolean(readConfigured && privateKey);
+  const anchorStatus = writeConfigured
+    ? `ready for reads and writes on ${anchorNetworkId}`
+    : readConfigured
+      ? `ready for reads on ${anchorNetworkId}; ALX_DEPLOY_KEY not set`
+      : `not configured  (${anchorNetwork?.rpcUrlEnv || "RPC URL"} / ALX_ANCHOR_ADDRESS missing)`;
+  console.log(`  ${readConfigured ? green("✓") : dim("–")} Base/EVM ${anchorStatus}`);
   // Content types
   const types = knownContentTypes();
   console.log(`  ${green("✓")} ${types.length} known content types  ${dim("(alx block types for full list)")}`);
@@ -1462,8 +1261,8 @@ ${bold("Commands:")}
   alx version                    Show version info
 
 ${bold("block")}
-  alx block create [<content.json>] [out.block.json] [--dry-run]
-                                 Create a block (--content, --content-file, positional path, or stdin)
+  alx block create <file> [--parent <reference>] [--parents <references>] [--dry-run]
+                                 Create and locally persist a Block from JSON or UTF-8 text
   alx block create --from-ipfs <cid> [--out file]
                                  Fetch a CID via IPFS gateway and lock into a block
   alx block create --from-s3 <s3://bucket/key> [--out file]
@@ -1471,16 +1270,17 @@ ${bold("block")}
   alx block create --from-url <url> [--out file]
                                  Fetch any HTTP URL and lock into a block
   alx block link [<content.json>] <parent>[,...] [out.block.json] [--dry-run]
-                                 Parent: file, 0x hash, @latest, or @parent
-  alx block verify <file>        Verify block hash integrity (cryptographic)
+                                 Parent: file, 0x hash, @last, @latest, or @parent
+  alx block show <reference>     Print a Block by hash, prefix, @last, or file
+  alx block verify <reference>   Verify a Block by hash, prefix, @last, or file
   alx block inspect <file>       Explain a block field-by-field
   alx block proof <file>         Show cryptographic proof walkthrough
-  alx block publish <file> [--ipfs <endpoint>] [--endpoint <url>] [--api-key <key>] [--registry <path>]
+  alx block publish <file> [--ipfs <endpoint>] [--endpoint <url>] [--api-key <key>] [--cid-map <path>]
                                  Pin to IPFS and/or publish to a retrieval server
-  alx block resolve <blockHash> [--chain base] [--rpc-url <url>] [--endpoint <url>] [--gateway <url>] [--registry <path>]
-                                 Fetch and verify a block (Base registry, HTTP, IPFS, or local registry)
-  alx block list [--recent N] [--json]
-                                 Recent blocks from .alx/state.json and cwd *.block.json
+  alx block resolve <blockHash> [--endpoint <url>] [--gateway <url>] [--cid-map <path>]
+                                 Fetch and verify a Block from HTTP, IPFS, or a local mapping
+  alx block list [--recent N|--all] [--json]
+                                 List recent or all indexed project Blocks
   alx block types [--json]       List known advisory content type schemas
 
 ${bold("graph")}
@@ -1488,32 +1288,13 @@ ${bold("graph")}
   alx graph trace <hash> --file <f>
                                  Trace attribution through a derivation graph
 
-${bold("blockset")}
-  alx blockset validate --hashes <h1,h2,...>
-                                 Validate blockset size and hash format (structural)
-  alx blockset manifest --hashes <h1,h2,...> [--label <name>] [--out file.json]
-                                 Write blockset manifest JSON (setId + hashes)
-  alx blockset from-graph --file <graph.json> --hashes <h1,h2,...> [--out file.json]
-                                 Build blockset manifest from graph members
-
 ${bold("anchor")}
   alx anchor create <file> [--rpc-url <url>] [--private-key <key>]
                                  Anchor a block's blockHash on Base (ALXAnchor)
-  alx anchor create --blockset <h1,h2,...> [--set-id <id>] [--rpc-url <url>] [--private-key <key>]
-                                 Anchor a blockset (2+ hashes) on Base
+  alx anchor create --hashes <h1,h2,...> [--batch-id <id>] [--rpc-url <url>] [--private-key <key>]
+                                 Anchor a hash batch (2+ hashes) on Base
   alx anchor status <blockHash> [--rpc-url <url>]
                                  Query on-chain anchor status for a blockHash
-
-${bold("package / receipt")}
-  alx package verify <dir>       Verify an artifact package directory (cryptographic)
-  alx receipt verify <receipt> --package <dir>
-                                 Replay-check a verification receipt (cryptographic)
-
-${bold("registry / index")}
-  alx registry validate <file>   Validate an alx.registry block (structural)
-  alx index validate <file>      Validate an alx.index block (structural)
-  alx index check <hash> --file <index.block.json> [--approved-only]
-                                 Test blockHash membership in a platform index block
 
 ${bold("server / retrieval")}
   alx server start [--port 8080] Start verification API server
@@ -1535,33 +1316,32 @@ ${bold("Examples:")}
   alx block verify protocol/graph.json
   alx block inspect protocol/07-generated-validator.block.json
   alx test run protocol/06-validator-tests.block.json --against protocol/07-generated-validator.block.json
-  alx package verify artifact-packages/adaptive-interface-state
-  alx receipt verify artifact-packages/security-review-decision/verification.json --package artifact-packages/security-review-decision
   alx graph trace 0xabc... --file protocol/graph.json
   alx test-vectors run
   alx server start --port 8080
   alx retrieval start --port 8081
   alx block publish research.block.json --endpoint http://localhost:8081
   alx block resolve 0xabc... --endpoint http://localhost:8081
-  alx anchor research.block.json --rpc-url https://sepolia.base.org
-  alx anchor --blockset 0xaaa...,0xbbb... --set-id 0xccc... --rpc-url https://sepolia.base.org
-  alx anchor-query 0xabc... --rpc-url https://sepolia.base.org --json
+  alx anchor create research.block.json --rpc-url https://sepolia.base.org
+  alx anchor create --hashes 0xaaa...,0xbbb... --batch-id 0xccc... --rpc-url https://sepolia.base.org
+  alx anchor status 0xabc... --rpc-url https://sepolia.base.org --json
 
 ${bold("Machine-readable:")}
   alx block create --content '{"x":1}' --json
   alx block create --content-file ./data.json --out new.block.json
-  alx block create ./data.json child.block.json --parents 0xabc...
+  alx block create ./data.json --parent '@last'
+  alx block create ./merge.json --parent 0xabc... --parent 0xdef...
   alx block create --content-file ./data.json --dry-run
-  alx block create --from-ipfs bafybei... --out artifact.block.json
+  alx block create --from-ipfs bafybei... --out imported.block.json
   alx block create --from-s3 s3://my-bucket/report.pdf --out report.block.json
   alx block create --from-url https://api.example.com/data.json --out data.block.json
   alx block link ./ai-response.json research.block.json synthesis.block.json
   alx block link ./data.json @latest child.block.json
   alx block link ./data.json @latest out.block.json --dry-run --json
   alx block list --recent 5
+  alx block list --all --json
   cat content.json | alx block link --parent parent.block.json --out child.block.json
-  alx blockset manifest --hashes 0xaaa...,0xbbb... --label "Q4 audit bundle" --out release.blockset.json
-  alx trace 0xabc... --file graph.json --json
+  alx graph trace 0xabc... --file graph.json --json
 
 ${dim(`Protocol spec: protocol/spec.md`)}
 `);
@@ -1583,30 +1363,16 @@ switch (cmd) {
   case "init":         cmdInit(rest); break;
   case "block":        await cmdBlock(rest); break;
   case "graph":        await cmdGraph(rest); break;
-  case "blockset":     await cmdBlockset(rest); break;
-  case "registry":     await cmdRegistry(rest); break;
-  case "package":      await cmdPackage(rest); break;
-  case "receipt":      await cmdReceipt(rest); break;
   case "anchor":       await cmdAnchor(rest); break;
   case "server":       await cmdServer(rest); break;
   case "retrieval":
-    if (rest[0] === "start" || rest[0] === "serve") await cmdRetrievalServe(rest.slice(1));
+    if (rest[0] === "start") await cmdRetrievalServe(rest.slice(1));
     else die(`Unknown: alx retrieval ${rest[0]}. Use: alx retrieval start`);
     break;
   case "test":         await cmdTestRouter(rest); break;
   case "test-vectors": await cmdTestVectors(rest); break;
   case "conformance":  await cmdConformance(rest); break;
   case "extension-conformance": await cmdExtensionConformance(rest); break;
-  case "index":        await cmdIndex(rest); break;
-  // legacy top-level verbs — kept for backward compatibility
-  case "validate":     cmdValidate(rest); break;
-  case "inspect":      cmdInspect(rest); break;
-  case "proof":        cmdProof(rest); break;
-  case "trace":        cmdTrace(rest); break;
-  case "publish":      await cmdPublish(rest); break;
-  case "resolve":      await cmdResolve(rest); break;
-  case "anchor-query": await cmdAnchorQuery(rest); break;
-  case "serve":        await cmdServe(rest); break;
   case "doctor":       await cmdDoctor(rest); break;
   case "version":      cmdVersion(); break;
   default:             die(`Unknown command: ${cmd}. Run 'alx --help' for usage.`);

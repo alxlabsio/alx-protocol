@@ -10,6 +10,7 @@ const runnerIds = new Set([
   "canonicalization-negative",
   "canonicalization-depth",
   "block-identity",
+  "parent-normalization",
   "parent-limits",
   "attribution-trace",
   "lineage-negative",

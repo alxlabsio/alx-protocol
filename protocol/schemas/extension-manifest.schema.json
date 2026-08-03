@@ -1,9 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/extension-manifest.schema.json",
   "title": "ALX Extension Manifest",
   "description": "Machine-readable lifecycle metadata for an ALX Protocol extension.",
-  "$comment": "This schema validates manifest shape only; compatibility semantics remain defined by the protocol spec and conformance policy.",
+  "$comment": "Public schema URL: [Placeholder]. This schema validates manifest shape only; compatibility semantics remain defined by the protocol spec and conformance policy.",
   "type": "object",
   "properties": {
     "id": {
@@ -106,6 +105,10 @@
         "required": ["id", "path"],
         "additionalProperties": false
       }
+    },
+    "errorCodes": {
+      "$ref": "#/$defs/relativeSafePath",
+      "description": "Error registry provided by this extension."
     }
   },
   "required": [

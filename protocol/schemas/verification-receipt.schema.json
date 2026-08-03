@@ -1,9 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/verification-receipt.schema.json",
   "title": "ALX Verification Receipt",
-  "description": "Portable record of a completed ALX graph verification run.",
-  "$comment": "A receipt records verification results. It is not part of Block identity and does not itself prove signature validity.",
+  "description": "Optional non-Block record of a completed ALX Graph verification run.",
+  "$comment": "Public schema URL: [Placeholder]. Applications may create this record after verification. It is not required for core conformance, is not part of Block identity, and does not itself prove validity, authorship, or signature status.",
   "type": "object",
   "additionalProperties": false,
   "required": [

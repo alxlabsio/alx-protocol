@@ -69,10 +69,10 @@ No external authority is required. No shared infrastructure is required. Any imp
 
 ## Attribution as Structure
 
-ALX Protocol resolves attribution as a structural property. Policy decisions remain at the application layer. `traceAttribution` computes path counts, depths, and reachability from the graph:
+ALX Protocol resolves attribution as a structural property. Policy decisions remain at the application layer. `traceAttribution` computes `pathCount`, depth, and reachability from the Graph:
 
 ```
-"The block is reachable via 3 paths from the root, contributing to 3 distinct derivation chains."
+"The Block is reachable through three distinct paths from the root."
 ```
 
 No policy engine is required. Applications can map structural properties to weights, payments, or credit. The structure is deterministic and auditable.
@@ -81,14 +81,13 @@ No policy engine is required. Applications can map structural properties to weig
 
 ## Block Capabilities
 
-| Use Case                     | How Blocks Help                                              |
-| ---------------------------- | ------------------------------------------------------------ |
-| **AI agent pipelines**       | Each step is a Block; the full pipeline is a verifiable DAG  |
-| **Audit trails**             | Trace any output back to its original inputs through lineage |
-| **Multi-agent coordination** | Agents share state via Blocks without shared infrastructure  |
-| **Content attribution**      | Path counts through the DAG determine contribution weight    |
-| **Reproducible research**    | Same inputs + same parents = same Block hash, always         |
-| **Workflow memory**          | Blocks persist context that compounds across sessions        |
+| Use Case                     | How Blocks Help                                                         |
+| ---------------------------- | ----------------------------------------------------------------------- |
+| **AI agent pipelines**       | Declared parent relationships form a verifiable Graph                   |
+| **Audit trails**             | Trace any output back to its original inputs through lineage            |
+| **Multi-agent coordination** | Agents share state via Blocks without shared infrastructure             |
+| **Content attribution**      | Trace reports structural `pathCount` values through the Graph           |
+| **Reproducible research**    | The same content and parents produce the same `blockHash`                |
 
 ---
 
@@ -96,6 +95,14 @@ No policy engine is required. Applications can map structural properties to weig
 
 Blocks are small. ALX Protocol is minimal. Composition produces the capability.
 
-A single Block is a verified artifact. A chain of Blocks is a verified pipeline. A graph of Blocks is a verified knowledge structure with built-in attribution.
+A Block binds content and `parentHashes` into deterministic identity. Multiple Blocks form a Graph through declared parent relationships. Trace derives structural attribution data from that Graph.
 
-ALX Protocol is verification infrastructure. Applications build on the protocol. ALX Protocol provides the invariants; applications build the workflows.
+ALX Protocol defines verification infrastructure. Applications build storage, interfaces, and coordination layers around the protocol invariants.
+
+ALX Protocol provides deterministic attribution structure through `pathCount`, depth, and reachability. Applications decide what that structure means economically. See [`docs/integrators/settlement.md`](../docs/integrators/settlement.md).
+
+## Related Documents
+
+- [Protocol specification](./spec.md)
+- [Block schema](./schemas/block.schema.json)
+- [Canonical test vectors](./test-vectors/README.md)

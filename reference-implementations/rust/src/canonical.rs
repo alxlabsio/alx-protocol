@@ -13,7 +13,7 @@ pub fn canonicalize(value: &Value) -> Result<String, String> {
 
 fn canonicalize_inner(value: &Value, depth: usize) -> Result<String, String> {
     if depth > MAX_DEPTH {
-        return Err(format!("Canonicalization depth exceeded {MAX_DEPTH}"));
+        return Err(format!("[ALX_CANONICALIZATION_DEPTH] Canonicalization depth exceeded {MAX_DEPTH}"));
     }
     match value {
         Value::Null => Ok("null".into()),
@@ -43,19 +43,19 @@ fn canonicalize_inner(value: &Value, depth: usize) -> Result<String, String> {
 fn canonicalize_number(n: &Number) -> Result<String, String> {
     if let Some(i) = n.as_i64() {
         if i > MAX_SAFE_INTEGER || i < MIN_SAFE_INTEGER {
-            return Err(format!("Integer out of safe range: {i}"));
+            return Err(format!("[ALX_CANONICALIZATION_UNSAFE_INTEGER] Integer out of safe range: {i}"));
         }
         return Ok(i.to_string());
     }
     if let Some(u) = n.as_u64() {
         if u > MAX_SAFE_INTEGER as u64 {
-            return Err(format!("Integer out of safe range: {u}"));
+            return Err(format!("[ALX_CANONICALIZATION_UNSAFE_INTEGER] Integer out of safe range: {u}"));
         }
         return Ok(u.to_string());
     }
     if let Some(f) = n.as_f64() {
         if !f.is_finite() {
-            return Err("Non-finite number not allowed".into());
+            return Err("[ALX_CANONICALIZATION_NON_FINITE] Non-finite number not allowed".into());
         }
         if f == 0.0 && f.is_sign_negative() {
             return Ok("0".into());
@@ -65,7 +65,7 @@ fn canonicalize_number(n: &Number) -> Result<String, String> {
         }
         Ok(format_float_js(f))
     } else {
-        Err("unsupported number".into())
+        Err("[ALX_CANONICALIZATION_UNSUPPORTED_TYPE] unsupported number".into())
     }
 }
 

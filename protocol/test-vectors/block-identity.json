@@ -11,6 +11,12 @@
         "content": null,
         "parentHashes": []
       },
+      "expected": {
+        "canonicalEnvelopeHex": "7b22636f6e74656e74223a6e756c6c2c22706172656e74486173686573223a5b5d7d",
+        "blockHash": "0x44e064968108cf3f2b0b2b480ceeb78d2ff4b7ca443481a0c88a18461cc5dbae",
+        "contentHash": "0xefbde2c3aee204a69b7696d4b10ff31137fe78e3946306284f806e2dfc68b805",
+        "parentHashes": []
+      },
       "assertions": [
         "blockHash == deriveBlockHash(null, [])",
         "contentHash == deriveContentHash(null)",
@@ -25,6 +31,12 @@
       "inputShape": "single",
       "input": {
         "content": "hello",
+        "parentHashes": []
+      },
+      "expected": {
+        "canonicalEnvelopeHex": "7b22636f6e74656e74223a2268656c6c6f222c22706172656e74486173686573223a5b5d7d",
+        "blockHash": "0x744ec2ec3ead89af23488392ddd388a4608dd332fdf0ca24c2fc7dc9f4e6678c",
+        "contentHash": "0xf6fb31fdcaf3bd3f8350b3591a8d548dd83b099e7a76446b1fdda2f5ebdd1232",
         "parentHashes": []
       },
       "assertions": [
@@ -49,6 +61,18 @@
         },
         "parentHashes": []
       },
+      "expected_a": {
+        "canonicalEnvelopeHex": "7b22636f6e74656e74223a7b2261223a322c227a223a317d2c22706172656e74486173686573223a5b5d7d",
+        "blockHash": "0x476f4adb62b1f76cd98a25fc02319fe8f7778be3f9c113e17493e3c879effd7e",
+        "contentHash": "0xdae6267db5994da55c63d71c49e689bcf1eec0e360f1c0c45a4cd1b6785968b9",
+        "parentHashes": []
+      },
+      "expected_b": {
+        "canonicalEnvelopeHex": "7b22636f6e74656e74223a7b2261223a322c227a223a317d2c22706172656e74486173686573223a5b5d7d",
+        "blockHash": "0x476f4adb62b1f76cd98a25fc02319fe8f7778be3f9c113e17493e3c879effd7e",
+        "contentHash": "0xdae6267db5994da55c63d71c49e689bcf1eec0e360f1c0c45a4cd1b6785968b9",
+        "parentHashes": []
+      },
       "assertions": [
         "createBlock(input_a).blockHash == createBlock(input_b).blockHash"
       ]
@@ -69,6 +93,24 @@
         "parentHashes": [
           "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "expected_a": {
+        "canonicalEnvelopeHex": "7b22636f6e74656e74223a2274657374222c22706172656e74486173686573223a5b22307861616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161222c22307862626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262225d7d",
+        "blockHash": "0x34a85d186ff8afe5050c16d97bcf615f338c3d0ecc991d89c63bcb65003df9b1",
+        "contentHash": "0x57315cf71be5ffcaf957b9cc196b322e1c4d5a1832396abcee71d05d8caf41a6",
+        "parentHashes": [
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        ]
+      },
+      "expected_b": {
+        "canonicalEnvelopeHex": "7b22636f6e74656e74223a2274657374222c22706172656e74486173686573223a5b22307861616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161222c22307862626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262225d7d",
+        "blockHash": "0x34a85d186ff8afe5050c16d97bcf615f338c3d0ecc991d89c63bcb65003df9b1",
+        "contentHash": "0x57315cf71be5ffcaf957b9cc196b322e1c4d5a1832396abcee71d05d8caf41a6",
+        "parentHashes": [
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         ]
       },
       "assertions": [
@@ -94,6 +136,22 @@
           "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         ]
       },
+      "expected_a": {
+        "canonicalEnvelopeHex": "7b22636f6e74656e74223a2274657374222c22706172656e74486173686573223a5b22307861616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161225d7d",
+        "blockHash": "0x892bc3824019f3f0eb3291ae17c255b658095503431929f3d06be5222e17b30c",
+        "contentHash": "0x57315cf71be5ffcaf957b9cc196b322e1c4d5a1832396abcee71d05d8caf41a6",
+        "parentHashes": [
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "expected_b": {
+        "canonicalEnvelopeHex": "7b22636f6e74656e74223a2274657374222c22706172656e74486173686573223a5b22307861616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161225d7d",
+        "blockHash": "0x892bc3824019f3f0eb3291ae17c255b658095503431929f3d06be5222e17b30c",
+        "contentHash": "0x57315cf71be5ffcaf957b9cc196b322e1c4d5a1832396abcee71d05d8caf41a6",
+        "parentHashes": [
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
       "assertions": [
         "createBlock(input_a).blockHash == createBlock(input_b).blockHash"
       ]
@@ -108,6 +166,18 @@
       },
       "input_b": {
         "content": "beta",
+        "parentHashes": []
+      },
+      "expected_a": {
+        "canonicalEnvelopeHex": "7b22636f6e74656e74223a22616c706861222c22706172656e74486173686573223a5b5d7d",
+        "blockHash": "0x43411893d3614bf652204c3d1f850f2a8f2c81ee6562285d41e4535c4ca907ff",
+        "contentHash": "0x21b24c111758bd585b3308b0ba2514057092e2fc80cdf9362307bf5066ceecab",
+        "parentHashes": []
+      },
+      "expected_b": {
+        "canonicalEnvelopeHex": "7b22636f6e74656e74223a2262657461222c22706172656e74486173686573223a5b5d7d",
+        "blockHash": "0xa7792fd062093d75637d8a7dd51e7bada29fe4e0ded775966a03ed94f6866358",
+        "contentHash": "0xb1616cba3d12900e1791ad012cd0d4572a4db51b58eb2f77c2b1ccf2f49f452a",
         "parentHashes": []
       },
       "assertions": [
@@ -127,6 +197,22 @@
       },
       "input_b": {
         "content": "same",
+        "parentHashes": [
+          "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        ]
+      },
+      "expected_a": {
+        "canonicalEnvelopeHex": "7b22636f6e74656e74223a2273616d65222c22706172656e74486173686573223a5b22307861616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161225d7d",
+        "blockHash": "0x029d4f34723b2eb38d1e880a0e2d00eacefc65530c3ceb568bd16f9ad0f4395e",
+        "contentHash": "0x73cbb54dbba0021a437eda0fa1db23dab32bab5000c0206395b833aff782bac5",
+        "parentHashes": [
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "expected_b": {
+        "canonicalEnvelopeHex": "7b22636f6e74656e74223a2273616d65222c22706172656e74486173686573223a5b22307862626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262225d7d",
+        "blockHash": "0x499f42f39b344f1d74384d59babaa7293ac7a5696b210f57f8d42d3bd9ee02ef",
+        "contentHash": "0x73cbb54dbba0021a437eda0fa1db23dab32bab5000c0206395b833aff782bac5",
         "parentHashes": [
           "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         ]
@@ -162,6 +248,18 @@
           "approved": true,
           "workflow": "multi-agent-review"
         },
+        "parentHashes": []
+      },
+      "expected_a": {
+        "canonicalEnvelopeHex": "7b22636f6e74656e74223a7b22617070726f766564223a747275652c226d65746164617461223a7b22726567696f6e223a2275732d65617374222c227265766965776564223a6e756c6c7d2c2273636f726573223a5b302e39322c302e38372c302e39355d2c22776f726b666c6f77223a226d756c74692d6167656e742d726576696577227d2c22706172656e74486173686573223a5b5d7d",
+        "blockHash": "0x530e4ab8c0e9db1213172c3c762e80ea476efd3d0b97bd4591191f66c1457737",
+        "contentHash": "0xb014b1230f8185367375f77130223a11ebb37e2021dc305bc07a508e15b90e8b",
+        "parentHashes": []
+      },
+      "expected_b": {
+        "canonicalEnvelopeHex": "7b22636f6e74656e74223a7b22617070726f766564223a747275652c226d65746164617461223a7b22726567696f6e223a2275732d65617374222c227265766965776564223a6e756c6c7d2c2273636f726573223a5b302e39322c302e38372c302e39355d2c22776f726b666c6f77223a226d756c74692d6167656e742d726576696577227d2c22706172656e74486173686573223a5b5d7d",
+        "blockHash": "0x530e4ab8c0e9db1213172c3c762e80ea476efd3d0b97bd4591191f66c1457737",
+        "contentHash": "0xb014b1230f8185367375f77130223a11ebb37e2021dc305bc07a508e15b90e8b",
         "parentHashes": []
       },
       "assertions": [

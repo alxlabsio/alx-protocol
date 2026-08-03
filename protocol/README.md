@@ -1,130 +1,84 @@
-# ALX Protocol � Normative Artifacts
+# ALX Protocol Artifacts
 
----
----
+This directory contains the ALX Protocol specification, schemas, conformance vectors, registries, and operational discovery files.
 
-The directory contains the canonical protocol artifacts for ALX Protocol.
+## Protocol Authority
 
-SDKs, CLIs, examples, and reference implementations conform to the artifacts in the directory. The artifacts in the directory define the protocol contract. The listed surfaces conform to that contract.
-
-## Normative Artifacts
-
-| Path | Status | Purpose |
+| Path | Role | Purpose |
 |---|---|---|
-| [`spec.md`](spec.md) | Normative | Human-readable protocol specification |
-| [`schemas/`](schemas/) | Normative | JSON Schema constraints for protocol documents (including [`schemas/test-vector.schema.json`](schemas/test-vector.schema.json) for core vector files) |
-| [`test-vectors/`](test-vectors/) | Normative | Conformance vectors and semantic assertions |
-| [`canonicalization.json`](canonicalization.json) | Normative | Machine-readable canonicalization rules |
-| [`hashing.json`](hashing.json) | Normative | Machine-readable hash rules |
-| [`verifier.json`](verifier.json) | Normative | Machine-readable Block verifier steps |
-| [`graph-verifier.json`](graph-verifier.json) | Normative | Machine-readable graph verifier steps |
-| [`limits.json`](limits.json) | Normative | Protocol and operational limits |
-| [`error-codes.json`](error-codes.json) | Normative | Stable error-code registry |
-| [`suites.json`](suites.json) | Normative manifest | Suite discovery and comparison modes |
-| [`protocol.manifest.json`](protocol.manifest.json) | Normative manifest | Protocol bundle discovery |
-| [`extensions/`](extensions/) | Extension-specific | Optional extensions outside core conformance |
-| [`fixtures/`](fixtures/) | Informative | Valid and invalid schema fixtures |
-| [`profiles/`](profiles/) | Informative | Optional content semantics for `Block.content` (guidance only) |
+| [spec.md](spec.md) | Normative | Protocol behavior and requirements |
+| [schemas/](schemas/) | Normative | Protocol document shapes and structural constraints |
+| [test-vectors/](test-vectors/) | Normative | Exact outputs, rejection cases, boundaries, and semantic assertions |
+| [error-codes.json](error-codes.json) | Normative | Core protocol error identifiers |
+| [extensions/*/error-codes.json](extensions/) | Normative within each extension | Extension error identifiers |
+| [suites.json](suites.json) | Operational | Conformance-suite discovery and comparison modes |
+| [extensions/*/extension.json](extensions/) | Operational | Optional extension discovery |
+| [fixtures/](fixtures/) | Informative | Valid and invalid schema examples |
+| [chains/base-mainnet.json](chains/base-mainnet.json) | Informative | Application deployment configuration |
+| [retrieval-api.yaml](retrieval-api.yaml) | Informative | Retrieval API description |
 
-## Authority Hierarchy
+Canonical protocol behavior is defined by spec.md, schemas/, and test-vectors/. Exact error identifiers are defined by the applicable error registry. suites.json and extension manifests provide discovery metadata and do not define protocol behavior. Chain configuration describes application infrastructure and does not affect Block validity or identity.
 
-1. `spec.md`
-2. machine-readable protocol files in the directory
-3. `test-vectors/`
-4. `schemas/`
-5. optional extension manifests under `extensions/`
-6. informative fixtures under `fixtures/`
+If an implementation or explanatory document conflicts with a canonical protocol source, the canonical source takes precedence.
 
-If a document outside `protocol/` contradicts the artifacts in the directory, the artifacts in the directory take precedence.
+## Fixtures And Test Vectors
 
-## Fixtures, Test Vectors, And Profiles
+Test vectors define conformance inputs and required outputs or semantic assertions. The conformance runner discovers core suites through [suites.json](suites.json).
 
-Three surfaces are easy to confuse. Each has a distinct role.
-
-| Surface | Status | Purpose | Implementer requirement |
-|---|---|---|---|
-| [`test-vectors/`](test-vectors/) | Normative | Conformance inputs and expected outputs or semantic assertions | **Required** � pass suites listed in [`suites.json`](suites.json) |
-| [`fixtures/`](fixtures/) | Informative | Example JSON that validates or rejects against [`schemas/`](schemas/) | **Not required** � schema hygiene for maintainers and CI |
-| [`profiles/`](profiles/) | Informative | Optional semantic contracts for rich `Block.content` | **Not required** � opaque `content` remains valid without profiles |
-
-**Test vectors** define what a conformant implementation must produce. The conformance runner replays vector files and compares outputs.
-
-**Fixtures** prove that schemas accept intended shapes and reject invalid ones. CI runs `pnpm run verify:fixtures` via [`../conformance/bin/verify-fixtures.js`](../conformance/bin/verify-fixtures.js). Fixtures cover Block, Trace, verification context, content envelope, verification receipt, and extension document shapes under [`fixtures/`](fixtures/) and `extensions/*/fixtures/`.
-
-**Profiles** describe optional machine-readable meaning inside `Block.content`. Profiles do not change Block identity, hashing, lineage, or core conformance. The optional [`schemas/content-envelope.schema.json`](schemas/content-envelope.schema.json) supports a `conformanceProfile` field when content elects a known profile. [`profiles/README.md`](profiles/README.md) holds guidance; profile definitions may expand in future releases.
+Fixtures verify that schemas accept intended document shapes and reject invalid shapes. pnpm run verify:fixtures validates core and extension fixtures and the error registries.
 
 ## Conformance Model
 
-Conformance is suite-specific.
+Conformance is suite-specific. Canonicalization vectors require exact byte output. Other suites assert hash identity, validation, lineage, Trace, and extension behavior.
 
-Canonicalization vectors require exact byte output. Other suites assert protocol semantics, including hash identity, validation behavior, lineage behavior, trace correctness, and extension behavior.
-
-A conformant implementation satisfies the expected outputs or semantic assertions defined by each suite in `suites.json`.
+An implementation conforms to a suite when it satisfies every applicable assertion declared by that suite.
 
 ## Core Boundary
 
-The core Block primitive remains:
+The core Block shape is:
 
-```json
+~~~json
 {
   "blockHash": "0x...",
   "contentHash": "0x...",
   "parentHashes": [],
   "content": {}
 }
-```
+~~~
 
-Core Block identity excludes:
+protocolVersion is optional for version 1 Blocks as defined by [spec.md](spec.md) and [schemas/block.schema.json](schemas/block.schema.json).
 
-- content-addressed storage identifiers;
-- signatures;
-- Merkle proofs;
-- verification receipts;
-- evidence bundles;
-- storage provider metadata;
-- application-specific meaning.
-
-Listed features compose around Blocks through extensions, packages, receipts, or applications.
+Core Block identity excludes content-addressed storage identifiers, signatures, Merkle proofs, verification receipts, evidence bundles, storage-provider metadata, and application-specific meaning.
 
 ## Optional Extensions
 
-Current optional extension areas:
+Current optional extensions cover the Content Envelope profile, signing, and Merkle proofs. Extension behavior remains outside core Block identity and core conformance unless an implementation separately claims extension support.
 
-- signing;
-- Merkle proofs;
-- content-addressed artifact package manifests.
+The Content Envelope schema remains under [schemas/](schemas/) while extension discovery metadata lives under [extensions/content-profile/](extensions/content-profile/). Its public schema URL is `[Placeholder]` until a working replacement is published. Opaque `Block.content` remains valid without the profile.
 
-Optional extensions are additive. Extensions preserve core conformance unless an implementation explicitly claims support for the extension.
+## Optional Records
+
+[schemas/verification-receipt.schema.json](schemas/verification-receipt.schema.json) defines an optional application record for completed Graph verification runs. Creating or exchanging a receipt is not required to create, validate, verify, or trace Blocks.
 
 ## Versioning
 
-- Protocol version: integer in [`VERSION`](VERSION)
-- Breaking protocol changes require a protocol version change
-- Additive rules, fixtures, and clarifications may keep the same protocol version when existing valid outputs remain unchanged
-- SDKs use semver independently from protocol version
+[VERSION](VERSION) declares the protocol version. Breaking protocol changes require a protocol-version decision. SDK packages use semantic versions independently from the protocol version.
 
-## For Implementers
+## Implementation Sequence
 
-1. Read [`spec.md`](spec.md).
-2. Validate document shapes against [`schemas/`](schemas/).
-3. Implement canonicalization and hashing from the machine-readable files.
-4. Replay suites from [`suites.json`](suites.json).
-5. Build a conformance adapter using [`../conformance/README.md`](../conformance/README.md).
+1. Read [spec.md](spec.md).
+2. Implement the document constraints in [schemas/](schemas/).
+3. Replay the suites discovered through [suites.json](suites.json).
+4. Build a conformance adapter using [../conformance/README.md](../conformance/README.md).
 
-## Schema Hosting
+## Publication
 
-Machine-readable protocol files declare canonical `$id` URLs under:
+Public URLs for ALX schema and registry JSON artifacts are currently `[Placeholder]`. The publication build skips those JSON artifacts until working identifiers are restored. [retrieval-api.yaml](retrieval-api.yaml) continues to use its configured publication path.
 
-```text
-https://xandrlabs.github.io/alx-protocol/
-```
-
-GitHub Pages deploys protocol JSON artifacts from `main` via [`../scripts/build-protocol-site.js`](../scripts/build-protocol-site.js) and [`.github/workflows/pages.yml`](../.github/workflows/pages.yml). Each hosted path matches the `$id` URL path (for example, [`protocol/1/schemas/block.schema.json`](https://xandrlabs.github.io/alx-protocol/protocol/1/schemas/block.schema.json)).
-
-The playground lives at the site root: [`https://xandrlabs.github.io/alx-protocol/`](https://xandrlabs.github.io/alx-protocol/).
+[../scripts/build-protocol-site.js](../scripts/build-protocol-site.js) builds the publication directory. [.github/workflows/pages.yml](../.github/workflows/pages.yml) publishes configured artifacts from main.
 
 ## Related Documents
 
-- [`../docs/implementers/implementer-guide.md`](../docs/implementers/implementer-guide.md)
-- [`../docs/implementers/conformance.md`](../docs/implementers/conformance.md)
-- [`../reference-implementations/README.md`](../reference-implementations/README.md)
+- [../docs/implementers/implementer-guide.md](../docs/implementers/implementer-guide.md)
+- [../docs/implementers/conformance.md](../docs/implementers/conformance.md)
+- [../reference-implementations/README.md](../reference-implementations/README.md)

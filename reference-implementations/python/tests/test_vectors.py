@@ -8,7 +8,9 @@ import pytest
 from alx_protocol import (
     canonicalize,
     create_block,
+    normalize_hashes,
     validate_block,
+    validate_lineage,
     verify_graph,
     verify_trace,
     trace_attribution,
@@ -33,12 +35,28 @@ def generated_parents(count: int) -> list[str]:
     return [f"0x{i:064x}" for i in range(count)]
 
 
+def assert_expected_error(error: Exception, vector: dict) -> None:
+    assert f"[{vector['expected']['errorCode']}]" in str(error), vector["id"]
+
+
+def assert_expected_block(input_data: dict, block: dict, expected: dict, vector_id: str) -> None:
+    assert block["blockHash"] == expected["blockHash"], vector_id
+    assert block["contentHash"] == expected["contentHash"], vector_id
+    assert block["parentHashes"] == expected["parentHashes"], vector_id
+    envelope = canonicalize({
+        "content": input_data["content"],
+        "parentHashes": block["parentHashes"],
+    })
+    assert envelope.encode("utf-8").hex() == expected["canonicalEnvelopeHex"], vector_id
+
+
 def test_manifest_declares_required_core_suites():
     assert [s["id"] for s in SUITES["core"]["suites"]] == [
         "canonicalization",
         "canonicalization-negative",
         "canonicalization-depth",
         "block-identity",
+        "parent-normalization",
         "parent-limits",
         "attribution-trace",
         "lineage-negative",
@@ -50,7 +68,10 @@ def test_manifest_declares_required_core_suites():
 
 def test_canonicalization_vectors():
     for vector in core_suite("canonicalization")["vectors"]:
-        if vector["id"] in ("C4", "C10"):
+        if vector["id"] == "C4":
+            assert canonicalize(-0.0) == vector["expected"], vector["id"]
+            continue
+        if vector["id"] == "C10":
             continue
         assert canonicalize(vector["input"]) == vector["expected"], vector["id"]
 
@@ -68,10 +89,20 @@ def test_canonicalization_negative_vectors():
             value = {"value": "leaf"}
             for _ in range(129):
                 value = {"nested": value}
+        elif vector["id"] == "CN7":
+            value = {}
+            value["self"] = value
+        elif vector["id"] in ("CN8", "CN9"):
+            # BigInt and Symbol are JavaScript-native rejection cases.
+            # Python's arbitrary-precision integers are covered by CN4/CN5.
+            continue
         else:
             value = vector["input"]
-        with pytest.raises(ValueError):
+        with pytest.raises((TypeError, ValueError)) as exc_info:
             canonicalize(value)
+        assert_expected_error(exc_info.value, vector)
+        if vector["id"] == "CN7":
+            value.clear()
 
 
 def test_canonicalization_depth_vectors():
@@ -82,18 +113,21 @@ def test_canonicalization_depth_vectors():
         if vector["expected"]["ok"]:
             assert canonicalize(value).startswith('{"nested":'), vector["id"]
         else:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError) as exc_info:
                 canonicalize(value)
+            assert_expected_error(exc_info.value, vector)
 
 
 def test_block_identity_vectors():
     for vector in core_suite("block-identity")["vectors"]:
         if "input" in vector:
             block = create_block(vector["input"]["content"], vector["input"].get("parentHashes", []))
-            assert block["blockHash"].startswith("0x"), vector["id"]
+            assert_expected_block(vector["input"], block, vector["expected"], vector["id"])
         else:
             a = create_block(vector["input_a"]["content"], vector["input_a"].get("parentHashes", []))
             b = create_block(vector["input_b"]["content"], vector["input_b"].get("parentHashes", []))
+            assert_expected_block(vector["input_a"], a, vector["expected_a"], vector["id"])
+            assert_expected_block(vector["input_b"], b, vector["expected_b"], vector["id"])
             for assertion in vector.get("assertions", []):
                 if "blockHash ==" in assertion:
                     assert a["blockHash"] == b["blockHash"], vector["id"]
@@ -112,14 +146,30 @@ def test_parent_limit_vectors():
             block = create_block(vector["input"]["content"], parents)
             assert len(block["parentHashes"]) == vector["expected"]["normalizedParentCount"], vector["id"]
         else:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError) as exc_info:
                 create_block(vector["input"]["content"], parents)
+            assert_expected_error(exc_info.value, vector)
+
+
+def test_parent_normalization_vectors():
+    for vector in core_suite("parent-normalization")["vectors"]:
+        if vector.get("inputMode") == "omitted":
+            action = normalize_hashes
+        else:
+            action = lambda value=vector.get("input"): normalize_hashes(value)
+        if vector["expected"]["ok"]:
+            assert action() == vector["expected"]["normalized"], vector["id"]
+        else:
+            with pytest.raises(ValueError) as exc_info:
+                action()
+            assert_expected_error(exc_info.value, vector)
 
 
 def test_attribution_trace_vectors():
     for vector in core_suite("attribution-trace")["vectors"]:
-        trace = trace_attribution(vector["root"], vector["graph"])
+        trace = trace_attribution(vector["root"], vector["graph"], vector.get("context"))
         expected = vector["expected"]
+        assert trace["root"] == vector["root"], vector["id"]
         if "nodeCount" in expected:
             assert len(trace["nodes"]) == expected["nodeCount"], vector["id"]
         if "edgeCount" in expected:
@@ -128,6 +178,18 @@ def test_attribution_trace_vectors():
             assert trace["maxDepth"] == expected["maxDepth"], vector["id"]
         if "cycle" in expected:
             assert trace["cycle"] == expected["cycle"], vector["id"]
+        if "leaves" in expected:
+            assert trace["leaves"] == expected["leaves"], vector["id"]
+        if "leafCount" in expected:
+            assert len(trace["leaves"]) == expected["leafCount"], vector["id"]
+        if "validationMode" in expected:
+            assert trace["validationMode"] == expected["validationMode"], vector["id"]
+        if "complete" in expected:
+            assert trace["complete"] == expected["complete"], vector["id"]
+        if "missingParents" in expected:
+            assert trace["missingParents"] == expected["missingParents"], vector["id"]
+        if "externalParents" in expected:
+            assert trace["externalParents"] == expected["externalParents"], vector["id"]
         for hash_value, count in expected.get("pathCounts", {}).items():
             node = next(n for n in trace["nodes"] if n["hash"] == hash_value)
             assert node["pathCount"] == count, vector["id"]
@@ -135,13 +197,37 @@ def test_attribution_trace_vectors():
             node = next(n for n in trace["nodes"] if n["hash"] == hash_value)
             for key, value in assertions.items():
                 assert node[key] == value, f"{vector['id']}:{hash_value}:{key}"
+        if "allLeafPathCount" in expected:
+            for node in (node for node in trace["nodes"] if node["hash"] != vector["root"]):
+                assert node["pathCount"] == expected["allLeafPathCount"], vector["id"]
+        if "allLeafChildCount" in expected:
+            for node in (node for node in trace["nodes"] if node["hash"] != vector["root"]):
+                assert node["childCount"] == expected["allLeafChildCount"], vector["id"]
+        if expected.get("deterministic"):
+            assert trace == trace_attribution(vector["root"], vector["graph"], vector.get("context")), vector["id"]
 
 
-def test_lineage_negative_cycle_vectors():
+def test_lineage_negative_vectors():
     for vector in core_suite("lineage-negative")["vectors"]:
-        if vector.get("graph") and vector["expected"].get("hasCycle"):
+        expected = vector["expected"]
+        if vector.get("input") and "selfRef" in expected:
+            result = validate_lineage(vector["input"]["blockHash"], vector["input"]["parentHashes"])
+            assert result["ok"] == expected["ok"], vector["id"]
+            assert result["selfRef"] == expected["selfRef"], vector["id"]
+        elif vector.get("graph") and expected.get("hasCycle"):
             root = next(iter(vector["graph"]))
             assert trace_attribution(root, vector["graph"])["cycle"] is True, vector["id"]
+        elif "duplicates" in expected:
+            result = validate_lineage(vector["input"]["blockHash"], vector["input"]["parentHashes"])
+            assert result["duplicates"] == expected["duplicates"], vector["id"]
+        elif "errorCode" in expected:
+            with pytest.raises(ValueError) as exc_info:
+                normalize_hashes(vector["input"]["parentHashes"])
+            assert_expected_error(exc_info.value, vector)
+        elif "normalized" in expected:
+            assert normalize_hashes(vector["input"]["parentHashes"]) == expected["normalized"], vector["id"]
+        else:
+            raise AssertionError(f"unsupported lineage vector {vector['id']}")
 
 
 def test_lineage_boundary_vectors():

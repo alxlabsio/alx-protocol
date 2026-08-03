@@ -2,8 +2,8 @@
  * CLI argument parsing for block create/link (content sources and positionals).
  */
 
-import { readFileSync, existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, existsSync, statSync } from "node:fs";
+import { basename, extname, resolve } from "node:path";
 
 const HASH_RE = /^0x[a-f0-9]{64}$/;
 
@@ -58,7 +58,7 @@ export function getPositionals(argv) {
 /**
  * @param {string} [cwd]
  */
-export function readStdinIfAvailable(cwd = process.cwd()) {
+function readStdinIfAvailable(cwd = process.cwd()) {
   void cwd;
   if (process.stdin.isTTY) return null;
   try {
@@ -76,6 +76,20 @@ function stripUtf8Bom(raw) {
   return raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw;
 }
 
+function decodeUtf8(buffer, path) {
+  let raw;
+  try {
+    raw = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+  } catch {
+    throw new CliInputError("File is not valid UTF-8: " + path);
+  }
+  raw = stripUtf8Bom(raw);
+  if (raw.includes("\u0000")) {
+    throw new CliInputError("Text content contains a NUL character: " + path);
+  }
+  return raw;
+}
+
 /**
  * @param {string} raw
  */
@@ -91,7 +105,23 @@ function parseJsonStrict(raw) {
  * @param {string} path
  * @param {{ forContent?: boolean }} [opts]
  */
-function loadJsonFromPath(path, opts = {}) {
+function mediaTypeForPath(path) {
+  switch (extname(path).toLowerCase()) {
+    case ".md":
+    case ".markdown":
+      return "text/markdown";
+    case ".csv":
+      return "text/csv";
+    case ".yaml":
+    case ".yml":
+      return "application/yaml";
+    case ".txt":
+    default:
+      return "text/plain";
+  }
+}
+
+function loadContentFromPath(path, opts = {}) {
   if (!path || path.startsWith("--")) {
     throw new CliInputError("Expected a file path");
   }
@@ -99,7 +129,31 @@ function loadJsonFromPath(path, opts = {}) {
   if (!existsSync(abs)) {
     throw new CliInputError(`File not found: ${path}`);
   }
-  const parsed = parseJsonStrict(readFileSync(abs, "utf-8"));
+  let stats;
+  try {
+    stats = statSync(abs);
+  } catch {
+    throw new CliInputError(`Cannot read file: ${path}`);
+  }
+  if (!stats.isFile()) {
+    throw new CliInputError(`Expected a file, received a directory: ${path}`);
+  }
+
+  let buffer;
+  try {
+    buffer = readFileSync(abs);
+  } catch {
+    throw new CliInputError(`Cannot read file: ${path}`);
+  }
+  const raw = decodeUtf8(buffer, path);
+  const parsed = extname(abs).toLowerCase() === ".json"
+    ? parseJsonStrict(raw)
+    : {
+        type: "document",
+        name: basename(abs),
+        mediaType: mediaTypeForPath(abs),
+        text: raw,
+      };
   if (opts.forContent !== false && isSealedBlockShape(parsed)) {
     throw new CliInputError(
       `${path} looks like a locked Block (blockHash + content + parentHashes). ` +
@@ -135,7 +189,7 @@ export function resolveContentInput({ args, positionalCandidates = [], allowStdi
     if (raw.startsWith("{")) {
       return { content: parseJsonStrict(raw), source: "inline" };
     }
-    const loaded = loadJsonFromPath(raw, { forContent: true });
+    const loaded = loadContentFromPath(raw, { forContent: true });
     return { content: loaded.value, source: "file", path: loaded.path };
   }
 
@@ -143,7 +197,7 @@ export function resolveContentInput({ args, positionalCandidates = [], allowStdi
   if (fileIdx !== -1) {
     const path = args[fileIdx + 1];
     if (!path) throw new CliInputError("--content-file requires a path");
-    const loaded = loadJsonFromPath(path, { forContent: true });
+    const loaded = loadContentFromPath(path, { forContent: true });
     return { content: loaded.value, source: "file", path: loaded.path };
   }
 
@@ -152,7 +206,7 @@ export function resolveContentInput({ args, positionalCandidates = [], allowStdi
     if (token.startsWith("{")) {
       return { content: parseJsonStrict(token), source: "positional-inline" };
     }
-    const loaded = loadJsonFromPath(token, { forContent: true });
+    const loaded = loadContentFromPath(token, { forContent: true });
     return { content: loaded.value, source: "positional-file", path: loaded.path };
   }
 
@@ -184,6 +238,26 @@ function flagValue(args, flagName) {
   return args[idx + 1];
 }
 
+function flagValues(args, flagName) {
+  const values = [];
+  for (let index = 0; index < args.length; index++) {
+    if (args[index] === flagName && args[index + 1]) {
+      values.push(args[index + 1]);
+      index += 1;
+    }
+  }
+  return values;
+}
+
+export function parseParentReferences(args) {
+  return [
+    ...flagValues(args, "--parent"),
+    ...flagValues(args, "--parents"),
+  ].flatMap((value) => value.split(","))
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
 /**
  * @param {string} token
  * @param {string} cwd
@@ -203,6 +277,7 @@ function resolveOptionalPath(token, cwd = process.cwd()) {
  *   graphPath: string|null,
  *   json: boolean,
  *   dryRun: boolean,
+ *   validateParents: boolean,
  *   positionals: string[],
  * }}
  */
@@ -221,10 +296,7 @@ export function parseBlockCreateArgs(args) {
     positionalCandidates: contentCandidates,
   });
 
-  const parentsRaw = flagValue(args, "--parents");
-  const parents = parentsRaw
-    ? parentsRaw.split(",").map((h) => h.trim()).filter(Boolean)
-    : [];
+  const parents = parseParentReferences(args);
 
   let outPath = resolveOptionalPath(flagValue(args, "--out"));
   if (!outPath) {
@@ -245,6 +317,7 @@ export function parseBlockCreateArgs(args) {
     graphPath,
     json: args.includes("--json"),
     dryRun: args.includes("--dry-run"),
+    validateParents: args.includes("--validate-parents"),
     positionals,
   };
 }

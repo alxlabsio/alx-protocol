@@ -50,7 +50,7 @@ export function parseJson(str) {
   }
 }
 
-export function writeBlockJson(filePath, block) {
+function writeBlockJson(filePath, block) {
   writeFileSync(filePath, JSON.stringify(block, null, 2) + "\n");
 }
 
