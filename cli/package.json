@@ -17,6 +17,7 @@
   },
   "files": [
     "bin",
+    "commands",
     "lib",
     "server",
     "openapi.yaml",
