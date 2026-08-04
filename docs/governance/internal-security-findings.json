@@ -9,21 +9,340 @@
   },
   "severityPolicy": "SECURITY.md#severity-classification",
   "phases": [
-    { "id": 1, "name": "baseline-and-controls", "status": "complete" },
-    { "id": 2, "name": "canonicalization-hashing-and-identity", "status": "pending" },
-    { "id": 3, "name": "lineage-trace-and-resource-limits", "status": "pending" },
-    { "id": 4, "name": "signing-replay-and-merkle", "status": "pending" },
-    { "id": 5, "name": "cli-retrieval-storage-and-http", "status": "pending" },
-    { "id": 6, "name": "contracts-and-chain-assumptions", "status": "pending" },
-    { "id": 7, "name": "supply-chain-build-and-release", "status": "pending" },
-    { "id": 8, "name": "remediation-and-regression", "status": "pending" },
-    { "id": 9, "name": "candidate-freeze-and-external-handoff", "status": "pending" }
+    {
+      "id": 1,
+      "name": "baseline-and-controls",
+      "status": "complete"
+    },
+    {
+      "id": 2,
+      "name": "canonicalization-hashing-and-identity",
+      "status": "complete"
+    },
+    {
+      "id": 3,
+      "name": "lineage-trace-and-resource-limits",
+      "status": "pending"
+    },
+    {
+      "id": 4,
+      "name": "signing-replay-and-merkle",
+      "status": "pending"
+    },
+    {
+      "id": 5,
+      "name": "cli-retrieval-storage-and-http",
+      "status": "pending"
+    },
+    {
+      "id": 6,
+      "name": "contracts-and-chain-assumptions",
+      "status": "pending"
+    },
+    {
+      "id": 7,
+      "name": "supply-chain-build-and-release",
+      "status": "pending"
+    },
+    {
+      "id": 8,
+      "name": "remediation-and-regression",
+      "status": "pending"
+    },
+    {
+      "id": 9,
+      "name": "candidate-freeze-and-external-handoff",
+      "status": "pending"
+    }
   ],
   "summary": {
-    "critical": { "open": 0, "remediated": 0, "accepted": 0, "falsePositive": 0 },
-    "high": { "open": 0, "remediated": 0, "accepted": 0, "falsePositive": 0 },
-    "medium": { "open": 0, "remediated": 0, "accepted": 0, "falsePositive": 0 },
-    "low": { "open": 0, "remediated": 0, "accepted": 0, "falsePositive": 0 }
+    "critical": {
+      "open": 0,
+      "remediated": 4,
+      "accepted": 0,
+      "falsePositive": 0
+    },
+    "high": {
+      "open": 0,
+      "remediated": 0,
+      "accepted": 0,
+      "falsePositive": 0
+    },
+    "medium": {
+      "open": 1,
+      "remediated": 1,
+      "accepted": 0,
+      "falsePositive": 0
+    },
+    "low": {
+      "open": 0,
+      "remediated": 0,
+      "accepted": 0,
+      "falsePositive": 0
+    }
   },
-  "findings": []
+  "findings": [
+    {
+      "affectedBaselineCommit": "487cd46810766962dd6b5399314162d6832212b2",
+      "owner": "Xandr Labs maintainers",
+      "reviewedOn": "2026-08-04",
+      "independentRetest": "pending",
+      "id": "ALX-ISR-2026-001",
+      "title": "Python and Rust used Unicode scalar ordering instead of required UTF-16 key ordering",
+      "severity": "critical",
+      "status": "remediated",
+      "phase": 2,
+      "affected": [
+        {
+          "file": "reference-implementations/python/src/alx_protocol/canonical.py",
+          "symbol": "canonicalize(dict)"
+        },
+        {
+          "file": "reference-implementations/rust/src/canonical.rs",
+          "symbol": "canonicalize_inner(Value::Object)"
+        }
+      ],
+      "trustBoundary": "Cross-runtime canonicalization and Block identity",
+      "exploitPreconditions": "Content contains object keys whose Unicode scalar order differs from UTF-16 code-unit order, such as U+1F600 and U+E000.",
+      "evidence": [
+        "TypeScript produced {\"??\":2,\"?\":1}; Python and Rust produced {\"?\":1,\"??\":2} for the same JSON value.",
+        "protocol/spec.md:135 and :144 require UTF-16 code-unit comparison."
+      ],
+      "impact": "Conformant-looking implementations could derive different contentHash and blockHash values for identical content.",
+      "severityRationale": "SECURITY.md classifies defects that can produce incorrect hashes as critical.",
+      "reproduction": [
+        "Run pnpm run security:audit:core.",
+        "Replay canonical vector C28 in all three native suites."
+      ],
+      "remediation": {
+        "summary": "Added canonical vector C28 and UTF-16 sort keys/comparators in Python and Rust.",
+        "commit": "9ba8e985a12f511742721e191fbe97312267deae",
+        "regression": [
+          "protocol/test-vectors/canonicalization.json#C28",
+          "pnpm run security:audit:core"
+        ]
+      },
+      "disposition": "Remediated in the Phase 2 worktree; independent retest remains required.",
+      "residualRisk": "Lone surrogate handling is tracked separately in ALX-ISR-2026-006."
+    },
+    {
+      "affectedBaselineCommit": "487cd46810766962dd6b5399314162d6832212b2",
+      "owner": "Xandr Labs maintainers",
+      "reviewedOn": "2026-08-04",
+      "independentRetest": "pending",
+      "id": "ALX-ISR-2026-002",
+      "title": "Rust number parsing and formatting diverged from JavaScript and unsafe exponent-form integers were inconsistently accepted",
+      "severity": "critical",
+      "status": "remediated",
+      "phase": 2,
+      "affected": [
+        {
+          "file": "reference-implementations/rust/src/canonical.rs",
+          "symbol": "canonicalize_number / format_float_js"
+        },
+        {
+          "file": "reference-implementations/rust/Cargo.toml",
+          "symbol": "serde_json features"
+        },
+        {
+          "file": "reference-implementations/python/src/alx_protocol/canonical.py",
+          "symbol": "_canonicalize(float)"
+        }
+      ],
+      "trustBoundary": "Cross-runtime numeric canonicalization and Block identity",
+      "exploitPreconditions": "Content contains boundary decimals or numerically integral exponent-form IEEE 754 values.",
+      "evidence": [
+        "Rust emitted 0.00000123456789012346 for input 0.0000012345678901234567.",
+        "Rust rounded 999999.9999999999 and 1000000.0000000001 to 1000000 before float_roundtrip parsing was enabled.",
+        "Python and Rust accepted 1e+21 while TypeScript rejected it as an unsafe integral value."
+      ],
+      "impact": "The same JSON number could produce different canonical bytes and therefore different Block identities.",
+      "severityRationale": "SECURITY.md classifies defects that can produce incorrect hashes as critical.",
+      "reproduction": [
+        "Run pnpm run security:audit:core.",
+        "Replay vectors C29-C31 and CN10 in all three native suites."
+      ],
+      "remediation": {
+        "summary": "Enabled exact serde_json float parsing, expanded scientific notation by decimal-string shifting, and enforced safe range for all integral-valued floats.",
+        "commit": "9ba8e985a12f511742721e191fbe97312267deae",
+        "regression": [
+          "protocol/test-vectors/canonicalization.json#C29-C31",
+          "protocol/test-vectors/canonicalization-negative.json#CN10",
+          "pnpm run security:audit:core"
+        ]
+      },
+      "disposition": "Remediated in the Phase 2 worktree; independent retest remains required.",
+      "residualRisk": "The deterministic audit samples 5,000 accepted IEEE 754 bit patterns in addition to canonical vectors; independent exhaustive analysis remains pending."
+    },
+    {
+      "affectedBaselineCommit": "487cd46810766962dd6b5399314162d6832212b2",
+      "owner": "Xandr Labs maintainers",
+      "reviewedOn": "2026-08-04",
+      "independentRetest": "pending",
+      "id": "ALX-ISR-2026-003",
+      "title": "TypeScript sparse arrays produced invalid canonical JSON and incorrect Block identity",
+      "severity": "critical",
+      "status": "remediated",
+      "phase": 2,
+      "affected": [
+        {
+          "file": "sdk/src/canonicalization.ts",
+          "symbol": "canonicalizeProtocolJson array branch"
+        }
+      ],
+      "trustBoundary": "JavaScript-native content to serialized Block exchange",
+      "exploitPreconditions": "A caller creates content with a sparse JavaScript array.",
+      "evidence": [
+        "canonicalizeProtocolJson([1, , 3]) returned [1,,3] while JSON serialization and protocol rules require [1,null,3]."
+      ],
+      "impact": "A locally created Block could use non-JSON canonical bytes and fail identity verification after ordinary JSON transport.",
+      "severityRationale": "SECURITY.md classifies defects that can produce incorrect hashes as critical.",
+      "reproduction": [
+        "Run node --test sdk/src/__tests__/canonicalization.test.js and inspect the sparse-array regression."
+      ],
+      "remediation": {
+        "summary": "Array.from now visits sparse slots so undefined slots canonicalize to null.",
+        "commit": "9ba8e985a12f511742721e191fbe97312267deae",
+        "regression": [
+          "sdk/src/__tests__/canonicalization.test.js: undefined and sparse array slots canonicalize to null"
+        ]
+      },
+      "disposition": "Remediated in the Phase 2 worktree; independent retest remains required.",
+      "residualRisk": "Non-JSON host objects remain outside the portable vector representation and require in-language coverage."
+    },
+    {
+      "affectedBaselineCommit": "487cd46810766962dd6b5399314162d6832212b2",
+      "owner": "Xandr Labs maintainers",
+      "reviewedOn": "2026-08-04",
+      "independentRetest": "pending",
+      "id": "ALX-ISR-2026-004",
+      "title": "Block validators accepted non-canonical stored blockHash and contentHash encodings",
+      "severity": "critical",
+      "status": "remediated",
+      "phase": 2,
+      "affected": [
+        {
+          "file": "sdk/src/block.ts",
+          "symbol": "validateBlock"
+        },
+        {
+          "file": "reference-implementations/python/src/alx_protocol/block.py",
+          "symbol": "validate_block"
+        },
+        {
+          "file": "reference-implementations/rust/src/block.rs",
+          "symbol": "validate_block_detailed"
+        }
+      ],
+      "trustBoundary": "Untrusted received Block validation",
+      "exploitPreconditions": "A received Block stores correct digest bytes using uppercase hexadecimal or surrounding whitespace.",
+      "evidence": [
+        "All three validators returned ok:true after normalizing uppercase or whitespace-padded stored identity fields, despite protocol/spec.md:167 requiring exact lowercase format."
+      ],
+      "impact": "Structurally invalid Block representations bypassed the public semantic verifier and could be admitted by callers that rely on validateBlock alone.",
+      "severityRationale": "SECURITY.md classifies verification bypass as critical.",
+      "reproduction": [
+        "Replay semantic-validity vectors SV7 and SV8 in all three conformance suites."
+      ],
+      "remediation": {
+        "summary": "Validators still normalize for diagnostic compatibility but now require each stored identity field to equal its normalized form before ok can be true.",
+        "commit": "9ba8e985a12f511742721e191fbe97312267deae",
+        "regression": [
+          "protocol/test-vectors/semantic-validity.json#SV7-SV8"
+        ]
+      },
+      "disposition": "Remediated in the Phase 2 worktree; independent retest remains required.",
+      "residualRisk": "Callers must continue to treat thrown malformed-hash errors as validation failure."
+    },
+    {
+      "affectedBaselineCommit": "487cd46810766962dd6b5399314162d6832212b2",
+      "owner": "Xandr Labs maintainers",
+      "reviewedOn": "2026-08-04",
+      "independentRetest": "pending",
+      "id": "ALX-ISR-2026-005",
+      "title": "Public recursion state allowed depth-limit bypass and TypeScript rejected reused non-cyclic objects",
+      "severity": "medium",
+      "status": "remediated",
+      "phase": 2,
+      "affected": [
+        {
+          "file": "sdk/src/canonicalization.ts",
+          "symbol": "canonicalizeProtocolJson"
+        },
+        {
+          "file": "reference-implementations/python/src/alx_protocol/canonical.py",
+          "symbol": "canonicalize"
+        }
+      ],
+      "trustBoundary": "Adversarial in-process canonicalization input",
+      "exploitPreconditions": "A caller supplies undocumented recursion parameters or reuses an object reference in separate branches.",
+      "evidence": [
+        "canonicalizeProtocolJson(value, -10) accepted content that the normal call rejected above depth 128.",
+        "The TypeScript WeakSet retained completed child objects and reported a cycle for {a: shared, b: shared}."
+      ],
+      "impact": "The depth control could be bypassed, increasing stack-exhaustion risk, while valid JSON-compatible inputs could be rejected inconsistently.",
+      "severityRationale": "The repository rubric classifies denial-of-service and resource-limit defects as medium.",
+      "reproduction": [
+        "Run node --test sdk/src/__tests__/canonicalization.test.js."
+      ],
+      "remediation": {
+        "summary": "Recursion state is private in TypeScript and Python, and TypeScript removes completed objects from the active ancestor set.",
+        "commit": "9ba8e985a12f511742721e191fbe97312267deae",
+        "regression": [
+          "sdk/src/__tests__/canonicalization.test.js: shared non-cyclic references",
+          "sdk/src/__tests__/canonicalization.test.js: depth bypass"
+        ]
+      },
+      "disposition": "Remediated in the Phase 2 worktree.",
+      "residualRisk": "The fixed recursive design still relies on the specified maximum depth rather than an iterative serializer."
+    },
+    {
+      "affectedBaselineCommit": "487cd46810766962dd6b5399314162d6832212b2",
+      "owner": "Xandr Labs maintainers",
+      "reviewedOn": "2026-08-04",
+      "independentRetest": "not-ready",
+      "id": "ALX-ISR-2026-006",
+      "title": "Lone UTF-16 surrogate acceptance is not interoperably defined",
+      "severity": "medium",
+      "status": "open",
+      "phase": 2,
+      "affected": [
+        {
+          "file": "protocol/spec.md",
+          "symbol": "canonical string and JSON-serializable content rules"
+        },
+        {
+          "file": "sdk/src/canonicalization.ts",
+          "symbol": "string canonicalization"
+        },
+        {
+          "file": "reference-implementations/python/src/alx_protocol/canonical.py",
+          "symbol": "string canonicalization"
+        },
+        {
+          "file": "reference-implementations/rust/src/canonical.rs",
+          "symbol": "Value::String canonicalization"
+        }
+      ],
+      "trustBoundary": "Cross-language parsing and canonicalization of escaped string data",
+      "exploitPreconditions": "Content or an object key contains an unpaired UTF-16 surrogate escape such as \\ud800.",
+      "evidence": [
+        "TypeScript canonicalized an unpaired surrogate as an escaped code unit.",
+        "Python accepted the value in memory but failed UTF-8 encoding during Block hashing or adapter output.",
+        "serde_json rejected the JSON input because Rust String requires valid Unicode scalar values."
+      ],
+      "impact": "A JavaScript producer can accept content that Python and Rust cannot hash or exchange, causing deterministic interoperability failure.",
+      "severityRationale": "The defect causes targeted cross-runtime denial of service without demonstrating hash forgery.",
+      "reproduction": [
+        "Send {\"operation\":\"canonicalize\",\"input\":\"\\ud800\"} to each conformance adapter and compare acceptance."
+      ],
+      "remediation": {
+        "summary": "Protocol decision required: either reject unpaired surrogates in every runtime or define a code-unit-preserving portable representation.",
+        "commit": null,
+        "regression": []
+      },
+      "disposition": "Open; changing acceptance semantics requires an approved canonical protocol decision and vectors.",
+      "residualRisk": "JavaScript callers must avoid unpaired surrogate content until the protocol policy is resolved."
+    }
+  ]
 }
