@@ -13,6 +13,8 @@ This document records the phased internal security review for ALX Protocol by Xa
 
 The internal review identifies security defects, records reproducible evidence, and prepares a bounded release candidate for independent review. Each finding links an affected surface to a reproduction, disposition, remediation commit, and regression check.
 
+The active implementation and QA queue is maintained in [`internal-security-todo.md`](./internal-security-todo.md).
+
 ## Scope
 
 The review covers the protocol core, reference implementations, conformance infrastructure, optional cryptographic extensions, CLI and HTTP shells, Local Block Stores, the optional `ALXAnchor` contract, dependencies, and release controls. The detailed path inventory and file hashes are recorded in [`internal-security-baseline.json`](./internal-security-baseline.json).
@@ -111,6 +113,7 @@ The final internal handoff identifies reviewed commits, methods, unresolved risk
 - [`security-audit.md`](./security-audit.md) — independent audit scope, evidence requirements, and publication record
 - [`internal-security-baseline.json`](./internal-security-baseline.json) — Phase 1 repository, toolchain, file, and aggregate hashes
 - [`internal-security-findings.json`](./internal-security-findings.json) — machine-readable finding and phase register
+- [`internal-security-todo.md`](./internal-security-todo.md) — active implementation and QA backlog
 - [`audit-core-differential.mjs`](../../scripts/security/audit-core-differential.mjs) - deterministic cross-runtime Phase 2 audit
 - [`security.md`](./security.md) — threat model and trust boundaries
 - [`../../SECURITY.md`](../../SECURITY.md) — severity, response, and disclosure policy
