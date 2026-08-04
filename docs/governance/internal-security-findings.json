@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0.0",
+  "reviewId": "ALX-ISR-2026-01",
+  "status": "in-progress",
+  "reviewTarget": {
+    "commit": "487cd46810766962dd6b5399314162d6832212b2",
+    "protocolVersion": "1",
+    "baseline": "docs/governance/internal-security-baseline.json"
+  },
+  "severityPolicy": "SECURITY.md#severity-classification",
+  "phases": [
+    { "id": 1, "name": "baseline-and-controls", "status": "complete" },
+    { "id": 2, "name": "canonicalization-hashing-and-identity", "status": "pending" },
+    { "id": 3, "name": "lineage-trace-and-resource-limits", "status": "pending" },
+    { "id": 4, "name": "signing-replay-and-merkle", "status": "pending" },
+    { "id": 5, "name": "cli-retrieval-storage-and-http", "status": "pending" },
+    { "id": 6, "name": "contracts-and-chain-assumptions", "status": "pending" },
+    { "id": 7, "name": "supply-chain-build-and-release", "status": "pending" },
+    { "id": 8, "name": "remediation-and-regression", "status": "pending" },
+    { "id": 9, "name": "candidate-freeze-and-external-handoff", "status": "pending" }
+  ],
+  "summary": {
+    "critical": { "open": 0, "remediated": 0, "accepted": 0, "falsePositive": 0 },
+    "high": { "open": 0, "remediated": 0, "accepted": 0, "falsePositive": 0 },
+    "medium": { "open": 0, "remediated": 0, "accepted": 0, "falsePositive": 0 },
+    "low": { "open": 0, "remediated": 0, "accepted": 0, "falsePositive": 0 }
+  },
+  "findings": []
+}

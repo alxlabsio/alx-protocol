@@ -11,6 +11,7 @@ This index maps governance documents. Stewardship policy is in [`../../GOVERNANC
 - [`versioning.md`](./versioning.md) - Protocol, SDK, and test vector versioning policy
 - [`security.md`](./security.md) - Threat model, trust boundaries, crypto assumptions
 - [`security-audit.md`](./security-audit.md) - Independent review scope, evidence requirements, and publication record
+- [`internal-security-review.md`](./internal-security-review.md) - Phased internal review, baseline, findings, and remediation status
 - [`stability.md`](./stability.md) - Stability tiers and compatibility guarantees
 - [`migration.md`](./migration.md) - Upgrade and migration procedures
 - [`evolution-and-graph-completeness.md`](./evolution-and-graph-completeness.md) - Accepted decisions for mixed-version Graphs, completeness, byte-size policy, and extension lifecycle
