@@ -74,6 +74,15 @@
       "expected": {
         "errorCode": "ALX_CANONICALIZATION_SYMBOL"
       }
+    },
+    {
+      "id": "CN10",
+      "description": "integral-valued exponent form above MAX_SAFE_INTEGER MUST be rejected",
+      "input": 1e21,
+      "note": "JSON number spelling does not change the safe-integer rule. A numerically integral IEEE 754 value outside the safe range must be rejected even when encoded with an exponent.",
+      "expected": {
+        "errorCode": "ALX_CANONICALIZATION_UNSAFE_INTEGER"
+      }
     }
   ]
 }

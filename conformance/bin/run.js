@@ -433,7 +433,7 @@ async function runCanonicalizationNegativeVectors(impl, isExternal, runner) {
     }
   }
 
-  const jsonNegatives = [vectorById.get("CN4"), vectorById.get("CN5")];
+  const jsonNegatives = [vectorById.get("CN4"), vectorById.get("CN5"), vectorById.get("CN10")];
   for (const v of jsonNegatives) {
     try { await impl.call("canonicalize", v.input); runner.fail(v.id, v.description, "expected error"); }
     catch (e) { assertExpectedError(runner, v, e); }

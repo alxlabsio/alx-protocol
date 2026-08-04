@@ -23,12 +23,15 @@ const MAX_DEPTH = 128;
  * Canonical JSON serialization.
  *
  * @param value — any JSON-compatible value
- * @param _depth — internal recursion counter (do not set manually)
- * @param _seen — internal cycle detector (do not set manually)
  * @returns deterministic string representation
  */
-export function canonicalizeProtocolJson(value: unknown, _depth = 0, _seen?: WeakSet<object>): string {
-  if (_depth > MAX_DEPTH) throw protocolError(ErrorCode.CANONICALIZATION_DEPTH, `Canonicalization depth exceeded ${MAX_DEPTH}`);
+export function canonicalizeProtocolJson(value: unknown): string {
+  return canonicalizeProtocolJsonInner(value, 0, new WeakSet<object>());
+}
+
+/** Recursion state is private so callers cannot bypass the protocol depth limit. */
+function canonicalizeProtocolJsonInner(value: unknown, depth: number, seen: WeakSet<object>): string {
+  if (depth > MAX_DEPTH) throw protocolError(ErrorCode.CANONICALIZATION_DEPTH, `Canonicalization depth exceeded ${MAX_DEPTH}`);
   if (value === undefined || value === null) return "null";
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "bigint") throw protocolError(ErrorCode.CANONICALIZATION_BIGINT, "BigInt not allowed: use a string or safe integer");
@@ -46,16 +49,29 @@ export function canonicalizeProtocolJson(value: unknown, _depth = 0, _seen?: Wea
   }
   if (typeof value === "string") return JSON.stringify(value);
 
-  // Arrays and objects: detect cyclic references
-  const seen = _seen ?? new WeakSet<object>();
-  if (seen.has(value as object)) throw protocolError(ErrorCode.CANONICALIZATION_CYCLIC, "Cyclic reference detected");
-  seen.add(value as object);
-
-  if (Array.isArray(value)) return "[" + value.map((v) => canonicalizeProtocolJson(v, _depth + 1, seen)).join(",") + "]";
-  if (typeof value === "object") {
-    const obj = value as Record<string, unknown>;
-    const keys = Object.keys(obj).filter((k) => obj[k] !== undefined).sort();
-    return "{" + keys.map((k) => JSON.stringify(k) + ":" + canonicalizeProtocolJson(obj[k], _depth + 1, seen)).join(",") + "}";
+  if (typeof value !== "object") {
+    throw protocolError(ErrorCode.CANONICALIZATION_UNSUPPORTED_TYPE, `Unsupported type: ${typeof value}`);
   }
-  throw protocolError(ErrorCode.CANONICALIZATION_UNSUPPORTED_TYPE, `Unsupported type: ${typeof value}`);
+
+  if (seen.has(value)) throw protocolError(ErrorCode.CANONICALIZATION_CYCLIC, "Cyclic reference detected");
+  seen.add(value);
+  try {
+    if (Array.isArray(value)) {
+      // Array.from visits sparse slots, exposing them as undefined so they canonicalize to null.
+      return "[" + Array.from(value, (item) => canonicalizeProtocolJsonInner(item, depth + 1, seen)).join(",") + "]";
+    }
+
+    const obj = value as Record<string, unknown>;
+    const parts: string[] = [];
+    for (const key of Object.keys(obj).sort()) {
+      const item = obj[key];
+      if (item !== undefined) {
+        parts.push(JSON.stringify(key) + ":" + canonicalizeProtocolJsonInner(item, depth + 1, seen));
+      }
+    }
+    return "{" + parts.join(",") + "}";
+  } finally {
+    // Reuse across sibling branches is valid; only an active ancestor is cyclic.
+    seen.delete(value);
+  }
 }

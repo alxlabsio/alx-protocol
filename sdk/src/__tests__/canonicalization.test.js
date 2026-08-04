@@ -72,6 +72,11 @@ test("empty array", () => {
   assert.equal(canonicalizeProtocolJson([]), "[]");
 });
 
+test("undefined and sparse array slots canonicalize to null", () => {
+  assert.equal(canonicalizeProtocolJson([1, undefined, 3]), "[1,null,3]");
+  assert.equal(canonicalizeProtocolJson([1, , 3]), "[1,null,3]");
+});
+
 // ── Objects ──
 
 test("object keys are sorted", () => {
@@ -97,6 +102,20 @@ test("nested objects are recursively sorted", () => {
 });
 
 // ── Determinism ──
+
+test("shared non-cyclic object references remain canonicalizable", () => {
+  const shared = { value: "reused" };
+  assert.equal(
+    canonicalizeProtocolJson({ first: shared, second: shared }),
+    '{"first":{"value":"reused"},"second":{"value":"reused"}}',
+  );
+});
+
+test("callers cannot bypass the depth limit with extra runtime arguments", () => {
+  let value = { leaf: true };
+  for (let i = 0; i < 129; i++) value = { nested: value };
+  assert.throws(() => Reflect.apply(canonicalizeProtocolJson, undefined, [value, -1000, new WeakSet()]));
+});
 
 test("same input always produces same output", () => {
   const input = { x: [1, { b: 2, a: 1 }], y: null };

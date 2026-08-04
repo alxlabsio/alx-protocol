@@ -54,12 +54,14 @@ def _format_float_js(value: float) -> str:
     return re.sub(r'e([+-])(\d+)', fix_exp, s)
 
 
-def canonicalize(value: Any, _depth: int = 0, _seen: set[int] | None = None) -> str:
-    if _depth > MAX_DEPTH:
-        raise ValueError(f"[ALX_CANONICALIZATION_DEPTH] Canonicalization depth exceeded {MAX_DEPTH}")
+def canonicalize(value: Any) -> str:
+    """Canonicalize a JSON value with protocol-owned recursion state."""
+    return _canonicalize(value, 0, set())
 
-    if _seen is None:
-        _seen = set()
+
+def _canonicalize(value: Any, depth: int, seen: set[int]) -> str:
+    if depth > MAX_DEPTH:
+        raise ValueError(f"[ALX_CANONICALIZATION_DEPTH] Canonicalization depth exceeded {MAX_DEPTH}")
 
     if value is None:
         return "null"
@@ -77,7 +79,9 @@ def canonicalize(value: Any, _depth: int = 0, _seen: set[int] | None = None) -> 
             raise ValueError(f"[ALX_CANONICALIZATION_NON_FINITE] Non-finite number not allowed: {value}")
         if value == 0.0 and math.copysign(1.0, value) == -1.0:
             return "0"  # -0 → 0
-        if value == int(value) and MIN_SAFE_INTEGER <= value <= MAX_SAFE_INTEGER:
+        if value.is_integer():
+            if value > MAX_SAFE_INTEGER or value < MIN_SAFE_INTEGER:
+                raise ValueError(f"[ALX_CANONICALIZATION_UNSAFE_INTEGER] Integer out of safe range: {value}")
             return str(int(value))
         return _format_float_js(value)
 
@@ -86,30 +90,32 @@ def canonicalize(value: Any, _depth: int = 0, _seen: set[int] | None = None) -> 
 
     if isinstance(value, list):
         identity = id(value)
-        if identity in _seen:
+        if identity in seen:
             raise ValueError("[ALX_CANONICALIZATION_CYCLIC] Cyclic structures cannot be canonicalized")
-        _seen.add(identity)
+        seen.add(identity)
         try:
-            return "[" + ",".join(canonicalize(v, _depth + 1, _seen) for v in value) + "]"
+            return "[" + ",".join(_canonicalize(v, depth + 1, seen) for v in value) + "]"
         finally:
-            _seen.remove(identity)
+            seen.remove(identity)
 
     if isinstance(value, dict):
         identity = id(value)
-        if identity in _seen:
+        if identity in seen:
             raise ValueError("[ALX_CANONICALIZATION_CYCLIC] Cyclic structures cannot be canonicalized")
-        _seen.add(identity)
+        seen.add(identity)
         try:
-            keys = sorted(value.keys())
+            if not all(isinstance(key, str) for key in value):
+                raise TypeError("[ALX_CANONICALIZATION_UNSUPPORTED_TYPE] Object keys must be strings")
+            keys = sorted(value.keys(), key=lambda key: key.encode("utf-16-be", "surrogatepass"))
             parts = []
             for k in keys:
                 parts.append(
                     json.dumps(str(k), ensure_ascii=False)
                     + ":"
-                    + canonicalize(value[k], _depth + 1, _seen)
+                    + _canonicalize(value[k], depth + 1, seen)
                 )
             return "{" + ",".join(parts) + "}"
         finally:
-            _seen.remove(identity)
+            seen.remove(identity)
 
     raise TypeError(f"[ALX_CANONICALIZATION_UNSUPPORTED_TYPE] Unsupported type for canonicalization: {type(value).__name__}")

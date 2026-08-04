@@ -173,6 +173,32 @@
       "description": "MIN_SAFE_INTEGER is accepted as a safe integer",
       "input": -9007199254740991,
       "expected": "-9007199254740991"
+    },
+    {
+      "id": "C28",
+      "description": "Unicode key sort uses UTF-16 code units for astral and BMP keys",
+      "input": { "\ue000": 1, "\ud83d\ude00": 2 },
+      "note": "U+1F600 begins with UTF-16 code unit 0xD83D, which sorts before U+E000 (0xE000), even though the Unicode scalar value U+1F600 is larger.",
+      "expected": "{\"\ud83d\ude00\":2,\"\ue000\":1}"
+    },
+    {
+      "id": "C29",
+      "description": "float - shortest decimal near the scientific-notation boundary",
+      "input": 0.0000012345678901234567,
+      "note": "The scientific mantissa must be shifted as decimal digits rather than re-rounded through fixed-precision formatting.",
+      "expected": "0.0000012345678901234567"
+    },
+    {
+      "id": "C30",
+      "description": "float - nearest lower representable value around one million",
+      "input": 999999.9999999999,
+      "expected": "999999.9999999999"
+    },
+    {
+      "id": "C31",
+      "description": "float - nearest upper representable value around one million",
+      "input": 1000000.0000000001,
+      "expected": "1000000.0000000001"
     }
   ]
 }

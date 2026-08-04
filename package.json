@@ -51,6 +51,7 @@
     "verify": "pnpm run verify:suites && pnpm run verify:schemas && pnpm run verify:conformance-claims && pnpm run verify:protocol-version && pnpm run verify:fixtures && pnpm run verify:docs-api-signatures",
     "ci": "pnpm run lint:js && pnpm run build && pnpm run verify && pnpm run test:security-tooling && pnpm run test:cli && pnpm run test:adapters && pnpm run test && pnpm run test:conformance && pnpm run test:extension",
     "security:audit:baseline": "node scripts/security/capture-audit-baseline.mjs",
+    "security:audit:core": "node scripts/security/audit-core-differential.mjs",
     "maintainer:audit": "node maintainer/audit/run.js --profile gate --fail-on error",
     "maintainer:audit:full": "node maintainer/audit/run.js --profile full --fail-on error",
     "maintainer:audit:json": "node maintainer/audit/run.js --profile gate --json --fail-on error",

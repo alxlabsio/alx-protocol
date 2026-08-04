@@ -143,7 +143,9 @@ pub fn validate_block_detailed(block: &Block) -> Result<BlockValidation, String>
     let parents_canonical = block.parent_hashes == canonical_parents;
     let self_ref = canonical_parents.contains(&actual);
     let ok = expected == actual
+        && block.block_hash == actual
         && expected_content_hash == actual_content_hash
+        && block.content_hash == actual_content_hash
         && parents_canonical
         && !self_ref;
     Ok(BlockValidation {

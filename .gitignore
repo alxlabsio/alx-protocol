@@ -97,6 +97,7 @@ internal/
 !/scripts/security/
 /scripts/security/*
 !/scripts/security/capture-audit-baseline.mjs
+!/scripts/security/audit-core-differential.mjs
 !/scripts/security/__tests__/
 /scripts/security/__tests__/*
 !/scripts/security/__tests__/capture-audit-baseline.test.js

@@ -232,8 +232,10 @@ export function validateBlock(block: Block): BlockValidation {
   const actual = normalizeHash(block.blockHash);
   const expectedContentHash = deriveContentHash(block.content);
   const actualContentHash = normalizeHash(block.contentHash);
-  const blockHashMatch = compareHashesConstantTime(expected, actual);
-  const contentHashMatch = compareHashesConstantTime(expectedContentHash, actualContentHash);
+  const blockHashDigestMatch = compareHashesConstantTime(expected, actual);
+  const contentHashDigestMatch = compareHashesConstantTime(expectedContentHash, actualContentHash);
+  const blockHashMatch = block.blockHash === actual && blockHashDigestMatch;
+  const contentHashMatch = block.contentHash === actualContentHash && contentHashDigestMatch;
   const parentsCanonical = JSON.stringify(block.parentHashes) === JSON.stringify(canonicalParents);
   const selfRef = canonicalParents.includes(actual);
   return {

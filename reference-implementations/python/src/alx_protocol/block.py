@@ -73,7 +73,9 @@ def validate_block(block: Dict[str, Any]) -> Dict[str, Any]:
     self_ref = actual in canonical_parents
     ok = (
         expected == actual
+        and block["blockHash"] == actual
         and expected_content_hash == actual_content_hash
+        and block["contentHash"] == actual_content_hash
         and parents_canonical
         and not self_ref
     )

@@ -109,7 +109,7 @@ fn replays_canonicalization_negative_vectors_from_manifest() {
     for vector in suite["vectors"].as_array().unwrap() {
         let id = vector["id"].as_str().unwrap();
         let result = match id {
-            "CN4" | "CN5" => canonicalize(&vector["input"]),
+            "CN4" | "CN5" | "CN10" => canonicalize(&vector["input"]),
             "CN6" => {
                 let mut value = serde_json::json!({"value": "leaf"});
                 for _ in 0..129 {

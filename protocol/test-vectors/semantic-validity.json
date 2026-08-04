@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/test-vector.schema.json",
   "suite": "semantic-validity",
-  "description": "Protocol-invalid cases that remain structurally schema-valid and therefore must be rejected by verifier semantics rather than JSON Schema.",
+  "description": "Protocol-invalid Block and Graph cases that verifiers must reject, including semantic failures and non-canonical stored identity fields.",
   "vectors": [
     {
       "id": "SV1",
@@ -103,6 +103,30 @@
           "0x0000000000000000000000000000000000000000000000000000000052"
         ]
       }
+    },
+    {
+      "id": "SV7",
+      "description": "uppercase stored blockHash is non-canonical and MUST fail Block validation",
+      "operation": "validateBlock",
+      "input": {
+        "blockHash": "0xAB6476C50C9E1E64BE86B34D5076396C137CA0C661F3BB4FF3548F4BCE7D00EB",
+        "contentHash": "0xfd5b18dcd016c54324318c476d4139f90e5a63a23afe04828775e6eb947b6558",
+        "parentHashes": [],
+        "content": "semantic baseline"
+      },
+      "expected": { "ok": false }
+    },
+    {
+      "id": "SV8",
+      "description": "whitespace-padded stored contentHash is non-canonical and MUST fail Block validation",
+      "operation": "validateBlock",
+      "input": {
+        "blockHash": "0xab6476c50c9e1e64be86b34d5076396c137ca0c661f3bb4ff3548f4bce7d00eb",
+        "contentHash": " 0xfd5b18dcd016c54324318c476d4139f90e5a63a23afe04828775e6eb947b6558 ",
+        "parentHashes": [],
+        "content": "semantic baseline"
+      },
+      "expected": { "ok": false }
     }
   ]
 }
