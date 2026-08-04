@@ -94,6 +94,12 @@ internal/
 # Public scripts referenced by package commands. Other local scripts remain untracked.
 /scripts/*
 !/scripts/run-node-tests.js
+!/scripts/security/
+/scripts/security/*
+!/scripts/security/capture-audit-baseline.mjs
+!/scripts/security/__tests__/
+/scripts/security/__tests__/*
+!/scripts/security/__tests__/capture-audit-baseline.test.js
 !/scripts/build-protocol-site.js
 !/scripts/docs/
 /scripts/docs/*
