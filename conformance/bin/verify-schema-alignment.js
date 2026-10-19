@@ -3,7 +3,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { resolve, basename, join } from "node:path";
 import { REPO_ROOT } from "../lib/repo-root.js";
-import { SCHEMA_HOST } from "../../scripts/build-protocol-site.js";
+import { SCHEMA_HOST } from "../../.github/scripts/build-protocol-site.js";
 
 const manifest = JSON.parse(readFileSync(resolve(REPO_ROOT, "protocol/protocol.manifest.json"), "utf-8"));
 const errors = [];
