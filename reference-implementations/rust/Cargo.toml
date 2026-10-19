@@ -17,7 +17,7 @@ name = "conformance_adapter"
 path = "src/bin/conformance_adapter.rs"
 
 [dependencies]
-serde = "1"
+serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["unbounded_depth"] }
 sha3 = "0.10"
 hex = "0.4"
