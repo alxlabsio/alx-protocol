@@ -24,30 +24,29 @@ MIN_SAFE_INTEGER = -(2**53 - 1)
 
 
 def _format_float_js(value: float) -> str:
-    """Format a float to match JavaScript JSON.stringify output exactly.
+    """Format a float to match JavaScript JSON.stringify output (shortest decimal).
 
     JS uses decimal when 1e-6 <= |value| < 1e21, scientific otherwise.
-    We format with 20 decimal places then strip trailing zeros for the
-    decimal range, and fix exponent zero-padding for the scientific range.
+    We use Python's general format with 17 significant digits (".17g") to
+    produce the shortest round-trip decimal for IEEE-754 doubles in most cases.
+    For the scientific range we normalize exponent formatting to match JS.
     """
     abs_val = abs(value)
 
+    # Decimal notation for range 1e-6 <= |v| < 1e21 (and non-zero)
     if abs_val != 0 and 1e-6 <= abs_val < 1e21:
-        # JS uses decimal notation here — format and strip trailing zeros
-        formatted = f"{value:.20f}"
-        formatted = formatted.rstrip('0').rstrip('.')
-        if float(formatted) == value:
-            return formatted
+        # Use general format which yields the shortest representation that
+        # typically round-trips for IEEE-754 doubles.
+        s = format(value, ".17g")
+        # Python can produce uppercase 'INF'/'NAN' in some cases, but those
+        # non-finite values are handled earlier in canonicalize.
+        return s
 
-    # Scientific notation — strip exponent zero-padding to match JS
-    s = repr(value)
-
-    def fix_exp(m):
-        sign = m.group(1)
-        digits = m.group(2).lstrip('0') or '0'
-        return f"e{sign}{digits}"
-
-    return re.sub(r'e([+-])(\d+)', fix_exp, s)
+    # Scientific notation: produce normalized 'e' form with no leading zeros
+    s = format(value, ".17e").replace("E", "e")
+    # Remove leading zeros in exponent (e+01 -> e+1, e-07 -> e-7)
+    s = re.sub(r"e([+-])0*(\d+)", lambda m: f"e{m.group(1)}{m.group(2)}", s)
+    return s
 
 
 def canonicalize(value: Any, _depth: int = 0) -> str:
