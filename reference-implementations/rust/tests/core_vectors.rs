@@ -239,6 +239,7 @@ fn replays_semantic_validity_vectors_from_manifest() {
                     content_hash: input["contentHash"].as_str().unwrap().to_string(),
                     parent_hashes,
                     content: input["content"].clone(),
+                    protocol_version: Some("1".to_string()),
                 };
                 let result = validate_block_detailed(&block).unwrap();
                 assert_eq!(result.ok, vector["expected"]["ok"].as_bool().unwrap(), "{id}");
