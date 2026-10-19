@@ -7,28 +7,28 @@
 
 # What is ALX?
 
-**ALX Protocol is a protocol for intelligent systems.** AI agents and applications record prompts, outputs, decisions, tool responses, workflow steps, and other digital work as portable **ALX Blocks**.
+ALX Protocol defines deterministic identity and verifiable relationships for data produced by intelligent systems. AI agents and applications represent prompts, outputs, decisions, tool responses, workflow steps, and other digital artifacts as portable ALX Blocks.
 
-Blocks can declare earlier Blocks as direct inputs. These parent relationships connect Blocks into **Block Graphs**, creating machine-readable lineage that AI agents and applications can navigate, validate, and build on.
+Each Block can declare other Blocks as direct parents through parentHashes. These relationships form Block Graphs, allowing applications to inspect, validate, and traverse declared lineage independently of the originating system.
 
-An ALX Block can represent a source document, prompt, model response, dataset, analysis, review, decision, workflow state, tool response, agent handoff, or other JSON-compatible artifact.
+Blocks can represent source documents, prompts, model responses, datasets, analyses, reviews, decisions, workflow states, tool results, and agent handoffs.
 
 ## Block Structure
 
-Each Block contains:
+Each Block contains five fields:
 
 - `content` . JSON-serializable artifact data
 - `parentHashes` . declared parent Block references
 - `contentHash` . deterministic identity of the Block content
 - `blockHash` . deterministic identity of the Block content and declared parent relationships
 
-ALX identity is deterministic. Changing the content changes the Block identity. Changing the declared parents changes the `blockHash`. When the content and parent relationships remain unchanged, every conforming implementation produces the same hashes.
+ALX uses deterministic hashing to establish Block identity. Changes to content change contentHash and blockHash. Changes to parentHashes change blockHash. Equivalent protocol inputs produce identical hashes across conforming implementations.
 
-Anyone with the required Block data can recompute the hashes locally and validate Block identity. When declared parent Blocks are available, applications can follow the parent relationships and validate declared lineage.
+Applications can independently recompute Block hashes and validate Block structure. When parent Blocks are available, applications can also traverse and validate declared relationships.
 
-ALX does not require a blockchain, token, hosted service, storage provider, or vendor API for Block creation or local validation.
+ALX supports local Block creation and validation without a blockchain, token, hosted service, storage provider, or vendor API.
 
-Block validation confirms deterministic identity, structure, and declared relationships. Block validation does not prove that Block content is true, identify the Block creator, or establish ownership.
+Protocol validation confirms deterministic identity, Block structure, and declared relationships. Validation does not establish factual accuracy, creator identity, ownership, or the completeness of real-world dependencies.
 
 ## Documentation
 
