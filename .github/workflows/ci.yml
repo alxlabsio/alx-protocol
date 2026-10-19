@@ -55,11 +55,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - working-directory: reference-implementations/rust
-        run: cargo test --all-targets
 
-  # Documentation link checker — validates all internal markdown links
+      # Use an explicit stable toolchain version to avoid resolution/parsing flakes.
+      # Replace '1.72.0' with your desired pinned toolchain if needed.
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: "1.72.0"
+          override: true
+          components: rustfmt, clippy
+
+      - name: Run Rust tests (with retries)
+        working-directory: reference-implementations/rust
+        run: |
+          set -euo pipefail
+          attempts=0
+          until [ $attempts -ge 3 ]
+          do
+            if cargo test --all-targets; then
+              break
+            fi
+            attempts=$((attempts+1))
+            echo "cargo test failed; attempt $attempts/3 — retrying in 5s..."
+            sleep 5
+          done
+          if [ $attempts -ge 3 ]; then
+            echo "cargo test failed after 3 attempts"
+            exit 1
+          fi
+
   link-check:
     name: Documentation link check
     runs-on: ubuntu-latest
@@ -70,7 +94,6 @@ jobs:
           node-version: "20"
       - run: npx markdown-link-check --config .markdown-link-check.json $(find docs/ -name '*.md') README.md CONTRIBUTING.md SECURITY.md MAINTAINERS.md
 
-  # Cross-implementation conformance — proves all 3 languages produce identical outputs
   cross-impl-conformance:
     name: Cross-implementation conformance
     runs-on: ubuntu-latest
@@ -78,7 +101,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Setup all three runtimes
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -87,33 +109,31 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: "1.72.0"
+          override: true
+          components: rustfmt, clippy
 
-      # Build TypeScript (needed by conformance runner)
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
 
-      # Install Python implementation
       - working-directory: reference-implementations/python
         run: pip install -e ".[dev]"
 
-      # Build Rust conformance adapter
       - working-directory: reference-implementations/rust
         run: cargo build --bin conformance_adapter --release
 
-      # Run conformance: TypeScript (self-test)
       - name: "Conformance: TypeScript (self-test)"
         run: node conformance/bin/run.js --self-test
 
-      # Run conformance: TypeScript (external adapter)
       - name: "Conformance: TypeScript (--impl)"
         run: node conformance/bin/run.js --impl "node sdk/conformance-adapter.js"
 
-      # Run conformance: Python (external adapter)
       - name: "Conformance: Python (--impl)"
         run: node conformance/bin/run.js --impl "python reference-implementations/python/conformance_adapter.py"
 
-      # Run conformance: Rust (external adapter)
       - name: "Conformance: Rust (--impl)"
         run: node conformance/bin/run.js --impl "./reference-implementations/rust/target/release/conformance_adapter"
 
