@@ -75,6 +75,44 @@ export interface BlockAttestation {
   signature: string;
 }
 
+// Helper: lazily load ethers.verifyTypedData — used by deprecated helpers below.
+export async function loadVerifyTypedData(): Promise<(
+  domain: object,
+  types: object,
+  value: object,
+  signature: string
+) => string> {
+  try {
+    const ethers = await import("ethers");
+    return ethers.verifyTypedData as any;
+  } catch {
+    throw protocolError(ErrorCode.ETHERS_REQUIRED, "ethers is required for signature operations. Install it: npm install ethers");
+  }
+}
+
+/**
+ * Build the EIP-712 signing domain for ALX Protocol.
+ */
+export function buildProtocolSigningDomain({ chainId, verifyingContract = "0x0000000000000000000000000000000000000000" }: {
+  chainId: number;
+  verifyingContract?: string;
+} = { chainId: 0 }) {
+  const normalizedChainId = Number(chainId);
+  if (!Number.isSafeInteger(normalizedChainId) || normalizedChainId < 0) {
+    throw protocolError(ErrorCode.INVALID_CHAIN_ID, "chainId must be a non-negative safe integer");
+  }
+  if (typeof verifyingContract !== "string" || !/^0x[a-fA-F0-9]{40}$/.test(verifyingContract)) {
+    throw protocolError(ErrorCode.INVALID_CONTRACT, "verifyingContract must be a 20-byte hex address");
+  }
+
+  return {
+    name: PROTOCOL_SIGNING_DOMAIN_NAME,
+    version: PROTOCOL_SIGNING_DOMAIN_VERSION,
+    chainId: normalizedChainId,
+    verifyingContract,
+  };
+}
+
 // ── Block signing ─────────────────────────────────────────────────────────
 
 export const BLOCK_ATTESTATION_TYPES = {
