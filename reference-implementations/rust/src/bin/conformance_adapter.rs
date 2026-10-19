@@ -62,6 +62,8 @@ fn parse_block(value: &Value) -> Option<Block> {
         content_hash: value.get("contentHash")?.as_str()?.to_string(),
         parent_hashes: extract_string_array(value.get("parentHashes")),
         content: value.get("content").cloned().unwrap_or(Value::Null),
+        // protocol_version is optional in the Block type; parse if present, otherwise None
+        protocol_version: value.get("protocolVersion").and_then(|v| v.as_str()).map(|s| s.to_string()),
     })
 }
 
@@ -354,7 +356,7 @@ fn handle(op: &Value) -> Value {
                         "reason": issue.reason,
                         "expected": issue.expected,
                         "parentHash": issue.parent_hash,
-                    })).collect::<Vec<Value>>(),
+                    })).collect::<Vec<Value>>()
                 }}),
                 Err(e) => json!({"error": e}),
             }
