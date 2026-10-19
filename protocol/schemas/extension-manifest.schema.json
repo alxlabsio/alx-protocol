@@ -106,6 +106,10 @@
         "required": ["id", "path"],
         "additionalProperties": false
       }
+    },
+    "errorCodes": {
+      "$ref": "#/$defs/relativeSafePath",
+      "description": "Optional path to an extension-specific error-code manifest."
     }
   },
   "required": [
