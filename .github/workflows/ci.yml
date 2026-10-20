@@ -137,5 +137,14 @@ jobs:
       - name: "Conformance: Rust (--impl)"
         run: node conformance/bin/run.js --impl "./reference-implementations/rust/target/release/conformance_adapter"
 
-      - name: "Differential core check"
-        run: node conformance/bin/differential-core-check.js
+      # Compare canonical outputs and deterministic Graph/Trace behavior pairwise.
+      - name: "Differential verification: TypeScript, Python, Rust"
+        run: pnpm run test:conformance:differential
+
+      - name: Upload differential verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-language-differential-report
+          path: artifacts/cross-language/differential-report.json
+          if-no-files-found: error

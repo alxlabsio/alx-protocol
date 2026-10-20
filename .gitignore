@@ -23,6 +23,7 @@ xandrlabs.github.io-*/
 
 # Coverage / Testing
 coverage/
+.stryker-tmp/
 
 # Python caches / packaging
 __pycache__/
@@ -78,9 +79,6 @@ maintainer/reports/
 docs-writing-report.txt
 .docs-writing/
 
-# CLI demo output (alx init demo)
-alx-demo/
-
 # Reference retrieval server local data directories
 .alx-retrieval/
 team-retrieval/
@@ -91,25 +89,10 @@ _site/
 # Internal / team-only documents
 internal/
 
-# Public scripts referenced by package commands. Other local scripts remain untracked.
-/scripts/*
-!/scripts/run-node-tests.js
-!/scripts/security/
-/scripts/security/*
-!/scripts/security/capture-audit-baseline.mjs
-!/scripts/security/audit-core-differential.mjs
-!/scripts/security/__tests__/
-/scripts/security/__tests__/*
-!/scripts/security/__tests__/capture-audit-baseline.test.js
-!/scripts/build-protocol-site.js
-!/scripts/docs/
-/scripts/docs/*
-!/scripts/docs/export-whitepaper-diagrams.js
-!/scripts/docs/generate-alx-logo.js
-!/scripts/docs/verify-api-signatures.js
-!/scripts/docs/__tests__/
-!/scripts/docs/__tests__/generate-alx-logo.test.js
-
+# Application projects developed outside the protocol release
+/xndr/
+/tests/integration/xndr/
+docs/architecture/xndr-index-explorer.md
 
 # Nested npm lockfiles (pnpm monorepo uses pnpm-lock.yaml)
 **/package-lock.json
@@ -122,7 +105,6 @@ docs/playground.html
 docs/benchmarks.md
 docs/DOCUMENTATION-GUIDE.md
 docs/STYLE-GUIDE.md
-docs/verification-receipts.md
 
 # Windows recycle / thumbnail cache
 $RECYCLE.BIN/
@@ -135,13 +117,12 @@ ehthumbs.db
 *.swp
 
 # Optional Hosting / Frontend
-.vercel
-.vercelignore
-vercel.json
-index.html
-components/
-demo/
-api/
+/.vercel/
+/.vercelignore
+/index.html
+/components/
+/demo/
+/api/
 # Local editorial scratch files
 .docs-scratch/
 docs/**/*.local.md
@@ -156,3 +137,11 @@ docs/community/xandr-app-protocol-code-sync-handoff.md
 docs/assets/whitepaper-figures/figure-06-sdk-mediated-block-creation*
 docs/assets/whitepaper-figures/figure-07-composable-context-across-prompts-repositories-and-agent-outputs*
 .alx/
+
+# Machine-readable local verification evidence
+/artifacts/
+
+# Documentation site build output
+site/build/
+site/.docusaurus/
+site/test-results/
