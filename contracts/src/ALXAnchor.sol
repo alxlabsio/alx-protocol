@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.28;
 
 /// @title ALXAnchor
-/// @author Xandr Labs
+/// @author ALX Labs
 /// @notice Trustless existence-time registry for ALX Protocol Blocks and hash batches on Base.
 /// @dev Admin-free, upgrade-free, permissionless.
 ///      Content opacity (ADR-002): accepts bytes32 only — Block content stays opaque.
 ///      No-consensus (ADR-003): records timestamps only.
 ///      Verification is local: validateBlock() runs off-chain; this contract trusts the hash.
-///      Deployment: protocol/chains/base-mainnet.json → contracts.anchor.deployment
+///      Deployment: protocol/chains/base-mainnet.json → contracts.anchor.deployments
 contract ALXAnchor {
 
     // ── Errors ────────────────────────────────────────────────────────────────

@@ -9,7 +9,9 @@
     "lint": "solhint \"src/**/*.sol\" --max-warnings 0",
     "test": "hardhat test",
     "deploy:sepolia": "hardhat run scripts/deploy.js --network base-sepolia",
-    "deploy:mainnet": "hardhat run scripts/deploy.js --network base-mainnet"
+    "deploy:mainnet": "hardhat run scripts/deploy.js --network base-mainnet",
+    "verify:sepolia": "hardhat verify --network base-sepolia",
+    "verify:mainnet": "hardhat verify --network base-mainnet"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "6.1.0",
