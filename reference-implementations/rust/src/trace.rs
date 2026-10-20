@@ -1,5 +1,6 @@
 //! ALX Protocol — Attribution trace resolution.
 
+use num_bigint::BigUint;
 use serde_json::{json, Value};
 use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 
@@ -8,8 +9,9 @@ pub struct TraceNode {
     pub hash: String,
     pub min_depth: usize,
     pub max_depth: usize,
-    pub path_count: usize,
+    pub path_count: String,
     pub parent_count: usize,
+    /// Number of returned Trace edges whose target is this node.
     pub child_count: usize,
 }
 
@@ -20,6 +22,7 @@ pub struct TraceEdge {
 }
 
 #[derive(Debug)]
+/// A complete computed attribution result, not a Block or paginated query envelope.
 pub struct AttributionTrace {
     pub root: String,
     pub validation_mode: String,
@@ -30,7 +33,6 @@ pub struct AttributionTrace {
     pub missing_parents: Vec<String>,
     pub external_parents: Vec<String>,
     pub max_depth: usize,
-    pub cycle: bool,
 }
 
 #[derive(Debug)]
@@ -45,46 +47,61 @@ pub fn trace_attribution(
     mode: Option<&str>,
     declared_external: Option<&HashSet<String>>,
 ) -> Result<AttributionTrace, String> {
-    let root = root_hash.trim().to_lowercase();
-    if root.is_empty() {
-        return Err("rootHash is required".into());
+    if root_hash.trim().is_empty() {
+        return Err("[ALX_ROOT_HASH_REQUIRED] rootHash is required".into());
+    }
+    let root = normalize_hash(root_hash)?;
+    let validation_mode = mode.unwrap_or("closed-world").to_string();
+    if validation_mode != "closed-world" && validation_mode != "open-world" {
+        return Err("[ALX_INVALID_GRAPH] validationMode must be closed-world or open-world".into());
+    }
+    let graph = prepare_graph(graph)?;
+    if !graph.contains_key(&root) {
+        return Err(
+            "[ALX_GRAPH_ROOT_NOT_FOUND] rootHash is not present in the supplied Graph".into(),
+        );
     }
 
     // Cycle pre-check
     let cycle_detected = {
         let mut visiting = HashSet::new();
         let mut visited = HashSet::new();
-        fn check(
-            node: &str,
-            graph: &HashMap<String, Vec<String>>,
-            visiting: &mut HashSet<String>,
-            visited: &mut HashSet<String>,
-        ) -> bool {
-            if visited.contains(node) {
-                return false;
+        let mut stack = vec![(root.clone(), 0usize)];
+        visiting.insert(root.clone());
+        let mut found = false;
+        while let Some((node, next)) = stack.last_mut() {
+            let parents = graph.get(node).map(Vec::as_slice).unwrap_or(&[]);
+            if *next >= parents.len() {
+                let node = node.clone();
+                visiting.remove(&node);
+                visited.insert(node);
+                stack.pop();
+                continue;
             }
-            if visiting.contains(node) {
-                return true;
+            let parent = parents[*next].clone();
+            *next += 1;
+            if visiting.contains(&parent) {
+                found = true;
+                break;
             }
-            visiting.insert(node.to_string());
-            for p in graph.get(node).unwrap_or(&vec![]) {
-                if check(&p.trim().to_lowercase(), graph, visiting, visited) {
-                    return true;
-                }
+            if !visited.contains(&parent) {
+                visiting.insert(parent.clone());
+                stack.push((parent, 0));
             }
-            visiting.remove(node);
-            visited.insert(node.to_string());
-            false
         }
-        check(&root, graph, &mut visiting, &mut visited)
+        found
     };
+    if cycle_detected {
+        return Err(
+            "[ALX_GRAPH_CYCLE] cannot construct an AttributionTrace from a cyclic Graph".into(),
+        );
+    }
 
     // BFS discovery
     let mut node_data: HashMap<String, (usize, usize, usize)> = HashMap::new(); // min, max, parent_count
     let mut edge_set: BTreeSet<(String, String)> = BTreeSet::new();
     let mut child_counts: HashMap<String, usize> = HashMap::new();
     let mut global_max_depth = 0;
-    let validation_mode = mode.unwrap_or("closed-world").to_string();
     let declared_external = declared_external.cloned().unwrap_or_default();
     let mut missing_parents = BTreeSet::new();
     let mut external_parents = BTreeSet::new();
@@ -132,8 +149,8 @@ pub fn trace_attribution(
 
     // Topological path count propagation. Edges flow from child -> parent,
     // so a parent is processed only after every reachable child contributes.
-    let mut path_counts: HashMap<String, usize> = HashMap::new();
-    path_counts.insert(root.clone(), 1);
+    let mut path_counts: HashMap<String, BigUint> = HashMap::new();
+    path_counts.insert(root.clone(), BigUint::from(1u8));
     let mut min_depths: HashMap<String, usize> = HashMap::new();
     min_depths.insert(root.clone(), 0);
     let mut max_depths: HashMap<String, usize> = HashMap::new();
@@ -156,11 +173,11 @@ pub fn trace_attribution(
     let mut topo_queue: VecDeque<String> = VecDeque::from(ready);
 
     while let Some(h) = topo_queue.pop_front() {
-        let my_paths = *path_counts.get(&h).unwrap_or(&0);
+        let my_paths = path_counts.get(&h).cloned().unwrap_or_default();
         for p in graph.get(&h).unwrap_or(&vec![]) {
             let p = p.trim().to_lowercase();
             if node_data.contains_key(&p) {
-                *path_counts.entry(p.clone()).or_insert(0) += my_paths;
+                *path_counts.entry(p.clone()).or_default() += &my_paths;
                 let next_min = min_depths.get(&h).copied().unwrap_or(0) + 1;
                 let next_max = max_depths.get(&h).copied().unwrap_or(0) + 1;
                 let entry = min_depths.entry(p.clone()).or_insert(usize::MAX);
@@ -185,7 +202,7 @@ pub fn trace_attribution(
             hash: h.clone(),
             min_depth: *min_depths.get(h).unwrap_or(&0),
             max_depth: *max_depths.get(h).unwrap_or(&0),
-            path_count: *path_counts.get(h).unwrap_or(&0),
+            path_count: path_counts.get(h).cloned().unwrap_or_default().to_string(),
             parent_count: *pc,
             child_count: *child_counts.get(h).unwrap_or(&0),
         });
@@ -205,15 +222,52 @@ pub fn trace_attribution(
     Ok(AttributionTrace {
         root,
         validation_mode,
-        complete: missing_parents.is_empty() && external_parents.is_empty() && !cycle_detected,
+        complete: missing_parents.is_empty() && external_parents.is_empty(),
         nodes,
         edges,
         leaves,
         missing_parents: missing_parents.into_iter().collect(),
         external_parents: external_parents.into_iter().collect(),
         max_depth,
-        cycle: cycle_detected,
     })
+}
+
+fn normalize_hash(value: &str) -> Result<String, String> {
+    let normalized = value.trim().to_lowercase();
+    if normalized.len() != 66
+        || !normalized.starts_with("0x")
+        || !normalized[2..].bytes().all(|byte| byte.is_ascii_hexdigit())
+    {
+        return Err("[ALX_INVALID_HASH] invalid graph hash".into());
+    }
+    Ok(normalized)
+}
+
+fn prepare_graph(
+    graph: &HashMap<String, Vec<String>>,
+) -> Result<HashMap<String, Vec<String>>, String> {
+    let mut prepared = HashMap::new();
+    for (raw_hash, raw_parents) in graph {
+        let hash = normalize_hash(raw_hash)?;
+        if prepared.contains_key(&hash) {
+            return Err(format!(
+                "[ALX_DUPLICATE_BLOCK] duplicate graph key after normalization: {hash}"
+            ));
+        }
+        let mut parents = Vec::with_capacity(raw_parents.len());
+        let mut seen = HashSet::new();
+        for raw_parent in raw_parents {
+            let parent = normalize_hash(raw_parent)?;
+            if !seen.insert(parent.clone()) {
+                return Err(format!(
+                    "[ALX_DUPLICATE_PARENT] duplicate parent for {hash}"
+                ));
+            }
+            parents.push(parent);
+        }
+        prepared.insert(hash, parents);
+    }
+    Ok(prepared)
 }
 
 pub fn verify_trace(
@@ -267,6 +321,60 @@ pub fn verify_trace(
         .map(|item| Value::String(item.clone()))
         .collect();
     let mut issues = vec![];
+    let allowed_top: HashSet<&str> = [
+        "root",
+        "validationMode",
+        "complete",
+        "nodes",
+        "edges",
+        "leaves",
+        "missingParents",
+        "externalParents",
+        "maxDepth",
+    ]
+    .into_iter()
+    .collect();
+    let allowed_node: HashSet<&str> = [
+        "hash",
+        "minDepth",
+        "maxDepth",
+        "pathCount",
+        "parentCount",
+        "childCount",
+    ]
+    .into_iter()
+    .collect();
+    let allowed_edge: HashSet<&str> = ["from", "to"].into_iter().collect();
+    let unexpected = trace
+        .as_object()
+        .is_some_and(|object| object.keys().any(|key| !allowed_top.contains(key.as_str())))
+        || trace
+            .get("nodes")
+            .and_then(Value::as_array)
+            .is_some_and(|nodes| {
+                nodes.iter().any(|node| {
+                    node.as_object().is_some_and(|object| {
+                        object
+                            .keys()
+                            .any(|key| !allowed_node.contains(key.as_str()))
+                    })
+                })
+            })
+        || trace
+            .get("edges")
+            .and_then(Value::as_array)
+            .is_some_and(|edges| {
+                edges.iter().any(|edge| {
+                    edge.as_object().is_some_and(|object| {
+                        object
+                            .keys()
+                            .any(|key| !allowed_edge.contains(key.as_str()))
+                    })
+                })
+            });
+    if unexpected {
+        issues.push("unexpected_fields".into());
+    }
     if let Some(nodes) = trace.get("nodes").and_then(Value::as_array) {
         let mut seen = HashSet::new();
         for node in nodes {
@@ -334,9 +442,6 @@ pub fn verify_trace(
     }
     if trace.get("maxDepth").and_then(Value::as_u64) != Some(expected.max_depth as u64) {
         issues.push("max_depth_mismatch".into());
-    }
-    if trace.get("cycle").and_then(Value::as_bool) != Some(expected.cycle) {
-        issues.push("cycle_mismatch".into());
     }
     Ok(TraceVerification {
         ok: issues.is_empty(),

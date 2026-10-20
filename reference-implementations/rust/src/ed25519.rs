@@ -3,6 +3,14 @@
 use crate::signatures::{Signer, Verifier};
 use ed25519_dalek::{Signature, Signer as _, SigningKey, Verifier as _, VerifyingKey};
 
+fn is_lower_hex(value: &str, bytes: usize) -> bool {
+    value.len() == 2 + bytes * 2
+        && value.starts_with("0x")
+        && value.as_bytes()[2..]
+            .iter()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
+}
+
 pub struct Ed25519Signer {
     signing_key: SigningKey,
 }
@@ -27,6 +35,9 @@ impl Signer for Ed25519Signer {
     }
 
     fn sign(&self, data: &[u8]) -> Result<String, String> {
+        if data.len() != 32 {
+            return Err("Ed25519 attestation input must be a 32-byte digest".into());
+        }
         Ok(format!(
             "0x{}",
             hex::encode(self.signing_key.sign(data).to_bytes())
@@ -50,6 +61,9 @@ impl Verifier for Ed25519Verifier {
         let Some(expected) = expected_signer else {
             return Ok((false, String::new()));
         };
+        if data.len() != 32 || !is_lower_hex(expected, 32) || !is_lower_hex(signature, 64) {
+            return Ok((false, expected.to_string()));
+        }
         let public_bytes =
             hex::decode(expected.trim_start_matches("0x")).map_err(|e| e.to_string())?;
         let public_arr: [u8; 32] = public_bytes

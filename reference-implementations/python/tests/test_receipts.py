@@ -26,7 +26,9 @@ def test_build_closed_world_complete():
     assert r["receiptVersion"] == "1"
     assert r["protocolVersion"] == "1"
     assert r["verifiedAt"] == 1710000000
-    assert r["verifier"] == {"name": "alx", "version": "1.0.0"}
+    # The default verifier version is the package version, not a literal.
+    from alx_protocol._version import __version__
+    assert r["verifier"] == {"name": "alx", "version": __version__}
     assert r["root"] == ROOT
     assert r["validationMode"] == "closed-world"
     assert r["ok"] is True

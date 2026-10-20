@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import re
+
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
     Ed25519PublicKey,
 )
+
+ED25519_PUBLIC_RE = re.compile(r"^0x[a-f0-9]{64}$")
+ED25519_SIGNATURE_RE = re.compile(r"^0x[a-f0-9]{128}$")
 
 
 def _hex_to_bytes(value: str) -> bytes:
@@ -35,6 +40,8 @@ class Ed25519Signer:
         return _bytes_to_hex(public_key)
 
     def sign(self, data: bytes) -> str:
+        if len(data) != 32:
+            raise ValueError("Ed25519 attestation input must be a 32-byte digest")
         return _bytes_to_hex(self._private_key.sign(data))
 
 
@@ -44,6 +51,8 @@ class Ed25519Verifier:
     def verify(self, data: bytes, signature: str, expected_signer: str | None = None) -> dict:
         if not expected_signer:
             return {"ok": False, "signer": ""}
+        if len(data) != 32 or not ED25519_PUBLIC_RE.fullmatch(expected_signer) or not ED25519_SIGNATURE_RE.fullmatch(signature):
+            return {"ok": False, "signer": expected_signer}
         try:
             public_key = Ed25519PublicKey.from_public_bytes(_hex_to_bytes(expected_signer))
             public_key.verify(_hex_to_bytes(signature), data)

@@ -1,12 +1,14 @@
 [package]
 name = "alx-protocol"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 description = "ALX Protocol — deterministic infrastructure for verifiable content, interoperable context, and traceable attribution"
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/xandrlabs/alx-protocol"
-homepage = "https://github.com/xandrlabs/alx-protocol"
+homepage = "https://alxprotocol.com"
+documentation = "https://alxprotocol.com/documentation/"
+# The tests read ../../test-vectors, which is not part of the crate.
+exclude = ["tests/", "AGENTS.md"]
 
 [[bin]]
 name = "alx"
@@ -22,6 +24,7 @@ serde_json = { version = "1", features = ["float_roundtrip", "unbounded_depth"] 
 sha3 = "0.10"
 hex = "0.4"
 regex = "1"
+num-bigint = "0.4"
 ed25519-dalek = "2"
 p256 = { version = "0.13", features = ["ecdsa"] }
 rand_core = "0.6"

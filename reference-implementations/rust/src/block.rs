@@ -10,6 +10,16 @@ use std::sync::LazyLock;
 
 static HASH_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^0x[a-f0-9]{64}$").unwrap());
 pub const MAX_PARENTS: usize = 256;
+pub const CONTENT_HASH_DOMAIN: &[u8] = b"ALX-CONTENT-V1\0";
+pub const BLOCK_HASH_DOMAIN: &[u8] = b"ALX-BLOCK-V1\0";
+pub const ATTESTATION_HASH_DOMAIN: &[u8] = b"ALX-ATTESTATION-V1\0";
+
+fn domain_hash(domain: &[u8], canonical: &str) -> Vec<u8> {
+    let mut hasher = Keccak256::new();
+    hasher.update(domain);
+    hasher.update(canonical.as_bytes());
+    hasher.finalize().to_vec()
+}
 
 #[derive(Debug, Clone)]
 pub struct Block {
@@ -17,8 +27,8 @@ pub struct Block {
     pub content_hash: String,
     pub parent_hashes: Vec<String>,
     pub content: Value,
-    /// Protocol algorithm version. Excluded from hash derivation. Absent means "1".
-    pub protocol_version: Option<String>,
+    /// Required protocol algorithm version. Excluded from hash derivation.
+    pub protocol_version: String,
 }
 
 #[derive(Debug, Clone)]
@@ -57,7 +67,7 @@ pub fn derive_block_hash(content: &Value, parent_hashes: &[String]) -> Result<St
     let canonical = canonicalize(&input)?;
     Ok(format!(
         "0x{}",
-        hex::encode(Keccak256::digest(canonical.as_bytes()))
+        hex::encode(domain_hash(BLOCK_HASH_DOMAIN, &canonical))
     ))
 }
 
@@ -65,8 +75,24 @@ pub fn derive_content_hash(content: &Value) -> Result<String, String> {
     let canonical = canonicalize(content)?;
     Ok(format!(
         "0x{}",
-        hex::encode(Keccak256::digest(canonical.as_bytes()))
+        hex::encode(domain_hash(CONTENT_HASH_DOMAIN, &canonical))
     ))
+}
+
+pub fn derive_attestation_digest(
+    block_hash: &str,
+    attester: &str,
+    algorithm: &str,
+    timestamp: u64,
+) -> Result<Vec<u8>, String> {
+    let input = serde_json::json!({
+        "algorithm": algorithm,
+        "attester": attester,
+        "blockHash": normalize_hash(block_hash)?,
+        "timestamp": timestamp,
+    });
+    let canonical = canonicalize(&input)?;
+    Ok(domain_hash(ATTESTATION_HASH_DOMAIN, &canonical))
 }
 
 pub fn create_block(content: Value, parent_hashes: &[String]) -> Result<Block, String> {
@@ -76,7 +102,7 @@ pub fn create_block(content: Value, parent_hashes: &[String]) -> Result<Block, S
         content_hash: derive_content_hash(&content)?,
         parent_hashes: parents,
         content,
-        protocol_version: Some("1".to_string()),
+        protocol_version: "1".to_string(),
     })
 }
 
@@ -88,13 +114,17 @@ fn build_attestation(
     if signer.algorithm().is_empty() {
         return Err("signer.algorithm must be a non-empty string".into());
     }
-    let bytes = hex::decode(block_hash.trim_start_matches("0x")).map_err(|e| e.to_string())?;
+    let attester = signer.get_id()?;
+    if attester.is_empty() {
+        return Err("signer identifier must be a non-empty string".into());
+    }
+    let digest = derive_attestation_digest(block_hash, &attester, signer.algorithm(), timestamp)?;
     Ok(BlockAttestation {
         block_hash: block_hash.into(),
-        attester: signer.get_id()?,
+        attester,
         algorithm: signer.algorithm().into(),
         timestamp,
-        signature: signer.sign(&bytes)?,
+        signature: signer.sign(&digest)?,
     })
 }
 
@@ -130,10 +160,8 @@ pub fn add_attestation(
 }
 
 pub fn validate_block_detailed(block: &Block) -> Result<BlockValidation, String> {
-    if let Some(v) = &block.protocol_version {
-        if v != "1" {
-            return Err(format!("[ALX_UNSUPPORTED_VERSION] Unsupported protocolVersion: \"{v}\". Only \"1\" is recognized."));
-        }
+    if block.protocol_version != "1" {
+        return Err(format!("[ALX_UNSUPPORTED_VERSION] Unsupported protocolVersion: \"{}\". Only \"1\" is recognized.", block.protocol_version));
     }
     let canonical_parents = normalize_hashes(&block.parent_hashes)?;
     let expected = derive_block_hash(&block.content, &block.parent_hashes)?;
@@ -191,7 +219,6 @@ pub fn validate_signed_block(
         result.attestations = vec![];
         return Ok(result);
     }
-    let data = hex::decode(block.block_hash.trim_start_matches("0x")).map_err(|e| e.to_string())?;
     let mut validations = vec![];
     for att in attestations {
         if att.block_hash != block.block_hash {
@@ -212,7 +239,13 @@ pub fn validate_signed_block(
             });
             continue;
         };
-        let (ok, signer) = verifier.verify(&data, &att.signature, Some(&att.attester))?;
+        let digest = derive_attestation_digest(
+            &att.block_hash,
+            &att.attester,
+            &att.algorithm,
+            att.timestamp,
+        )?;
+        let (ok, signer) = verifier.verify(&digest, &att.signature, Some(&att.attester))?;
         validations.push(AttestationValidation {
             ok,
             attester: signer,

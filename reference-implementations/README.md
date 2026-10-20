@@ -6,8 +6,8 @@ Protocol truth is defined by:
 
 1. `protocol/spec.md`
 2. `protocol/schemas/`
-3. `protocol/test-vectors/`
-4. machine-readable verifier files in `protocol/`
+3. `test-vectors/`
+4. `protocol/error-codes.json` for exact core error identifiers
 
 No implementation is authoritative over the protocol.
 
@@ -17,11 +17,11 @@ Block storage and lookup over HTTP are defined in [`protocol/retrieval-api.yaml`
 
 ## Implementations
 
-| Language | Directory | Role | Status |
-|---|---|---|---|
-| TypeScript SDK | [`sdk/`](../sdk/) | Primary adoption surface — published as `@alx-protocol/sdk`, consumed by CLI | Active |
-| Python | [`python/`](./python/) | Peer conformance implementation — AI/data ecosystem | Active |
-| Rust | [`rust/`](./rust/) | Peer conformance implementation — verifier-grade anchor | Active |
+| Language | Directory | Package | Role | Status |
+|---|---|---|---|---|
+| TypeScript SDK | [`sdk/`](../sdk/) | [`@alx-protocol/sdk`](https://www.npmjs.com/package/@alx-protocol/sdk) on npm | Primary adoption surface, consumed by the CLI | Active |
+| Python | [`python/`](./python/) | [`alx-protocol`](https://pypi.org/project/alx-protocol/) on PyPI | Peer conformance implementation for AI and data workflows | Active |
+| Rust | [`rust/`](./rust/) | [`alx-protocol`](https://crates.io/crates/alx-protocol) on crates.io | Peer conformance implementation and verifier-grade anchor | Active |
 
 See [`PARITY.md`](./PARITY.md) for current capability parity.
 
@@ -70,7 +70,7 @@ node conformance/bin/run.js --impl "./reference-implementations/rust/target/rele
 
 Use the protocol files first, then implement a conformance adapter.
 
-Start with [`../docs/implementers/implementer-guide.md`](../docs/implementers/implementer-guide.md).
+Start with [`../docs/implementers/language-implementation-guide.md`](../docs/implementers/language-implementation-guide.md).
 
 ## Related Documents
 

@@ -1,5 +1,7 @@
 import copy
 
+import pytest
+
 import alx_protocol
 
 
@@ -60,6 +62,24 @@ def test_graph_helpers_cover_incremental_workflow():
     alx_protocol.add_block_to_graph(child, graph)
     verified = alx_protocol.verify_graph([root, child], alx_protocol.derive_block_hash)
     assert verified == {"ok": True, "verified": 2, "broken": []}
+
+
+def test_graph_helpers_reject_duplicate_blocks_and_match_full_final_validation():
+    root = alx_protocol.create_block({"type": "root"}, [])
+    child = alx_protocol.create_block({"type": "child"}, [root["blockHash"]])
+    with pytest.raises(ValueError, match="ALX_DUPLICATE_BLOCK"):
+        alx_protocol.build_graph([root, root])
+
+    incremental_graph = {}
+    assert alx_protocol.validate_incremental_block(child, incremental_graph)["status"] == "incomplete"
+    alx_protocol.add_block_to_graph(root, incremental_graph)
+    assert alx_protocol.validate_incremental_block(child, incremental_graph)["status"] == "valid"
+    alx_protocol.add_block_to_graph(child, incremental_graph)
+    with pytest.raises(ValueError, match="ALX_DUPLICATE_BLOCK"):
+        alx_protocol.add_block_to_graph(child, incremental_graph)
+
+    direct_graph = alx_protocol.build_graph([child, root])
+    assert alx_protocol.validate_graph(incremental_graph) == alx_protocol.validate_graph(direct_graph)
 
 
 def test_replay_helpers_cover_scoped_nonce_window():

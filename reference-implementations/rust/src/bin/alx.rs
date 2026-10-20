@@ -9,7 +9,9 @@ use std::collections::HashMap;
 use std::fs;
 use std::process;
 
-use alx_protocol::{trace_attribution, validate_graph};
+use alx_protocol::{
+    decode_strict_json_bytes, trace_attribution, validate_block_detailed, validate_graph, Block,
+};
 
 fn bold(s: &str) -> String {
     format!("\x1b[1m{}\x1b[0m", s)
@@ -26,41 +28,84 @@ fn dim(s: &str) -> String {
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-/// Parse a graph.json array into HashMap<String, Vec<String>>.
-fn parse_graph_array(arr: &[Value]) -> HashMap<String, Vec<String>> {
-    let mut graph = HashMap::new();
-    for block in arr {
-        if let Some(bh) = block.get("blockHash").and_then(|v| v.as_str()) {
-            let bh = bh.trim().to_lowercase();
-            let parents: Vec<String> = block
-                .get("parentHashes")
-                .and_then(|v| v.as_array())
-                .map(|arr| {
-                    let mut ps: Vec<String> = arr
-                        .iter()
-                        .filter_map(|v| v.as_str())
-                        .map(|s| s.trim().to_lowercase())
-                        .collect();
-                    ps.sort();
-                    ps
-                })
-                .unwrap_or_default();
-            graph.insert(bh, parents);
-        }
+fn parse_received_block(value: &Value) -> Result<Block, String> {
+    let object = value
+        .as_object()
+        .ok_or_else(|| "[ALX_SCHEMA_INVALID] Graph input must contain Block objects".to_string())?;
+    const FIELDS: [&str; 5] = [
+        "blockHash",
+        "contentHash",
+        "parentHashes",
+        "content",
+        "protocolVersion",
+    ];
+    if object.len() != FIELDS.len() || FIELDS.iter().any(|field| !object.contains_key(*field)) {
+        return Err(
+            "[ALX_SCHEMA_INVALID] received Block fields do not match the core Block schema".into(),
+        );
     }
-    graph
+    let parent_hashes = object["parentHashes"]
+        .as_array()
+        .ok_or_else(|| "[ALX_SCHEMA_INVALID] parentHashes must be an array".to_string())?
+        .iter()
+        .map(|parent| {
+            parent.as_str().map(str::to_string).ok_or_else(|| {
+                "[ALX_SCHEMA_INVALID] every parent hash must be a string".to_string()
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let block = Block {
+        block_hash: object["blockHash"]
+            .as_str()
+            .ok_or_else(|| "[ALX_SCHEMA_INVALID] blockHash must be a string".to_string())?
+            .to_string(),
+        content_hash: object["contentHash"]
+            .as_str()
+            .ok_or_else(|| "[ALX_SCHEMA_INVALID] contentHash must be a string".to_string())?
+            .to_string(),
+        parent_hashes,
+        content: object["content"].clone(),
+        protocol_version: object["protocolVersion"]
+            .as_str()
+            .ok_or_else(|| "[ALX_SCHEMA_INVALID] protocolVersion must be a string".to_string())?
+            .to_string(),
+    };
+    let verification = validate_block_detailed(&block)?;
+    if !verification.ok {
+        return Err("[ALX_SCHEMA_INVALID] received Block is invalid or non-canonical".into());
+    }
+    Ok(block)
 }
 
-fn cmd_validate(file: &str) {
-    let text = fs::read_to_string(file).unwrap_or_else(|_| {
+/// Parse a graph.json array without repairing received Blocks.
+fn parse_graph_array(arr: &[Value]) -> Result<HashMap<String, Vec<String>>, String> {
+    let mut graph = HashMap::new();
+    for value in arr {
+        let block = parse_received_block(value)?;
+        if graph.contains_key(&block.block_hash) {
+            return Err(format!(
+                "[ALX_DUPLICATE_BLOCK] duplicate Block candidate for {}",
+                block.block_hash
+            ));
+        }
+        graph.insert(block.block_hash, block.parent_hashes);
+    }
+    Ok(graph)
+}
+
+fn load_strict_json(file: &str) -> Value {
+    let bytes = fs::read(file).unwrap_or_else(|_| {
         eprintln!("{}  file not found: {}", red("✗"), file);
         process::exit(1);
     });
-
-    let data: Value = serde_json::from_str(&text).unwrap_or_else(|e| {
-        eprintln!("{}  invalid JSON: {}", red("✗"), e);
+    decode_strict_json_bytes(&bytes).unwrap_or_else(|error| {
+        eprintln!("{}  invalid JSON input: {}", red("✗"), error);
         process::exit(1);
-    });
+    })
+}
+
+fn cmd_validate(file: &str) {
+    let data = load_strict_json(file);
 
     let graph = match &data {
         Value::Array(arr) => parse_graph_array(arr),
@@ -75,9 +120,16 @@ fn cmd_validate(file: &str) {
             );
             process::exit(1);
         }
-    };
+    }
+    .unwrap_or_else(|error| {
+        eprintln!("{}  {}", red("✗"), error);
+        process::exit(1);
+    });
 
-    let result = validate_graph(&graph, None, None);
+    let result = validate_graph(&graph, None, None).unwrap_or_else(|error| {
+        eprintln!("{}  {}", red("✗"), error);
+        process::exit(1);
+    });
     if result.ok {
         println!(
             "  {}  {}",
@@ -115,15 +167,7 @@ fn cmd_validate(file: &str) {
 }
 
 fn cmd_trace(hash_prefix: &str, file: &str) {
-    let text = fs::read_to_string(file).unwrap_or_else(|_| {
-        eprintln!("{}  file not found: {}", red("✗"), file);
-        process::exit(1);
-    });
-
-    let data: Value = serde_json::from_str(&text).unwrap_or_else(|e| {
-        eprintln!("{}  invalid JSON: {}", red("✗"), e);
-        process::exit(1);
-    });
+    let data = load_strict_json(file);
 
     let arr = match &data {
         Value::Array(arr) => arr,
@@ -133,7 +177,10 @@ fn cmd_trace(hash_prefix: &str, file: &str) {
         }
     };
 
-    let graph = parse_graph_array(arr);
+    let graph = parse_graph_array(arr).unwrap_or_else(|error| {
+        eprintln!("{}  {}", red("✗"), error);
+        process::exit(1);
+    });
 
     // Resolve hash prefix
     let prefix = hash_prefix.trim_start_matches("0x").to_lowercase();
@@ -170,7 +217,7 @@ fn cmd_trace(hash_prefix: &str, file: &str) {
 
     for node in &result.nodes {
         let h = &node.hash[..18.min(node.hash.len())];
-        let pc_str = if node.path_count > 1 {
+        let pc_str = if node.path_count != "1" {
             bold(&format!("pathCount={}", node.path_count))
         } else {
             String::new()
@@ -179,7 +226,7 @@ fn cmd_trace(hash_prefix: &str, file: &str) {
     }
 
     println!();
-    let has_multi = result.nodes.iter().any(|n| n.path_count > 1);
+    let has_multi = result.nodes.iter().any(|n| n.path_count != "1");
     if has_multi {
         println!(
             "{}",
@@ -237,5 +284,39 @@ fn main() {
             eprintln!("Usage: alx <validate|trace> [options]");
             process::exit(1);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alx_protocol::create_block;
+    use serde_json::json;
+
+    fn value_for(block: &Block) -> Value {
+        json!({
+            "blockHash": block.block_hash,
+            "contentHash": block.content_hash,
+            "parentHashes": block.parent_hashes,
+            "content": block.content,
+            "protocolVersion": block.protocol_version,
+        })
+    }
+
+    #[test]
+    fn received_graph_boundary_rejects_unknown_fields_and_duplicate_blocks() {
+        let block = create_block(json!({"type": "boundary"}), &[]).unwrap();
+        let value = value_for(&block);
+        assert!(parse_received_block(&value).is_ok());
+
+        let mut unknown = value.clone();
+        unknown["unexpected"] = Value::Bool(true);
+        assert!(parse_received_block(&unknown)
+            .unwrap_err()
+            .contains("ALX_SCHEMA_INVALID"));
+
+        assert!(parse_graph_array(&[value.clone(), value])
+            .unwrap_err()
+            .contains("ALX_DUPLICATE_BLOCK"));
     }
 }

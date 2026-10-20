@@ -27,6 +27,7 @@ from alx_protocol import (
     P256Verifier,
     canonicalize,
     create_block,
+    decode_strict_json_hex,
     derive_block_hash,
     derive_content_hash,
     normalize_hashes,
@@ -42,12 +43,23 @@ from alx_protocol import (
 from alx_protocol.extensions import build_merkle_tree, verify_merkle_proof
 
 
+def decode_raw_json(raw_hex: str) -> dict:
+    """Exercise the raw serialized ingress boundary without changing core APIs."""
+    try:
+        return {"ok": True, "value": decode_strict_json_hex(raw_hex)}
+    except (UnicodeError, ValueError, json.JSONDecodeError):
+        return {"ok": False, "errorCode": "ALX_SCHEMA_INVALID"}
+
+
 def handle(op: dict) -> dict:
     operation = op.get("operation")
     inp = op.get("input")
 
     if operation == "canonicalize":
         return {"output": canonicalize(inp)}
+
+    elif operation == "decodeRawJson":
+        return {"output": decode_raw_json(inp.get("rawHex", ""))}
 
     elif operation == "canonicalizeGeneratedDepth":
         value = inp.get("leaf")
@@ -113,7 +125,7 @@ def handle(op: dict) -> dict:
         return {"output": trace}
 
     elif operation == "validateGraph":
-        return {"output": validate_graph(inp.get("graph", {}), inp.get("context"))}
+        return {"output": validate_graph(inp.get("seed"), inp.get("source"), inp.get("context"))}
 
     elif operation == "validateIncrementalBlock":
         return {"output": validate_incremental_block(inp.get("block", {}), inp.get("existingGraph", {}), inp.get("context"))}

@@ -4,7 +4,7 @@ ALX Protocol — Canonicalization.
 Deterministic JSON serialization. Layer 1 of the protocol.
 
 Rules:
-  - Objects: keys sorted lexicographically, undefined/None values excluded
+  - Objects: plain string-keyed mappings sorted by UTF-16 code units
   - Arrays: order-preserving (not sorted)
   - null/None: canonicalizes to "null"
   - Numbers: -0 → 0, safe integer range enforced, non-finite rejected
@@ -59,6 +59,11 @@ def canonicalize(value: Any) -> str:
     return _canonicalize(value, 0, set())
 
 
+def _assert_valid_unicode(value: str) -> None:
+    if any(0xD800 <= ord(char) <= 0xDFFF for char in value):
+        raise ValueError("[ALX_CANONICALIZATION_INVALID_UNICODE] Unpaired UTF-16 surrogate")
+
+
 def _canonicalize(value: Any, depth: int, seen: set[int]) -> str:
     if depth > MAX_DEPTH:
         raise ValueError(f"[ALX_CANONICALIZATION_DEPTH] Canonicalization depth exceeded {MAX_DEPTH}")
@@ -86,9 +91,10 @@ def _canonicalize(value: Any, depth: int, seen: set[int]) -> str:
         return _format_float_js(value)
 
     if isinstance(value, str):
+        _assert_valid_unicode(value)
         return json.dumps(value, ensure_ascii=False)
 
-    if isinstance(value, list):
+    if type(value) is list:
         identity = id(value)
         if identity in seen:
             raise ValueError("[ALX_CANONICALIZATION_CYCLIC] Cyclic structures cannot be canonicalized")
@@ -98,7 +104,7 @@ def _canonicalize(value: Any, depth: int, seen: set[int]) -> str:
         finally:
             seen.remove(identity)
 
-    if isinstance(value, dict):
+    if type(value) is dict:
         identity = id(value)
         if identity in seen:
             raise ValueError("[ALX_CANONICALIZATION_CYCLIC] Cyclic structures cannot be canonicalized")
@@ -106,6 +112,8 @@ def _canonicalize(value: Any, depth: int, seen: set[int]) -> str:
         try:
             if not all(isinstance(key, str) for key in value):
                 raise TypeError("[ALX_CANONICALIZATION_UNSUPPORTED_TYPE] Object keys must be strings")
+            for key in value:
+                _assert_valid_unicode(key)
             keys = sorted(value.keys(), key=lambda key: key.encode("utf-16-be", "surrogatepass"))
             parts = []
             for k in keys:

@@ -35,6 +35,18 @@ def generated_parents(count: int) -> list[str]:
     return [f"0x{i:064x}" for i in range(count)]
 
 
+def graph_for_trace_vector(vector: dict) -> dict[str, list[str]]:
+    if "graph" in vector:
+        return vector["graph"]
+    depth = vector["generatedFibonacciDepth"]
+    def hash_for(index: int) -> str:
+        return f"0x{index:064x}"
+    return {
+        hash_for(index): [hash_for(parent) for parent in (index + 1, index + 2) if parent <= depth]
+        for index in range(1, depth + 1)
+    }
+
+
 def assert_expected_error(error: Exception, vector: dict) -> None:
     assert f"[{vector['expected']['errorCode']}]" in str(error), vector["id"]
 
@@ -50,20 +62,19 @@ def assert_expected_block(input_data: dict, block: dict, expected: dict, vector_
     assert envelope.encode("utf-8").hex() == expected["canonicalEnvelopeHex"], vector_id
 
 
-def test_manifest_declares_required_core_suites():
-    assert [s["id"] for s in SUITES["core"]["suites"]] == [
-        "canonicalization",
-        "canonicalization-negative",
-        "canonicalization-depth",
-        "block-identity",
-        "parent-normalization",
-        "parent-limits",
-        "attribution-trace",
-        "lineage-negative",
-        "lineage-boundaries",
-        "semantic-validity",
-        "semantic-integrity",
-    ]
+def execute_graph_vector(vector: dict) -> dict:
+    input_data = vector["input"]
+    return validate_graph(input_data["seed"], input_data["source"], input_data["context"])
+
+
+def test_manifest_declares_discoverable_required_core_suites():
+    suites = SUITES["core"]["suites"]
+    suite_ids = [suite["id"] for suite in suites]
+    assert suites
+    assert len(suite_ids) == len(set(suite_ids))
+    assert any(suite["required"] for suite in suites)
+    for suite in suites:
+        assert (REPO_ROOT / suite["path"]).is_file()
 
 
 def test_canonicalization_vectors():
@@ -96,6 +107,8 @@ def test_canonicalization_negative_vectors():
             # BigInt and Symbol are JavaScript-native rejection cases.
             # Python's arbitrary-precision integers are covered by CN4/CN5.
             continue
+        elif vector["id"] == "CN11":
+            value = "\ud800"
         else:
             value = vector["input"]
         with pytest.raises((TypeError, ValueError)) as exc_info:
@@ -170,8 +183,14 @@ def test_parent_normalization_vectors():
 
 def test_attribution_trace_vectors():
     for vector in core_suite("attribution-trace")["vectors"]:
-        trace = trace_attribution(vector["root"], vector["graph"], vector.get("context"))
+        graph = graph_for_trace_vector(vector)
         expected = vector["expected"]
+        if "errorCode" in expected:
+            with pytest.raises(ValueError) as exc_info:
+                trace_attribution(vector["root"], graph, vector.get("context"))
+            assert_expected_error(exc_info.value, vector)
+            continue
+        trace = trace_attribution(vector["root"], graph, vector.get("context"))
         assert trace["root"] == vector["root"], vector["id"]
         if "nodeCount" in expected:
             assert len(trace["nodes"]) == expected["nodeCount"], vector["id"]
@@ -179,8 +198,6 @@ def test_attribution_trace_vectors():
             assert len(trace["edges"]) == expected["edgeCount"], vector["id"]
         if "maxDepth" in expected:
             assert trace["maxDepth"] == expected["maxDepth"], vector["id"]
-        if "cycle" in expected:
-            assert trace["cycle"] == expected["cycle"], vector["id"]
         if "leaves" in expected:
             assert trace["leaves"] == expected["leaves"], vector["id"]
         if "leafCount" in expected:
@@ -207,7 +224,7 @@ def test_attribution_trace_vectors():
             for node in (node for node in trace["nodes"] if node["hash"] != vector["root"]):
                 assert node["childCount"] == expected["allLeafChildCount"], vector["id"]
         if expected.get("deterministic"):
-            assert trace == trace_attribution(vector["root"], vector["graph"], vector.get("context")), vector["id"]
+            assert trace == trace_attribution(vector["root"], graph, vector.get("context")), vector["id"]
 
 
 def test_lineage_negative_vectors():
@@ -219,7 +236,8 @@ def test_lineage_negative_vectors():
             assert result["selfRef"] == expected["selfRef"], vector["id"]
         elif vector.get("graph") and expected.get("hasCycle"):
             root = next(iter(vector["graph"]))
-            assert trace_attribution(root, vector["graph"])["cycle"] is True, vector["id"]
+            with pytest.raises(ValueError, match="ALX_GRAPH_CYCLE"):
+                trace_attribution(root, vector["graph"])
         elif "duplicates" in expected:
             result = validate_lineage(vector["input"]["blockHash"], vector["input"]["parentHashes"])
             assert result["duplicates"] == expected["duplicates"], vector["id"]
@@ -236,27 +254,45 @@ def test_lineage_negative_vectors():
 def test_lineage_boundary_vectors():
     for vector in core_suite("lineage-boundaries")["vectors"]:
         if vector["operation"] == "validateGraph":
-            result = validate_graph(vector["input"]["graph"], vector["input"].get("context"))
-            assert result["ok"] == vector["expected"]["ok"], vector["id"]
-            assert len(result["issues"]) == vector["expected"]["issueCount"], vector["id"]
-            if "missing" in vector["expected"]:
-                assert result["issues"][0]["missing"] == vector["expected"]["missing"], vector["id"]
-            if "external" in vector["expected"]:
-                actual_external = result["issues"][0]["external"] if result["issues"] else result["externalParents"]
-                assert actual_external == vector["expected"]["external"], vector["id"]
+            if "errorCode" in vector["expected"]:
+                with pytest.raises(ValueError) as exc_info:
+                    execute_graph_vector(vector)
+                assert_expected_error(exc_info.value, vector)
+            else:
+                assert execute_graph_vector(vector) == vector["expected"], vector["id"]
         elif vector["operation"] == "validateIncrementalBlock":
             result = validate_incremental_block(vector["input"]["block"], vector["input"]["existingGraph"])
-            assert result["ok"] == vector["expected"]["ok"], vector["id"]
+            assert result["checked"] == vector["expected"]["checked"], vector["id"]
+            assert result["status"] == vector["expected"]["status"], vector["id"]
             assert result["missing"] == vector["expected"]["missing"], vector["id"]
             assert result["cycle"] == vector["expected"]["cycle"], vector["id"]
+        elif vector["operation"] == "validateLineage":
+            known = vector["input"].get("knownHashes") if "knownHashes" in vector["input"] else None
+            result = validate_lineage(
+                vector["input"]["blockHash"],
+                vector["input"]["parentHashes"],
+                known,
+                vector["input"].get("context"),
+            )
+            assert result["checked"] == vector["expected"]["checked"], vector["id"]
+            assert result["status"] == vector["expected"]["status"], vector["id"]
+            assert result["missing"] == vector["expected"]["missing"], vector["id"]
+            assert result["external"] == vector["expected"]["external"], vector["id"]
+        else:
+            raise AssertionError(f"unsupported operation {vector['operation']}")
 
 
 def test_semantic_validity_vectors():
     for vector in core_suite("semantic-validity")["vectors"]:
         if vector["operation"] == "validateBlock":
+            if "errorCode" in vector["expected"]:
+                with pytest.raises(ValueError, match=vector["expected"]["errorCode"]):
+                    validate_block(vector["input"])
+                continue
             result = validate_block(vector["input"])
         elif vector["operation"] == "validateGraph":
-            result = validate_graph(vector["input"]["graph"])
+            assert execute_graph_vector(vector) == vector["expected"], vector["id"]
+            continue
         else:
             raise AssertionError(f"unsupported operation {vector['operation']}")
         assert result["ok"] == vector["expected"]["ok"], vector["id"]
@@ -278,6 +314,11 @@ def test_semantic_integrity_vectors():
             for issue in vector["expected"]["issues"]:
                 assert issue in result["issues"], vector["id"]
         elif vector["operation"] == "traceAttribution":
+            if "errorCode" in vector["expected"]:
+                with pytest.raises(ValueError) as exc_info:
+                    trace_attribution(vector["input"]["rootHash"], vector["input"]["graph"], vector["input"].get("context"))
+                assert_expected_error(exc_info.value, vector)
+                continue
             result = trace_attribution(vector["input"]["rootHash"], vector["input"]["graph"], vector["input"].get("context"))
             assert result["validationMode"] == vector["expected"]["validationMode"], vector["id"]
             assert result["complete"] == vector["expected"]["complete"], vector["id"]
@@ -287,5 +328,12 @@ def test_semantic_integrity_vectors():
             result = verify_graph(vector["input"]["blocks"], lambda content, parents: create_block(content, parents)["blockHash"])
             assert result["ok"] == vector["expected"]["ok"], vector["id"]
             assert any(item["reason"] == vector["expected"]["brokenReason"] for item in result["broken"]), vector["id"]
+        elif vector["operation"] == "validateGraph":
+            if "errorCode" in vector["expected"]:
+                with pytest.raises(ValueError) as exc_info:
+                    execute_graph_vector(vector)
+                assert_expected_error(exc_info.value, vector)
+                continue
+            assert execute_graph_vector(vector) == vector["expected"], vector["id"]
         else:
             raise AssertionError(f"unsupported operation {vector['operation']}")

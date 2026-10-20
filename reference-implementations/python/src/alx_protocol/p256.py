@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import (
@@ -9,6 +11,11 @@ from cryptography.hazmat.primitives.asymmetric.utils import (
     decode_dss_signature,
     encode_dss_signature,
 )
+
+P256_ORDER = 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551
+P256_HALF_ORDER = P256_ORDER // 2
+P256_PUBLIC_RE = re.compile(r"^0x04[a-f0-9]{128}$")
+P256_SIGNATURE_RE = re.compile(r"^0x[a-f0-9]{128}$")
 
 
 def _hex_to_bytes(value: str) -> bytes:
@@ -44,6 +51,8 @@ class P256Signer:
             raise ValueError("P-256 attestation input must be a 32-byte digest")
         der = self._private_key.sign(data, ec.ECDSA(Prehashed(hashes.SHA256())))
         r, s = decode_dss_signature(der)
+        if s > P256_HALF_ORDER:
+            s = P256_ORDER - s
         return _bytes_to_hex(r.to_bytes(32, "big") + s.to_bytes(32, "big"))
 
 
@@ -53,15 +62,17 @@ class P256Verifier:
     def verify(self, data: bytes, signature: str, expected_signer: str | None = None) -> dict:
         if not expected_signer:
             return {"ok": False, "signer": ""}
+        if len(data) != 32 or not P256_PUBLIC_RE.fullmatch(expected_signer) or not P256_SIGNATURE_RE.fullmatch(signature):
+            return {"ok": False, "signer": expected_signer}
         try:
             public_key = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), _hex_to_bytes(expected_signer))
             compact = _hex_to_bytes(signature)
             if len(compact) != 64:
                 return {"ok": False, "signer": expected_signer}
-            if len(data) != 32:
-                return {"ok": False, "signer": expected_signer}
             r = int.from_bytes(compact[:32], "big")
             s = int.from_bytes(compact[32:], "big")
+            if not (0 < r < P256_ORDER and 0 < s <= P256_HALF_ORDER):
+                return {"ok": False, "signer": expected_signer}
             public_key.verify(encode_dss_signature(r, s), data, ec.ECDSA(Prehashed(hashes.SHA256())))
             return {"ok": True, "signer": expected_signer}
         except Exception:

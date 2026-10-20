@@ -9,6 +9,8 @@ import re
 import time
 from typing import Optional
 
+from alx_protocol._version import __version__
+
 _HASH_PATTERN = re.compile(r"^0x[a-f0-9]{64}$")
 _ERROR_CODE_PATTERN = re.compile(r"^ALX_[A-Z0-9_]+$")
 
@@ -26,7 +28,7 @@ def build_receipt(
     errors: Optional[list] = None,
     warnings: Optional[list] = None,
     verifier_name: str = "alx",
-    verifier_version: str = "1.0.0",
+    verifier_version: str = __version__,
     verified_at: Optional[int] = None,
     trace_hash: Optional[str] = None,
 ) -> dict:

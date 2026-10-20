@@ -96,7 +96,7 @@ impl ReceiptBuilder {
             errors: vec![],
             warnings: vec![],
             verifier_name: "alx".to_string(),
-            verifier_version: "1.0.0".to_string(),
+            verifier_version: env!("CARGO_PKG_VERSION").to_string(),
             verified_at: None,
             trace_hash: None,
         }
@@ -223,8 +223,8 @@ pub fn validate_receipt(r: &VerificationReceipt) -> Result<(), Vec<String>> {
 mod tests {
     use super::*;
 
-    const ROOT: &str = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-    const EXTERNAL: &str = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const ROOT: &str = "0xe55b2d84c895374f903e530bd51ceba437d63044d1fa8ee3bca8b0b148de54c3";
+    const EXTERNAL: &str = "0x0ea61eb63a1a41f089ae747941b2134ea67298e055006316568bff4cd3b80547";
 
     fn base_builder() -> ReceiptBuilder {
         ReceiptBuilder::new(

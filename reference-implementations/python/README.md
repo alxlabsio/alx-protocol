@@ -2,7 +2,7 @@
 
 The Python implementation provides ALX core protocol behavior for Python, AI, and data workflows.
 
-It is a peer reference implementation. It does not define protocol truth. Protocol truth is defined by `protocol/spec.md`, `protocol/schemas/`, `protocol/test-vectors/`, and the machine-readable verifier files in `protocol/`.
+It is a peer reference implementation. It does not define protocol truth. Protocol truth is defined by `protocol/spec.md`, `protocol/schemas/`, `test-vectors/`, and `protocol/error-codes.json`.
 
 ## Capability Status
 
@@ -14,6 +14,7 @@ It is a peer reference implementation. It does not define protocol truth. Protoc
 | Content hash derivation | Supported |
 | Block hash derivation | Supported |
 | Parent lineage validation | Supported |
+| Canonical Graph verification | Supported |
 | Trace generation | Supported |
 | Verification context | Supported |
 | Merkle extension helpers | Supported |
@@ -22,6 +23,14 @@ It is a peer reference implementation. It does not define protocol truth. Protoc
 | EIP-712 signing | Not bundled |
 
 EIP-712 is an optional Ethereum-compatible signing suite. It is not required for core protocol conformance.
+
+## Install
+
+```bash
+pip install alx-protocol
+```
+
+Requires Python 3.11 or later. The distribution is [`alx-protocol` on PyPI](https://pypi.org/project/alx-protocol/); the import name is `alx_protocol`.
 
 ## Install for Development
 
@@ -58,6 +67,12 @@ From the repository root:
 node conformance/bin/run.js --impl "python reference-implementations/python/conformance_adapter.py"
 ```
 
+## Canonical Graph verification
+
+`validate_graph(seed, source, context)` verifies the reachable Block Graph and returns one of `valid`, `invalid`, `incomplete`, or `resource_limit_reached`. The result is scoped to the supplied verification context and exactly follows the canonical Graph verification envelope.
+
+The older two-argument `validate_graph(graph, context)` adjacency form remains available for compatibility. New integrations should use the canonical three-argument operation.
+
 ## Package Layout
 
 | Path | Purpose |
@@ -65,6 +80,7 @@ node conformance/bin/run.js --impl "python reference-implementations/python/conf
 | `src/alx_protocol/block.py` | Block creation and validation |
 | `src/alx_protocol/canonical.py` | Canonicalization |
 | `src/alx_protocol/lineage.py` | Graph and lineage validation |
+| `src/alx_protocol/graph_validation.py` | Canonical finite-source Graph verification |
 | `src/alx_protocol/trace.py` | Attribution Trace generation and verification |
 | `src/alx_protocol/verification_context.py` | Closed-world and open-world validation context |
 | `src/alx_protocol/signatures.py` | Signing model |
@@ -75,6 +91,6 @@ node conformance/bin/run.js --impl "python reference-implementations/python/conf
 ## Related Documents
 
 - [`../../protocol/spec.md`](../../protocol/spec.md)
-- [`../../protocol/test-vectors/`](../../protocol/test-vectors/)
+- [`../../test-vectors/`](../../test-vectors/)
 - [`../PARITY.md`](../PARITY.md)
 - [`../../docs/implementers/conformance.md`](../../docs/implementers/conformance.md)

@@ -6,6 +6,14 @@ use p256::ecdsa::{
     Signature, SigningKey, VerifyingKey,
 };
 
+fn is_lower_hex(value: &str, bytes: usize) -> bool {
+    value.len() == 2 + bytes * 2
+        && value.starts_with("0x")
+        && value.as_bytes()[2..]
+            .iter()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
+}
+
 pub struct P256Signer {
     signing_key: SigningKey,
 }
@@ -34,6 +42,7 @@ impl Signer for P256Signer {
             .signing_key
             .sign_prehash(data)
             .map_err(|e| e.to_string())?;
+        let signature = signature.normalize_s().unwrap_or(signature);
         Ok(format!("0x{}", hex::encode(signature.to_bytes())))
     }
 
@@ -54,6 +63,13 @@ impl Verifier for P256Verifier {
         let Some(expected) = expected_signer else {
             return Ok((false, String::new()));
         };
+        if data.len() != 32
+            || !is_lower_hex(expected, 65)
+            || !expected.starts_with("0x04")
+            || !is_lower_hex(signature, 64)
+        {
+            return Ok((false, expected.to_string()));
+        }
         let public_bytes =
             hex::decode(expected.trim_start_matches("0x")).map_err(|e| e.to_string())?;
         let verifying_key =
@@ -63,7 +79,7 @@ impl Verifier for P256Verifier {
         let Ok(signature) = Signature::from_slice(&sig_bytes) else {
             return Ok((false, expected.to_string()));
         };
-        if data.len() != 32 {
+        if signature.normalize_s().is_some() {
             return Ok((false, expected.to_string()));
         }
         Ok((

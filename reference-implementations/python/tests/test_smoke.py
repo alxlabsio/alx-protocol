@@ -1,8 +1,12 @@
+import re
 import alx_protocol
 
 
 def test_version():
-    assert alx_protocol.__version__ == "1.0.0"
+    # One source: _version.py feeds the package, receipts, and the build metadata.
+    from alx_protocol._version import __version__
+    assert alx_protocol.__version__ == __version__
+    assert re.fullmatch(r"\d+\.\d+\.\d+", __version__)
 
 
 def test_block_creation():

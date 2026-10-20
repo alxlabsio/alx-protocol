@@ -11,18 +11,31 @@ from alx_protocol.signatures import BlockAttestation, Signer, Verifier
 
 HASH_PATTERN = re.compile(r"^0x[a-f0-9]{64}$")
 MAX_PARENTS = 256
+CONTENT_HASH_DOMAIN = b"ALX-CONTENT-V1\x00"
+BLOCK_HASH_DOMAIN = b"ALX-BLOCK-V1\x00"
+ATTESTATION_HASH_DOMAIN = b"ALX-ATTESTATION-V1\x00"
 _OMITTED_PARENT_HASHES = object()
 
 
 def derive_block_hash(content: Any, parent_hashes: Any = _OMITTED_PARENT_HASHES) -> str:
     parents = normalize_hashes(parent_hashes)
     canonical = canonicalize({"content": content, "parentHashes": parents})
-    return "0x" + keccak(canonical.encode("utf-8")).hex()
+    return "0x" + keccak(BLOCK_HASH_DOMAIN + canonical.encode("utf-8")).hex()
 
 
 def derive_content_hash(content: Any) -> str:
-    canonical = canonicalize(content if content is not None else None)
-    return "0x" + keccak(canonical.encode("utf-8")).hex()
+    canonical = canonicalize(content)
+    return "0x" + keccak(CONTENT_HASH_DOMAIN + canonical.encode("utf-8")).hex()
+
+
+def derive_attestation_digest(block_hash: str, attester: str, algorithm: str, timestamp: int) -> bytes:
+    canonical = canonicalize({
+        "algorithm": algorithm,
+        "attester": attester,
+        "blockHash": normalize_hash(block_hash),
+        "timestamp": timestamp,
+    })
+    return keccak(ATTESTATION_HASH_DOMAIN + canonical.encode("utf-8"))
 
 
 def create_block(content: Any, parent_hashes: Any = _OMITTED_PARENT_HASHES) -> Dict[str, Any]:
@@ -40,9 +53,13 @@ def _build_attestation(block_hash: str, signer: Signer, timestamp: int | None = 
     if not isinstance(getattr(signer, "algorithm", None), str) or not signer.algorithm:
         raise ValueError("signer.algorithm must be a non-empty string")
     ts = int(time.time()) if timestamp is None else timestamp
-    if not isinstance(ts, int) or ts < 0:
-        raise ValueError("timestamp must be a non-negative integer")
-    att = BlockAttestation(block_hash, signer.get_id(), signer.algorithm, ts, signer.sign(bytes.fromhex(block_hash[2:])))
+    if not isinstance(ts, int) or isinstance(ts, bool) or ts < 0 or ts > 2**53 - 1:
+        raise ValueError("timestamp must be a non-negative safe integer")
+    attester = signer.get_id()
+    if not isinstance(attester, str) or not attester:
+        raise ValueError("signer identifier must be a non-empty string")
+    digest = derive_attestation_digest(block_hash, attester, signer.algorithm, ts)
+    att = BlockAttestation(block_hash, attester, signer.algorithm, ts, signer.sign(digest))
     return att.to_dict()
 
 
@@ -60,8 +77,18 @@ def add_attestation(signed_block: Dict[str, Any], signer: Signer, timestamp: int
 
 
 def validate_block(block: Dict[str, Any]) -> Dict[str, Any]:
+    required_fields = {"blockHash", "contentHash", "parentHashes", "content", "protocolVersion"}
+    if type(block) is not dict or set(block) != required_fields:
+        raise ValueError("[ALX_SCHEMA_INVALID] Block fields do not match the core Block schema")
+    if (
+        not isinstance(block["blockHash"], str)
+        or not isinstance(block["contentHash"], str)
+        or not isinstance(block["parentHashes"], list)
+        or not isinstance(block["protocolVersion"], str)
+    ):
+        raise ValueError("[ALX_SCHEMA_INVALID] Block fields do not match the core Block schema")
     version = block.get("protocolVersion")
-    if version is not None and version != "1":
+    if version != "1":
         raise ValueError(f"[ALX_UNSUPPORTED_VERSION] Unsupported protocolVersion: \"{version}\". Only \"1\" is recognized.")
     parent_hashes = block["parentHashes"] if "parentHashes" in block else _OMITTED_PARENT_HASHES
     canonical_parents = normalize_hashes(parent_hashes)
@@ -98,19 +125,20 @@ def validate_signed_block(signed_block: Dict[str, Any], verifier: Verifier | dic
     if not attestations:
         return {**result, "ok": False, "attestation": {"ok": False, "attester": "", "algorithm": "", "reason": "no attestation present"}, "attestations": []}
     validations = []
-    data = bytes.fromhex(block["blockHash"][2:])
     for att in attestations:
         if att.get("blockHash") != block["blockHash"]:
             validations.append({"ok": False, "attester": att.get("attester", ""), "algorithm": att.get("algorithm", ""), "reason": "attestation.blockHash does not match block.blockHash"})
             continue
-        if not isinstance(att.get("timestamp"), int) or att["timestamp"] < 0:
-            validations.append({"ok": False, "attester": att.get("attester", ""), "algorithm": att.get("algorithm", ""), "reason": "attestation.timestamp must be a non-negative integer"})
+        if (not isinstance(att.get("timestamp"), int) or isinstance(att.get("timestamp"), bool)
+                or att["timestamp"] < 0 or att["timestamp"] > 2**53 - 1):
+            validations.append({"ok": False, "attester": att.get("attester", ""), "algorithm": att.get("algorithm", ""), "reason": "attestation.timestamp must be a non-negative safe integer"})
             continue
         selected = verifier.get(att.get("algorithm")) if isinstance(verifier, dict) else (verifier if verifier.algorithm == att.get("algorithm") else None)
         if selected is None:
             validations.append({"ok": False, "attester": att.get("attester", ""), "algorithm": att.get("algorithm", ""), "reason": f'no verifier for algorithm "{att.get("algorithm", "")}"'})
             continue
-        sig = selected.verify(data, att.get("signature", ""), att.get("attester"))
+        digest = derive_attestation_digest(att["blockHash"], att["attester"], att["algorithm"], att["timestamp"])
+        sig = selected.verify(digest, att.get("signature", ""), att.get("attester"))
         validations.append({
             "ok": bool(sig.get("ok")),
             "attester": sig.get("signer") or att.get("attester", ""),

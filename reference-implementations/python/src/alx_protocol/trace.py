@@ -3,40 +3,77 @@
 from collections import deque
 from typing import Dict, List
 
+HASH_LENGTH = 66
+
+
+def _normalize_hash(value: str) -> str:
+    if not isinstance(value, str):
+        raise ValueError("[ALX_INVALID_HASH] graph hash must be a string")
+    normalized = value.strip().lower()
+    if len(normalized) != HASH_LENGTH or not normalized.startswith("0x") or any(char not in "0123456789abcdef" for char in normalized[2:]):
+        raise ValueError("[ALX_INVALID_HASH] invalid graph hash")
+    return normalized
+
+
+def _prepare_graph(graph: Dict[str, List[str]]) -> Dict[str, List[str]]:
+    if not isinstance(graph, dict):
+        raise ValueError("[ALX_INVALID_GRAPH] graph must be an object")
+    prepared = {}
+    for raw_hash, raw_parents in graph.items():
+        block_hash = _normalize_hash(raw_hash)
+        if block_hash in prepared:
+            raise ValueError(f"[ALX_DUPLICATE_BLOCK] duplicate graph key after normalization: {block_hash}")
+        if not isinstance(raw_parents, list):
+            raise ValueError("[ALX_INVALID_GRAPH] graph parents must be an array")
+        parents = [_normalize_hash(parent) for parent in raw_parents]
+        if len(set(parents)) != len(parents):
+            raise ValueError(f"[ALX_DUPLICATE_PARENT] duplicate parent for {block_hash}")
+        prepared[block_hash] = parents
+    return prepared
+
 
 def trace_attribution(root_hash: str, graph: Dict[str, List[str]], context: dict | None = None) -> dict:
-    root = root_hash.strip().lower()
-    if not root:
-        raise ValueError("rootHash is required")
+    """Return a complete computed AttributionTrace, not a Block or query page."""
+    if not isinstance(root_hash, str) or not root_hash.strip():
+        raise ValueError("[ALX_ROOT_HASH_REQUIRED] rootHash is required")
+    root = _normalize_hash(root_hash)
+    mode = (context or {}).get("validationMode", "closed-world")
+    if mode not in ("closed-world", "open-world"):
+        raise ValueError("[ALX_INVALID_GRAPH] validationMode must be closed-world or open-world")
+    graph = _prepare_graph(graph)
+    if root not in graph:
+        raise ValueError("[ALX_GRAPH_ROOT_NOT_FOUND] rootHash is not present in the supplied Graph")
 
-    # Cycle pre-check via DFS
+    # Cycle pre-check via iterative DFS
     cycle_detected = False
-    visiting = set()
-    visited_cycle = set()
-
-    def check_cycle(node):
-        nonlocal cycle_detected
-        if node in visited_cycle:
-            return
-        if node in visiting:
+    state = {root: 1}
+    stack = [[root, 0]]
+    while stack and not cycle_detected:
+        node, next_parent = stack[-1]
+        parents = graph.get(node, [])
+        if next_parent >= len(parents):
+            state[node] = 2
+            stack.pop()
+            continue
+        parent = parents[next_parent]
+        stack[-1][1] += 1
+        if state.get(parent) == 1:
             cycle_detected = True
-            return
-        visiting.add(node)
-        for p in graph.get(node, []):
-            check_cycle(p.strip().lower())
-        visiting.discard(node)
-        visited_cycle.add(node)
+        elif state.get(parent) != 2:
+            state[parent] = 1
+            stack.append([parent, 0])
 
-    check_cycle(root)
+    if cycle_detected:
+        raise ValueError("[ALX_GRAPH_CYCLE] cannot construct an AttributionTrace from a cyclic Graph")
 
     # BFS discovery
     node_data = {}  # hash -> {min_depth, max_depth, parent_count}
     edge_set = set()
     edge_list = []
+    # Trace-local reverse degree. Unreachable children elsewhere in graph are excluded.
     child_counts = {}
     global_max_depth = 0
-    mode = (context or {}).get("validationMode", "closed-world")
-    declared_external = {item["hash"].strip().lower() for item in (context or {}).get("externalParents", [])}
+    declared_external = {_normalize_hash(item["hash"]) for item in (context or {}).get("externalParents", [])}
     missing_parents = set()
     external_parents = set()
 
@@ -102,7 +139,7 @@ def trace_attribution(root_hash: str, graph: Dict[str, List[str]], context: dict
             "hash": h,
             "minDepth": min_depths.get(h, 0),
             "maxDepth": max_depths.get(h, 0),
-            "pathCount": path_counts.get(h, 0),
+            "pathCount": str(path_counts.get(h, 0)),
             "parentCount": data["parent_count"],
             "childCount": child_counts.get(h, 0),
         })
@@ -113,28 +150,29 @@ def trace_attribution(root_hash: str, graph: Dict[str, List[str]], context: dict
     edge_list.sort(key=lambda e: (e["from"], e["to"]))
     leaves.sort()
 
-    precision_loss = any(
-        path_counts.get(h, 0) > (2**53 - 1) for h in node_data
-    )
-
     return {
         "root": root,
         "validationMode": mode,
-        "complete": not missing_parents and not external_parents and not cycle_detected,
+        "complete": not missing_parents and not external_parents,
         "nodes": nodes,
         "edges": edge_list,
         "leaves": leaves,
         "missingParents": sorted(missing_parents),
         "externalParents": sorted(external_parents),
         "maxDepth": max(max_depths.values(), default=0),
-        "cycle": cycle_detected,
-        "precisionLoss": precision_loss,
     }
 
 
 def verify_trace(trace: dict, graph: Dict[str, List[str]], context: dict | None = None) -> dict:
     expected = trace_attribution(trace["root"], graph, context)
     issues = []
+    top_level_fields = {"root", "validationMode", "complete", "nodes", "edges", "leaves", "missingParents", "externalParents", "maxDepth"}
+    node_fields = {"hash", "minDepth", "maxDepth", "pathCount", "parentCount", "childCount"}
+    edge_fields = {"from", "to"}
+    if (set(trace) - top_level_fields
+            or any(set(node) - node_fields for node in trace.get("nodes", []))
+            or any(set(edge) - edge_fields for edge in trace.get("edges", []))):
+        issues.append("unexpected_fields")
     node_hashes = [node["hash"] for node in trace.get("nodes", [])]
     if len(set(node_hashes)) != len(node_hashes):
         issues.append("duplicate_nodes")
@@ -160,6 +198,4 @@ def verify_trace(trace: dict, graph: Dict[str, List[str]], context: dict | None 
         issues.append("external_parents_mismatch")
     if trace.get("maxDepth") != expected["maxDepth"]:
         issues.append("max_depth_mismatch")
-    if trace.get("cycle") != expected["cycle"]:
-        issues.append("cycle_mismatch")
     return {"ok": len(issues) == 0, "issues": issues}
