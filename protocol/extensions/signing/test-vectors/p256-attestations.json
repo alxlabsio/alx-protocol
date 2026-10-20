@@ -1,7 +1,8 @@
 {
   "suite": "alx.signing.p256.v1",
   "status": "optional-extension",
-  "description": "Portable P-256 Block attestation verification vectors over the 32-byte blockHash digest.",
+  "description": "Portable P-256 Block attestation verification vectors over the domain-separated 32-byte attestation digest.",
+  "attestationDomainUtf8Hex": "414c582d4154544553544154494f4e2d563100",
   "vectors": [
     {
       "id": "P256-1",
@@ -9,23 +10,27 @@
       "operation": "validatePortableSignedBlock",
       "input": {
         "block": {
-          "blockHash": "0x110bc5bdf29f767cddc5eeee4398c9df4da406c8e8400530ff74608ab1c0e091",
-          "contentHash": "0xc701bcc30b027bb4f53638ccbd7a807ce7a1c5f596fc9a13c903f0fadcf5e4fa",
+          "blockHash": "0x0538079e010712cd4bc947fc78bf0de754587d8c5a50c269a54c2f6925b36bae",
+          "contentHash": "0xbeed4c0beb89b7a8a595bbe0669fd4812f6613cc2a82352e64dcd66c513ac528",
           "parentHashes": [],
           "content": {
             "workflow": "multi-vendor-security-review",
             "decision": "approve-with-conditions"
-          }
+          },
+          "protocolVersion": "1"
         },
         "attestation": {
-          "blockHash": "0x110bc5bdf29f767cddc5eeee4398c9df4da406c8e8400530ff74608ab1c0e091",
-          "attester": "0x04591ab771ebbcfd6d9cb9094d106528add1a69d44c2c1f627f089ec58b9c61adf9f4e6abf0d045c0c693a3c68ad7c97ca72be64def4a26fecd263dd98a92780f0",
+          "blockHash": "0x0538079e010712cd4bc947fc78bf0de754587d8c5a50c269a54c2f6925b36bae",
+          "attester": "0x046b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c2964fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5",
           "algorithm": "p256",
           "timestamp": 1778788800,
-          "signature": "0x39c76b9abf2a9f4647b7e1a394722065a51ce2a84b837208da5f7584473d96e5939b387916f705550779638df1beb835ee1ccde3d57fc8394cd23ce9ef532152"
+          "signature": "0x7bd456fc02948e398c2e269dfc7125ca3edfa8e61c0de6a49e0d5633c6060f8d54876e15c5673e5637b37be432f177c9c45819189d0971a1fcc1833031e4a9b9"
         }
       },
-      "expected": { "ok": true, "algorithm": "p256" }
+      "expected": {
+        "ok": true,
+        "algorithm": "p256"
+      }
     },
     {
       "id": "P256-2",
@@ -33,23 +38,27 @@
       "operation": "validatePortableSignedBlock",
       "input": {
         "block": {
-          "blockHash": "0x110bc5bdf29f767cddc5eeee4398c9df4da406c8e8400530ff74608ab1c0e091",
-          "contentHash": "0xc701bcc30b027bb4f53638ccbd7a807ce7a1c5f596fc9a13c903f0fadcf5e4fa",
+          "blockHash": "0x0538079e010712cd4bc947fc78bf0de754587d8c5a50c269a54c2f6925b36bae",
+          "contentHash": "0xbeed4c0beb89b7a8a595bbe0669fd4812f6613cc2a82352e64dcd66c513ac528",
           "parentHashes": [],
           "content": {
             "workflow": "multi-vendor-security-review",
             "decision": "approve-with-conditions"
-          }
+          },
+          "protocolVersion": "1"
         },
         "attestation": {
-          "blockHash": "0x110bc5bdf29f767cddc5eeee4398c9df4da406c8e8400530ff74608ab1c0e091",
-          "attester": "0x04591ab771ebbcfd6d9cb9094d106528add1a69d44c2c1f627f089ec58b9c61adf9f4e6abf0d045c0c693a3c68ad7c97ca72be64def4a26fecd263dd98a92780f0",
+          "blockHash": "0x0538079e010712cd4bc947fc78bf0de754587d8c5a50c269a54c2f6925b36bae",
+          "attester": "0x046b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c2964fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5",
           "algorithm": "p256",
           "timestamp": 1778788800,
-          "signature": "0x39c76b9abf2a9f4647b7e1a394722065a51ce2a84b837208da5f7584473d96e5939b387916f705550779638df1beb835ee1ccde3d57fc8394cd23ce9ef5321ff"
+          "signature": "0x7bd456fc02948e398c2e269dfc7125ca3edfa8e61c0de6a49e0d5633c6060f8d54876e15c5673e5637b37be432f177c9c45819189d0971a1fcc1833031e4a9ff"
         }
       },
-      "expected": { "ok": false, "algorithm": "p256" }
+      "expected": {
+        "ok": false,
+        "algorithm": "p256"
+      }
     }
   ]
 }

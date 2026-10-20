@@ -1,0 +1,18 @@
+{
+  "protocolVersion": "1",
+  "checked": true,
+  "status": "invalid",
+  "context": {
+    "protocolVersion": "1",
+    "validationMode": "closed-world",
+    "graphRoot": "0x0000000000000000000000000000000000000000000000000000000000000001",
+    "externalParents": []
+  },
+  "blocksExamined": 1,
+  "edgesExamined": 1,
+  "missingParents": [],
+  "externalParents": [],
+  "issues": [
+    { "code": "ALX_SELF_PARENT" }
+  ]
+}

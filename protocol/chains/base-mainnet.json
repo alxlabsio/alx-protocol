@@ -30,11 +30,18 @@
       "contractName": "ALXAnchor",
       "lifecycle": "planned",
       "abi": "contracts/abis/ALXAnchor.json",
-      "deployment": {
-        "network": "base-sepolia",
-        "state": "planned",
-        "address": null,
-        "addressEnv": "ALX_ANCHOR_ADDRESS"
+      "defaultNetwork": "base-sepolia",
+      "deployments": {
+        "base-sepolia": {
+          "state": "planned",
+          "address": null,
+          "addressEnv": "ALX_ANCHOR_ADDRESS_BASE_SEPOLIA"
+        },
+        "base-mainnet": {
+          "state": "planned",
+          "address": null,
+          "addressEnv": "ALX_ANCHOR_ADDRESS_BASE_MAINNET"
+        }
       },
       "capabilities": [
         "anchor-block-hash",

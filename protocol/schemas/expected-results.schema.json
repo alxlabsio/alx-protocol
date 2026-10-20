@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alxprotocol.com/protocol/1/schemas/expected-results.schema.json",
+  "title": "ALX Core Conformance Expected Results",
+  "description": "Operation-specific expected-result shapes for ALX v1 conformance vectors.",
+  "$defs": {
+    "errorCode": { "type": "string", "pattern": "^ALX_[A-Z0-9_]+$" },
+    "hashArray": { "type": "array", "items": { "type": "string" } },
+    "canonicalize": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "ok": { "type": "boolean" }, "errorCode": { "$ref": "#/$defs/errorCode" } },
+          "anyOf": [{ "required": ["ok"] }, { "required": ["errorCode"] }]
+        }
+      ]
+    },
+    "createBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "type": "boolean" },
+        "errorCode": { "$ref": "#/$defs/errorCode" },
+        "blockHash": { "type": "string" },
+        "contentHash": { "type": "string" },
+        "parentHashes": { "$ref": "#/$defs/hashArray" },
+        "canonicalEnvelopeHex": { "type": "string", "pattern": "^[0-9a-f]*$" },
+        "normalizedParentCount": { "type": "integer", "minimum": 0 }
+      },
+      "anyOf": [
+        { "required": ["blockHash", "contentHash", "parentHashes", "canonicalEnvelopeHex"] },
+        { "required": ["ok"] },
+        { "required": ["errorCode"] }
+      ]
+    },
+    "decodeRawJson": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ok", "value"],
+          "properties": { "ok": { "const": true }, "value": true }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ok", "errorCode"],
+          "properties": {
+            "ok": { "const": false },
+            "errorCode": { "$ref": "#/$defs/errorCode" }
+          }
+        }
+      ]
+    },
+    "normalizeHashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "type": "boolean" },
+        "errorCode": { "$ref": "#/$defs/errorCode" },
+        "normalized": { "$ref": "#/$defs/hashArray" }
+      },
+      "anyOf": [{ "required": ["normalized"] }, { "required": ["ok"] }, { "required": ["errorCode"] }]
+    },
+    "traceAttribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "type": "boolean" }, "errorCode": { "$ref": "#/$defs/errorCode" },
+        "deterministic": { "type": "boolean" }, "hasCycle": { "type": "boolean" },
+        "complete": { "type": "boolean" }, "validationMode": { "enum": ["closed-world", "open-world"] },
+        "nodeCount": { "type": "integer", "minimum": 0 }, "edgeCount": { "type": "integer", "minimum": 0 },
+        "leafCount": { "type": "integer", "minimum": 0 }, "maxDepth": { "type": "integer", "minimum": 0 },
+        "allLeafChildCount": { "type": "integer", "minimum": 0 },
+        "allLeafPathCount": { "type": "string", "pattern": "^[0-9]+$" },
+        "leaves": { "$ref": "#/$defs/hashArray" }, "missingParents": { "type": "array" },
+        "externalParents": { "type": "array" }, "nodes": { "type": "object" },
+        "pathCounts": { "type": "object", "additionalProperties": { "type": "string", "pattern": "^[0-9]+$" } }
+      },
+      "minProperties": 1
+    },
+    "validateBlock": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "ok": { "type": "boolean" }, "errorCode": { "$ref": "#/$defs/errorCode" },
+        "parentsCanonical": { "type": "boolean" }, "selfRef": { "type": "boolean" }
+      },
+      "anyOf": [{ "required": ["ok"] }, { "required": ["errorCode"] }]
+    },
+    "validateGraph": {
+      "oneOf": [
+        {
+          "$ref": "https://alxprotocol.com/protocol/1/schemas/graph-verification.schema.json"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["errorCode"],
+          "properties": {
+            "errorCode": { "$ref": "#/$defs/errorCode" }
+          }
+        }
+      ]
+    },
+    "validateIncrementalBlock": {
+      "type": "object", "additionalProperties": false,
+      "required": ["checked", "status"],
+      "properties": {
+        "checked": { "type": "boolean" }, "status": { "enum": ["valid", "invalid", "incomplete", "resource_limit_reached"] },
+        "cycle": { "type": "boolean" }, "missing": { "type": "array" }
+      }
+    },
+    "validateLineage": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "checked": { "type": "boolean" }, "status": { "enum": ["valid", "invalid", "incomplete", "resource_limit_reached"] },
+        "external": { "type": "array" }, "missing": { "type": "array" },
+        "duplicates": { "$ref": "#/$defs/hashArray" }, "ok": { "type": "boolean" }, "selfRef": { "type": "boolean" }
+      },
+      "minProperties": 1
+    },
+    "verifyGraph": {
+      "type": "object", "additionalProperties": false, "required": ["ok", "brokenReason"],
+      "properties": { "ok": { "type": "boolean" }, "brokenReason": { "type": "string" } }
+    },
+    "verifyTrace": {
+      "type": "object", "additionalProperties": false, "required": ["ok", "issues"],
+      "properties": { "ok": { "type": "boolean" }, "issues": { "type": "array" } }
+    },
+    "not-requested": {
+      "type": "object", "additionalProperties": false, "required": ["checked", "protocolVersion"],
+      "properties": { "checked": { "const": false }, "protocolVersion": { "type": "string", "pattern": "^[1-9][0-9]*$" } }
+    }
+  }
+}

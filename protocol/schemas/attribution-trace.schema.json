@@ -1,13 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alxprotocol.com/protocol/1/schemas/attribution-trace.schema.json",
   "title": "ALX Attribution Trace",
-  "description": "Derivation graph structure computed from a root Block — captures path counts, depths, and lineage topology.",
-  "$comment": "Public schema URL: [Placeholder]. This schema validates structural shape only. It does not prove root membership, edge endpoint membership, leaf truth, depth correctness, pathCount correctness, or graph consistency.",
+  "description": "Complete deterministic derivation structure computed from a root Block. An AttributionTrace is not a Block, has no protocol-defined identity, and is not a paginated graph-query envelope.",
+  "$comment": "This schema validates structural shape only. Conformant Trace computation additionally requires the root to be present in the supplied Graph and represented in nodes, and requires relational verification of edges, leaves, depths, pathCount, and graph consistency. Partial, paginated, and truncated service responses do not conform to this schema.",
   "type": "object",
   "properties": {
     "root": {
       "$ref": "./defs.schema.json#/$defs/hash",
-      "description": "blockHash of the root Block whose lineage was traced."
+      "description": "blockHash of the root Block whose lineage was traced. Conformant computation requires this Block to be present in the supplied Graph and represented in nodes."
     },
     "validationMode": {
       "enum": ["closed-world", "open-world"],
@@ -20,7 +21,6 @@
     "nodes": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 10000,
       "uniqueItems": true,
       "items": {
         "type": "object",
@@ -39,9 +39,9 @@
             "description": "Longest path length from root to this node"
           },
           "pathCount": {
-            "type": "integer",
-            "minimum": 1,
-            "description": "Number of distinct paths from root to this node"
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "description": "Exact number of distinct paths from root to this node, encoded as a canonical base-10 decimal string"
           },
           "parentCount": {
             "type": "integer",
@@ -51,7 +51,7 @@
           "childCount": {
             "type": "integer",
             "minimum": 0,
-            "description": "Number of blocks that reference this node as a parent"
+            "description": "Trace-local reverse degree: the number of returned edges whose to value equals this node's hash. Blocks outside the returned Trace are excluded."
           }
         },
         "required": ["hash", "minDepth", "maxDepth", "pathCount", "parentCount", "childCount"],
@@ -60,7 +60,6 @@
     },
     "edges": {
       "type": "array",
-      "maxItems": 50000,
       "uniqueItems": true,
       "items": {
         "type": "object",
@@ -106,17 +105,9 @@
       "type": "integer",
       "minimum": 0,
       "description": "Longest path length from the root Block to any node in the trace."
-    },
-    "cycle": {
-      "type": "boolean",
-      "description": "True if a cycle was detected during traversal. Cyclic graphs are structurally invalid under ALX Protocol."
-    },
-    "precisionLoss": {
-      "type": "boolean",
-      "description": "True when pathCount values exceeded safe integer precision (2^53 − 1) during computation. Absent when no precision loss occurred."
     }
   },
-  "required": ["root", "validationMode", "complete", "nodes", "edges", "leaves", "missingParents", "externalParents", "maxDepth", "cycle"],
+  "required": ["root", "validationMode", "complete", "nodes", "edges", "leaves", "missingParents", "externalParents", "maxDepth"],
   "additionalProperties": false,
   "allOf": [
     {

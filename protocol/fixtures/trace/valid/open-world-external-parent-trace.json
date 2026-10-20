@@ -7,15 +7,15 @@
       "hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
       "minDepth": 0,
       "maxDepth": 0,
-      "pathCount": 1,
+      "pathCount": "1",
       "parentCount": 2,
       "childCount": 0
     },
     {
-      "hash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "hash": "0xe55b2d84c895374f903e530bd51ceba437d63044d1fa8ee3bca8b0b148de54c3",
       "minDepth": 1,
       "maxDepth": 1,
-      "pathCount": 1,
+      "pathCount": "1",
       "parentCount": 0,
       "childCount": 1
     }
@@ -23,21 +23,19 @@
   "edges": [
     {
       "from": "0x3333333333333333333333333333333333333333333333333333333333333333",
-      "to": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      "to": "0xe55b2d84c895374f903e530bd51ceba437d63044d1fa8ee3bca8b0b148de54c3"
     },
     {
       "from": "0x3333333333333333333333333333333333333333333333333333333333333333",
-      "to": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      "to": "0x0ea61eb63a1a41f089ae747941b2134ea67298e055006316568bff4cd3b80547"
     }
   ],
   "leaves": [
-    "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    "0xe55b2d84c895374f903e530bd51ceba437d63044d1fa8ee3bca8b0b148de54c3"
   ],
   "missingParents": [],
   "externalParents": [
-    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    "0x0ea61eb63a1a41f089ae747941b2134ea67298e055006316568bff4cd3b80547"
   ],
-  "maxDepth": 1,
-  "cycle": false,
-  "precisionLoss": false
+  "maxDepth": 1
 }

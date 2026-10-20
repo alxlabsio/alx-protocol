@@ -1,0 +1,11 @@
+{
+  "protocolVersion": "1",
+  "validationMode": "closed-world",
+  "graphRoot": "0x0000000000000000000000000000000000000000000000000000000000000001",
+  "maxDepth": 3,
+  "resourceLimits": {
+    "maxBlocks": 1000,
+    "maxEdges": 4000
+  },
+  "externalParents": []
+}

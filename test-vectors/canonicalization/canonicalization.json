@@ -1,5 +1,5 @@
 {
-  "$schema": "../schemas/test-vector.schema.json",
+  "$schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
   "suite": "canonicalization",
   "description": "Canonical JSON serialization vectors — recursive-json-sort-v1",
   "vectors": [
@@ -60,8 +60,8 @@
     },
     {
       "id": "C10",
-      "description": "undefined in object excluded",
-      "note": "JSON cannot represent undefined. Implementations MUST test with their native undefined/missing-key equivalent.",
+      "description": "absent object key does not enter canonical output",
+      "note": "This vector contains no b key. Language-native undefined is not equivalent to an absent key and MUST be rejected in applicable native tests.",
       "input": { "a": 1, "c": 3 },
       "expected": "{\"a\":1,\"c\":3}"
     },
@@ -159,7 +159,7 @@
       "id": "C25",
       "description": "null in array is preserved as null",
       "input": [1, null, 3],
-      "note": "Tests that an explicit JSON null inside an array round-trips unchanged. Additionally, language-native undefined in sparse or undefined-containing arrays MUST also canonicalize to null — implementations must test that in-language.",
+      "note": "Tests that an explicit JSON null inside an array round-trips unchanged. Language-native undefined and sparse array slots MUST be rejected in applicable native tests.",
       "expected": "[1,null,3]"
     },
     {

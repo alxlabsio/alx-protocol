@@ -1,5 +1,5 @@
 {
-  "$schema": "../schemas/test-vector.schema.json",
+  "$schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
   "suite": "canonicalization-negative",
   "description": "Inputs that MUST be rejected by canonicalization. A conforming implementation MUST throw/error for each of these.",
   "vectors": [
@@ -82,6 +82,14 @@
       "note": "JSON number spelling does not change the safe-integer rule. A numerically integral IEEE 754 value outside the safe range must be rejected even when encoded with an exponent.",
       "expected": {
         "errorCode": "ALX_CANONICALIZATION_UNSAFE_INTEGER"
+      }
+    },
+    {
+      "id": "CN11",
+      "description": "unpaired UTF-16 surrogate MUST be rejected",
+      "note": "Construct a native string containing the lone code unit U+D800. Some JSON parsers reject this value before canonicalization, so implementations must test it in-language.",
+      "expected": {
+        "errorCode": "ALX_CANONICALIZATION_INVALID_UNICODE"
       }
     }
   ]

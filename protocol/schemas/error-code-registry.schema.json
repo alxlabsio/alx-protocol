@@ -1,17 +1,19 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alxprotocol.com/protocol/1/schemas/error-code-registry.schema.json",
   "title": "ALX Error Code Registry",
   "description": "Schema for core and extension error code registries.",
-  "$comment": "Public schema URL: [Placeholder].",
+  "$comment": "Core and extension registries use distinct immutable identifiers and this shared structural schema.",
   "type": "object",
   "required": ["$schema", "$id", "id", "documentVersion", "codes"],
   "additionalProperties": false,
   "properties": {
     "$schema": {
-      "const": "[Placeholder]"
+      "const": "https://alxprotocol.com/protocol/1/schemas/error-code-registry.schema.json"
     },
     "$id": {
-      "const": "[Placeholder]"
+      "type": "string",
+      "pattern": "^https://alxprotocol\\.com/protocol/1/(?:error-codes\\.json|extensions/[a-z0-9-]+/error-codes\\.json)$"
     },
     "id": {
       "type": "string",

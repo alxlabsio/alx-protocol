@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alxprotocol.com/protocol/1/schemas/suite-manifest.schema.json",
+  "title": "ALX Protocol Suite Manifest",
+  "type": "object",
+  "required": ["$schema", "$id", "protocol", "protocolVersion", "vectorFormat", "core", "extensions"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "const": "https://alxprotocol.com/protocol/1/schemas/suite-manifest.schema.json" },
+    "$id": { "const": "https://alxprotocol.com/protocol/1/suites.json" },
+    "protocol": { "const": "ALX" },
+    "protocolVersion": { "type": "integer", "minimum": 1 },
+    "vectorFormat": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+    "core": {
+      "type": "object",
+      "required": ["required", "suites"],
+      "additionalProperties": false,
+      "properties": {
+        "required": { "const": true },
+        "suites": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/coreSuite" } }
+      }
+    },
+    "extensions": { "type": "array", "items": { "$ref": "#/$defs/extension" } }
+  },
+  "$defs": {
+    "coreSuite": {
+      "type": "object",
+      "required": ["id", "path", "operation", "executionModel", "required", "comparison", "vectorCount", "schema", "expectedResultSchema", "sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "path": { "type": "string", "pattern": "^test-vectors/(canonicalization|identity|blocks|graphs|ingress)/[a-z0-9-]+\\.json$" },
+        "operation": { "enum": ["canonicalize", "createBlock", "normalizeHashes", "traceAttribution", "decodeRawJson", "validateGraph", "per-vector"] },
+        "executionModel": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "required": { "type": "boolean" },
+        "comparison": {
+          "enum": ["exact", "semantic"],
+          "description": "Default comparison mode for vectors in the suite. A vector-level comparison field overrides this default."
+        },
+        "vectorCount": { "type": "integer", "minimum": 1 },
+        "schema": { "const": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json" },
+        "expectedResultSchema": { "const": "https://alxprotocol.com/protocol/1/schemas/expected-results.schema.json" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "extension": {
+      "type": "object",
+      "required": ["id", "path", "manifest", "requiredForCore"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "path": { "type": "string", "pattern": "^protocol/extensions/[a-z0-9-]+/$" },
+        "manifest": { "type": "string", "pattern": "^protocol/extensions/[a-z0-9-]+/extension\\.json$" },
+        "requiredForCore": { "const": false }
+      }
+    }
+  }
+}

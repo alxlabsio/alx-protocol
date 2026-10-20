@@ -1,7 +1,7 @@
 # ALX Protocol Extensions
 
-**Status:** Extension index  
-**Audience:** Implementers, integrators  
+**Status:** Extension index
+**Audience:** Implementers, integrators
 **Authority:** Discovery index for optional extensions. Does not alter core protocol conformance.
 
 ## Purpose

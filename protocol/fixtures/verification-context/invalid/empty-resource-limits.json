@@ -1,0 +1,7 @@
+{
+  "protocolVersion": "1",
+  "validationMode": "closed-world",
+  "graphRoot": "0x0000000000000000000000000000000000000000000000000000000000000001",
+  "resourceLimits": {},
+  "externalParents": []
+}

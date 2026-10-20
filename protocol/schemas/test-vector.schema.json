@@ -1,101 +1,253 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
   "title": "ALX Core Test Vector Suite",
-  "description": "Structural envelope for core conformance vector files under protocol/test-vectors/. Individual vector payloads vary by suite.",
-  "$comment": "Public schema URL: [Placeholder].",
+  "description": "Strict structural envelope for ALX v1 core conformance suites.",
+  "$comment": "The note and assertions fields are informative metadata and never determine conformance.",
   "type": "object",
-  "required": ["suite", "description", "vectors"],
-  "additionalProperties": true,
+  "required": ["$schema", "suite", "description", "vectors"],
+  "additionalProperties": false,
   "properties": {
-    "suite": {
-      "type": "string",
-      "minLength": 1
+    "$schema": {
+      "const": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json"
     },
-    "description": {
-      "type": "string",
-      "minLength": 1
-    },
+    "suite": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "description": { "type": "string", "minLength": 1 },
     "helpers": {
       "type": "object",
-      "additionalProperties": {
-        "type": "string"
-      },
-      "description": "Human-readable notation aids for readers parsing the vector file. Not used by runners."
+      "additionalProperties": { "type": "string" },
+      "description": "Informative notation aids; ignored by conformance runners."
+    },
+    "hashDomains": {
+      "type": "object",
+      "required": ["contentUtf8Hex", "blockUtf8Hex"],
+      "additionalProperties": false,
+      "properties": {
+        "contentUtf8Hex": { "type": "string", "pattern": "^[0-9A-Fa-f]+$" },
+        "blockUtf8Hex": { "type": "string", "pattern": "^[0-9A-Fa-f]+$" }
+      }
     },
     "vectors": {
       "type": "array",
       "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": ["id", "description"],
-        "additionalProperties": true,
-        "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1
+      "items": { "$ref": "#/$defs/vector" }
+    }
+  },
+  "$defs": {
+    "hashArray": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "expectedObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allLeafChildCount": { "type": "integer", "minimum": 0 },
+        "allLeafPathCount": { "type": "string", "pattern": "^[0-9]+$" },
+        "blockHash": { "type": "string" },
+        "blocksExamined": { "type": "integer", "minimum": 0 },
+        "brokenReason": { "type": "string" },
+        "canonicalEnvelopeHex": { "type": "string", "pattern": "^[0-9a-f]*$" },
+        "checked": { "type": "boolean" },
+        "complete": { "type": "boolean" },
+        "context": { "type": "object" },
+        "contentHash": { "type": "string" },
+        "cycle": { "type": "boolean" },
+        "deterministic": { "type": "boolean" },
+        "duplicates": { "$ref": "#/$defs/hashArray" },
+        "edgeCount": { "type": "integer", "minimum": 0 },
+        "edgesExamined": { "type": "integer", "minimum": 0 },
+        "errorCode": { "type": "string", "pattern": "^ALX_[A-Z0-9_]+$" },
+        "external": { "type": "array" },
+        "externalParents": { "type": "array" },
+        "hasCycle": { "type": "boolean" },
+        "issueBlockHashes": { "$ref": "#/$defs/hashArray" },
+        "issueCodes": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^ALX_[A-Z0-9_]+$" }
+        },
+        "issues": { "type": "array" },
+        "leafCount": { "type": "integer", "minimum": 0 },
+        "leaves": { "$ref": "#/$defs/hashArray" },
+        "limitKind": { "enum": ["maxBlocks", "maxEdges"] },
+        "limitReached": { "type": "object" },
+        "maxDepth": { "type": "integer", "minimum": 0 },
+        "missing": { "type": "array" },
+        "missingParents": { "type": "array" },
+        "nodeCount": { "type": "integer", "minimum": 0 },
+        "nodes": { "type": "object" },
+        "normalized": { "$ref": "#/$defs/hashArray" },
+        "normalizedParentCount": { "type": "integer", "minimum": 0 },
+        "ok": { "type": "boolean" },
+        "parentHashes": { "$ref": "#/$defs/hashArray" },
+        "parentsCanonical": { "type": "boolean" },
+        "pathCounts": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "pattern": "^[0-9]+$" }
+        },
+        "protocolVersion": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+        "selfRef": { "type": "boolean" },
+        "status": { "enum": ["valid", "invalid", "incomplete", "resource_limit_reached"] },
+        "validationMode": { "enum": ["closed-world", "open-world"] },
+        "value": true
+      }
+    },
+    "expected": {
+      "oneOf": [
+        { "type": "string" },
+        { "$ref": "#/$defs/expectedObject" }
+      ]
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocolVersion": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+        "validationMode": { "enum": ["closed-world", "open-world"] },
+        "graphRoot": { "type": "string" },
+        "maxDepth": { "type": "integer", "minimum": 0 },
+        "resourceLimits": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "maxBlocks": { "type": "integer", "minimum": 1 },
+            "maxEdges": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "externalParents": { "type": "array", "items": { "type": "object" } },
+        "extensions": { "type": "array" }
+      }
+    },
+    "vector": {
+      "type": "object",
+      "required": ["id", "description"],
+      "additionalProperties": false,
+      "anyOf": [
+        { "required": ["expected"] },
+        { "required": ["input_a", "input_b", "expected_a", "expected_b"] }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": { "operation": { "const": "validateGraph" } },
+            "required": ["operation"]
           },
-          "description": {
-            "type": "string",
-            "minLength": 1
-          },
-          "note": {
-            "type": "string",
-            "description": "Explanatory text for vectors where the input cannot be represented in JSON or requires special handling. Does not affect runner logic."
-          },
-          "inputShape": {
-            "type": "string",
-            "enum": ["single", "pair"],
-            "description": "Discriminator for multi-input vectors. 'single' = use 'input'; 'pair' = use 'input_a' and 'input_b'. Absent when the vector uses a different field (e.g. 'graph')."
-          },
-          "inputMode": {
-            "type": "string",
-            "enum": ["omitted"],
-            "description": "Requests a language-level omitted argument when the value cannot be represented directly in JSON."
-          },
-          "operation": {
-            "type": "string",
-            "minLength": 1,
-            "description": "SDK function name the runner must call for this vector."
-          },
-          "input": {
-            "description": "Single input value. Present when inputShape is 'single' or when the suite has a fixed input field."
-          },
-          "input_a": {
-            "description": "First of a pair of inputs. Present when inputShape is 'pair'."
-          },
-          "input_b": {
-            "description": "Second of a pair of inputs. Present when inputShape is 'pair'."
-          },
-          "graph": {
-            "type": "object",
-            "description": "Graph input for trace and lineage vectors: maps blockHash strings to arrays of parent blockHash strings."
-          },
-          "root": {
-            "type": "string",
-            "description": "Root hash for trace vectors."
-          },
-          "assertions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Human-readable assertion expressions describing the expected relationship between inputs and outputs."
-          },
-          "context": {
-            "type": "object",
-            "description": "Optional verification context passed to traceAttribution or validateGraph. Used for open-world vectors.",
+          "then": {
+            "required": ["input", "expected", "comparison"],
             "properties": {
-              "validationMode": { "type": "string", "enum": ["closed-world", "open-world"] },
-              "externalParents": {
-                "type": "array",
-                "items": { "type": "object" }
+              "expected": {
+                "oneOf": [
+                  {
+                    "$ref": "https://alxprotocol.com/protocol/1/schemas/graph-verification.schema.json"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["errorCode"],
+                    "properties": {
+                      "errorCode": { "type": "string", "pattern": "^ALX_[A-Z0-9_]+$" }
+                    }
+                  }
+                ]
+              },
+              "comparison": {
+                "const": "exact"
               }
-            }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "expected": {
+                      "type": "object",
+                      "required": ["errorCode"]
+                    }
+                  },
+                  "required": ["expected"]
+                },
+                "else": {
+                  "properties": {
+                    "input": {
+                      "$ref": "https://alxprotocol.com/protocol/1/schemas/graph-validation-request.schema.json"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": { "operation": { "const": "not-requested" } },
+            "required": ["operation"]
           },
-          "expected": {
-            "description": "Expected output or outcome. Shape varies by suite."
+          "then": {
+            "required": ["comparison"],
+            "properties": {
+              "comparison": { "const": "exact" }
+            }
           }
         }
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Z][A-Z0-9-]*$" },
+        "description": { "type": "string", "minLength": 1 },
+        "note": { "type": "string", "description": "Informative metadata." },
+        "assertions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Informative metadata; ignored for conformance decisions."
+        },
+        "inputShape": { "enum": ["single", "pair"] },
+        "inputMode": { "const": "omitted" },
+        "comparison": {
+          "enum": ["exact", "semantic"],
+          "description": "Optional comparison override for this vector. validateGraph and not-requested Graph-result vectors require exact comparison."
+        },
+        "operation": {
+          "enum": [
+            "canonicalize",
+            "createBlock",
+            "decodeRawJson",
+            "normalizeHashes",
+            "traceAttribution",
+            "validateBlock",
+            "validateGraph",
+            "validateIncrementalBlock",
+            "validateLineage",
+            "verifyGraph",
+            "verifyTrace",
+            "not-requested"
+          ]
+        },
+        "input": true,
+        "input_a": true,
+        "input_b": true,
+        "graph": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "graphEntries": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "root": { "type": "string" },
+        "generatedFibonacciDepth": { "type": "integer", "minimum": 3 },
+        "context": { "$ref": "#/$defs/context" },
+        "expected": { "$ref": "#/$defs/expected" },
+        "expected_a": { "$ref": "#/$defs/expectedObject" },
+        "expected_b": { "$ref": "#/$defs/expectedObject" }
       }
     }
   }

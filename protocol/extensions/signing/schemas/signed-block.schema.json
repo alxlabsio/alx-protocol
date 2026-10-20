@@ -1,8 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alxprotocol.com/protocol/1/extensions/signing/schemas/signed-block.schema.json",
   "title": "ALX Signed Block Extension",
   "description": "Optional signing extension profile for ALX Blocks. Signing metadata is excluded from Block identity.",
-  "$comment": "Public schema URL: [Placeholder]. This schema validates structural shape only. It does not verify contentHash, blockHash derivation, parent hash ordering, attestation binding, or signature validity.",
+  "$comment": "This schema validates structural shape only. It does not verify contentHash, blockHash derivation, parent hash ordering, attestation binding, or signature validity.",
   "type": "object",
   "properties": {
     "block": {
@@ -10,13 +11,14 @@
       "description": "The ALX Block being attested."
     },
     "attestation": {
-      "$ref": "../../../schemas/defs.schema.json#/$defs/attestation",
+      "$ref": "#/$defs/portableAttestation",
       "description": "A single cryptographic attestation over this Block's blockHash."
     },
     "attestations": {
       "type": "array",
+      "minItems": 1,
       "items": {
-        "$ref": "../../../schemas/defs.schema.json#/$defs/attestation"
+        "$ref": "#/$defs/portableAttestation"
       },
       "description": "Multiple cryptographic attestations over this Block's blockHash."
     }
@@ -36,5 +38,38 @@
       ]
     }
   ],
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$defs": {
+    "portableAttestation": {
+      "allOf": [
+        { "$ref": "../../../schemas/defs.schema.json#/$defs/attestation" },
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "algorithm": { "const": "ed25519" },
+                "attester": { "pattern": "^0x[a-f0-9]{64}$" },
+                "signature": { "pattern": "^0x[a-f0-9]{128}$" }
+              },
+              "required": ["algorithm", "attester", "signature"]
+            },
+            {
+              "properties": {
+                "algorithm": { "const": "p256" },
+                "attester": { "pattern": "^0x04[a-f0-9]{128}$" },
+                "signature": { "pattern": "^0x[a-f0-9]{128}$" }
+              },
+              "required": ["algorithm", "attester", "signature"]
+            },
+            {
+              "properties": {
+                "algorithm": { "not": { "enum": ["ed25519", "p256"] } }
+              },
+              "required": ["algorithm"]
+            }
+          ]
+        }
+      ]
+    }
+  }
 }

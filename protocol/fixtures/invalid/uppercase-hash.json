@@ -1,7 +1,8 @@
 {
   "$comment": "Invalid: canonical hashes are lowercase only",
   "blockHash": "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-  "contentHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "contentHash": "0x0ea61eb63a1a41f089ae747941b2134ea67298e055006316568bff4cd3b80547",
   "parentHashes": [],
-  "content": "uppercase hash should be rejected"
+  "content": "uppercase hash should be rejected",
+  "protocolVersion": "1"
 }

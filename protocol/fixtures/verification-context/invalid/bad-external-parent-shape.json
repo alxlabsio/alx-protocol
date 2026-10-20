@@ -1,11 +1,11 @@
 {
   "protocolVersion": "1",
   "validationMode": "open-world",
-  "graphRoot": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "graphRoot": "0xe55b2d84c895374f903e530bd51ceba437d63044d1fa8ee3bca8b0b148de54c3",
   "extensions": [],
   "externalParents": [
     {
-      "hash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "hash": "0x0ea61eb63a1a41f089ae747941b2134ea67298e055006316568bff4cd3b80547",
       "reason": "external-boundary"
     }
   ]

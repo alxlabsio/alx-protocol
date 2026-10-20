@@ -1,6 +1,6 @@
 {
-  "$schema": "[Placeholder]",
-  "$id": "[Placeholder]",
+  "$schema": "https://alxprotocol.com/protocol/1/schemas/error-code-registry.schema.json",
+  "$id": "https://alxprotocol.com/protocol/1/extensions/signing/error-codes.json",
   "id": "signing-error-codes",
   "extensionId": "signing",
   "extensionVersion": "1.0.0",

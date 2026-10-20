@@ -1,0 +1,240 @@
+{
+  "$schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+  "suite": "semantic-validity",
+  "description": "Protocol-invalid Block and Graph cases that verifiers must reject, including semantic failures and non-canonical stored identity fields.",
+  "vectors": [
+    {
+      "id": "SV1",
+      "description": "contentHash mismatch is protocol-invalid even when shape is valid",
+      "operation": "validateBlock",
+      "input": {
+        "blockHash": "0x300ab392f0e57f115f6d7a5df4408f844a9feccea16520d1afc6a92559de9171",
+        "contentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "parentHashes": [],
+        "content": "semantic baseline",
+        "protocolVersion": "1"
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "id": "SV2",
+      "description": "blockHash mismatch is protocol-invalid even when shape is valid",
+      "operation": "validateBlock",
+      "input": {
+        "blockHash": "0xe55b2d84c895374f903e530bd51ceba437d63044d1fa8ee3bca8b0b148de54c3",
+        "contentHash": "0xfd5b18dcd016c54324318c476d4139f90e5a63a23afe04828775e6eb947b6558",
+        "parentHashes": [],
+        "content": "semantic baseline",
+        "protocolVersion": "1"
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "id": "SV3",
+      "description": "unsorted parentHashes are protocol-invalid despite schema-valid shape",
+      "operation": "validateBlock",
+      "input": {
+        "blockHash": "0xa6936efc85496a08a9c6bda84bbfebfcca3323f3c637b8f190d22f1215f07bfb",
+        "contentHash": "0xfece1a4c4e4a4d8561770b636f41cc88438a90118aff78244c497f23e3a16dda",
+        "parentHashes": [
+          "0x0000000000000000000000000000000000000000000000000000000000000002",
+          "0x0000000000000000000000000000000000000000000000000000000000000001"
+        ],
+        "content": "semantic parents",
+        "protocolVersion": "1"
+      },
+      "expected": {
+        "ok": false,
+        "parentsCanonical": false
+      }
+    },
+    {
+      "id": "SV4",
+      "description": "self-parenting is protocol-invalid",
+      "operation": "validateBlock",
+      "input": {
+        "blockHash": "0xbb9bc2aa9179b6ac34324a2e31792d98edfbc48065b07508ddf8cbd958c92312",
+        "contentHash": "0xf9408973bbcb5a9d09b81bfc3125ff6d636305ecd2ca62b237b5bc5f6c9dbe30",
+        "parentHashes": [
+          "0xbb9bc2aa9179b6ac34324a2e31792d98edfbc48065b07508ddf8cbd958c92312"
+        ],
+        "content": "self parent impossible placeholder",
+        "protocolVersion": "1"
+      },
+      "expected": {
+        "ok": false,
+        "selfRef": true
+      }
+    },
+    {
+      "id": "SV5",
+      "description": "graph cycle is protocol-invalid",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000041",
+          "contentHash": "0x0042912ef37f697ae2bd2b7c6c72628895b407af733eea3182f5237211b50064",
+          "parentHashes": [
+            "0x0000000000000000000000000000000000000000000000000000000000000042"
+          ],
+          "content": {
+            "vector": "SV5",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": [
+            {
+              "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000042",
+              "contentHash": "0x819fb7742c56ff5205138d4a645470a0e32ae606549c494a4375ac287f505735",
+              "parentHashes": [
+                "0x0000000000000000000000000000000000000000000000000000000000000041"
+              ],
+              "content": {
+                "vector": "SV5",
+                "role": "parent"
+              },
+              "protocolVersion": "1"
+            }
+          ]
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x0000000000000000000000000000000000000000000000000000000000000041",
+          "externalParents": []
+        }
+      },
+      "expected": {
+        "protocolVersion": "1",
+        "checked": true,
+        "status": "invalid",
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x0000000000000000000000000000000000000000000000000000000000000041",
+          "externalParents": []
+        },
+        "blocksExamined": 2,
+        "edgesExamined": 2,
+        "missingParents": [],
+        "externalParents": [],
+        "issues": [
+          {
+            "code": "ALX_BLOCK_HASH_MISMATCH",
+            "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000041"
+          },
+          {
+            "code": "ALX_GRAPH_CYCLE",
+            "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000041"
+          },
+          {
+            "code": "ALX_BLOCK_HASH_MISMATCH",
+            "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000042"
+          }
+        ]
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "SV6",
+      "description": "unavailable required parent is incomplete under closed-world Graph validation",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0x7b72525a16789ad059ab3ce2c7c1608b6b00ba27c1a665fedc0c42ecf661dee7",
+          "contentHash": "0xc5678d6850fd52a3612b8d80e8f8b2401866a95574da025cce6626382e3f344a",
+          "parentHashes": [
+            "0x0000000000000000000000000000000000000000000000000000000000000052"
+          ],
+          "content": {
+            "vector": "SV6",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": []
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x7b72525a16789ad059ab3ce2c7c1608b6b00ba27c1a665fedc0c42ecf661dee7",
+          "externalParents": []
+        }
+      },
+      "expected": {
+        "protocolVersion": "1",
+        "checked": true,
+        "status": "incomplete",
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x7b72525a16789ad059ab3ce2c7c1608b6b00ba27c1a665fedc0c42ecf661dee7",
+          "externalParents": []
+        },
+        "blocksExamined": 1,
+        "edgesExamined": 1,
+        "missingParents": [
+          "0x0000000000000000000000000000000000000000000000000000000000000052"
+        ],
+        "externalParents": [],
+        "issues": []
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "SV7",
+      "description": "uppercase stored blockHash is non-canonical and MUST fail Block validation",
+      "operation": "validateBlock",
+      "input": {
+        "blockHash": "0xAB6476C50C9E1E64BE86B34D5076396C137CA0C661F3BB4FF3548F4BCE7D00EB",
+        "contentHash": "0xfd5b18dcd016c54324318c476d4139f90e5a63a23afe04828775e6eb947b6558",
+        "parentHashes": [],
+        "content": "semantic baseline",
+        "protocolVersion": "1"
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "id": "SV8",
+      "description": "whitespace-padded stored contentHash is non-canonical and MUST fail Block validation",
+      "operation": "validateBlock",
+      "input": {
+        "blockHash": "0x300ab392f0e57f115f6d7a5df4408f844a9feccea16520d1afc6a92559de9171",
+        "contentHash": " 0xfd5b18dcd016c54324318c476d4139f90e5a63a23afe04828775e6eb947b6558 ",
+        "parentHashes": [],
+        "content": "semantic baseline",
+        "protocolVersion": "1"
+      },
+      "expected": {
+        "ok": false
+      }
+    },
+    {
+      "id": "SV9",
+      "description": "a received Block with an unknown field is rejected instead of being projected or repaired",
+      "operation": "validateBlock",
+      "input": {
+        "blockHash": "0x300ab392f0e57f115f6d7a5df4408f844a9feccea16520d1afc6a92559de9171",
+        "contentHash": "0xfd5b18dcd016c54324318c476d4139f90e5a63a23afe04828775e6eb947b6558",
+        "parentHashes": [],
+        "content": "semantic baseline",
+        "protocolVersion": "1",
+        "unexpected": true
+      },
+      "expected": {
+        "errorCode": "ALX_SCHEMA_INVALID"
+      }
+    }
+  ]
+}

@@ -2,6 +2,7 @@
   "suite": "alx.signing.ed25519.v1",
   "status": "optional-extension",
   "description": "Portable Ed25519 Block attestation verification vectors.",
+  "attestationDomainUtf8Hex": "414c582d4154544553544154494f4e2d563100",
   "vectors": [
     {
       "id": "ED25519-1",
@@ -9,23 +10,27 @@
       "operation": "validatePortableSignedBlock",
       "input": {
         "block": {
-          "blockHash": "0x110bc5bdf29f767cddc5eeee4398c9df4da406c8e8400530ff74608ab1c0e091",
-          "contentHash": "0xc701bcc30b027bb4f53638ccbd7a807ce7a1c5f596fc9a13c903f0fadcf5e4fa",
+          "blockHash": "0x0538079e010712cd4bc947fc78bf0de754587d8c5a50c269a54c2f6925b36bae",
+          "contentHash": "0xbeed4c0beb89b7a8a595bbe0669fd4812f6613cc2a82352e64dcd66c513ac528",
           "parentHashes": [],
           "content": {
             "workflow": "multi-vendor-security-review",
             "decision": "approve-with-conditions"
-          }
+          },
+          "protocolVersion": "1"
         },
         "attestation": {
-          "blockHash": "0x110bc5bdf29f767cddc5eeee4398c9df4da406c8e8400530ff74608ab1c0e091",
-          "attester": "0x8a88e3dd7409f195fd52db2d3cba5d72ca6709bf1d94121bf3748801b40f6f5c",
+          "blockHash": "0x0538079e010712cd4bc947fc78bf0de754587d8c5a50c269a54c2f6925b36bae",
+          "attester": "0x03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
           "algorithm": "ed25519",
           "timestamp": 1778788800,
-          "signature": "0xea0f911f55d3b9be13b06966ded560d5a3ce5c0a2b70926609f518dbcb7cb2ed6440bead4e2419c75274282f045b1aa35101af3627037a8843d20f811e22a502"
+          "signature": "0x0d6bdfde24550d58022dc8922676e5c3283d61aa2f4371a1432c3d0f0052de8681634202677d4ebede1c43823d5d84850c395e97c4e085c33b494b52b095ac09"
         }
       },
-      "expected": { "ok": true, "algorithm": "ed25519" }
+      "expected": {
+        "ok": true,
+        "algorithm": "ed25519"
+      }
     },
     {
       "id": "ED25519-2",
@@ -33,23 +38,27 @@
       "operation": "validatePortableSignedBlock",
       "input": {
         "block": {
-          "blockHash": "0x110bc5bdf29f767cddc5eeee4398c9df4da406c8e8400530ff74608ab1c0e091",
-          "contentHash": "0xc701bcc30b027bb4f53638ccbd7a807ce7a1c5f596fc9a13c903f0fadcf5e4fa",
+          "blockHash": "0x0538079e010712cd4bc947fc78bf0de754587d8c5a50c269a54c2f6925b36bae",
+          "contentHash": "0xbeed4c0beb89b7a8a595bbe0669fd4812f6613cc2a82352e64dcd66c513ac528",
           "parentHashes": [],
           "content": {
             "workflow": "multi-vendor-security-review",
             "decision": "approve-with-conditions"
-          }
+          },
+          "protocolVersion": "1"
         },
         "attestation": {
-          "blockHash": "0x110bc5bdf29f767cddc5eeee4398c9df4da406c8e8400530ff74608ab1c0e091",
-          "attester": "0x8a88e3dd7409f195fd52db2d3cba5d72ca6709bf1d94121bf3748801b40f6f5c",
+          "blockHash": "0x0538079e010712cd4bc947fc78bf0de754587d8c5a50c269a54c2f6925b36bae",
+          "attester": "0x03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
           "algorithm": "ed25519",
           "timestamp": 1778788800,
-          "signature": "0xea0f911f55d3b9be13b06966ded560d5a3ce5c0a2b70926609f518dbcb7cb2ed6440bead4e2419c75274282f045b1aa35101af3627037a8843d20f811e22a5ff"
+          "signature": "0x0d6bdfde24550d58022dc8922676e5c3283d61aa2f4371a1432c3d0f0052de8681634202677d4ebede1c43823d5d84850c395e97c4e085c33b494b52b095acff"
         }
       },
-      "expected": { "ok": false, "algorithm": "ed25519" }
+      "expected": {
+        "ok": false,
+        "algorithm": "ed25519"
+      }
     }
   ]
 }

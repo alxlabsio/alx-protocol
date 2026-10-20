@@ -1,8 +1,9 @@
 {
-  "blockHash": "0x06f864a5d91244dadf1983a2ea4a4d3df6a3441647015d2cd72d300476b37e5f",
-  "contentHash": "0xfbf113b4f52f73e800e4c20b5142376a027ad6332d4607869ef82f30c5b4e1cf",
+  "blockHash": "0x9a0bdd11326a0ffb76d2e88abe5ca414494d0815c10a524c98914334319c5533",
+  "contentHash": "0xb8ee72e4af6f79ecb3e55f50f3bd00da268b9d056fecc5b80008f454613e3c87",
   "parentHashes": [
-    "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    "0xe55b2d84c895374f903e530bd51ceba437d63044d1fa8ee3bca8b0b148de54c3"
   ],
-  "content": "competitive summary"
+  "content": "competitive summary",
+  "protocolVersion": "1"
 }

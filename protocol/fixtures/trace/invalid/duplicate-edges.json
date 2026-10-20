@@ -6,7 +6,7 @@
       "hash": "0x0000000000000000000000000000000000000000000000000000000000000001",
       "minDepth": 0,
       "maxDepth": 0,
-      "pathCount": 1,
+      "pathCount": "1",
       "parentCount": 1,
       "childCount": 0
     },
@@ -14,7 +14,7 @@
       "hash": "0x0000000000000000000000000000000000000000000000000000000000000002",
       "minDepth": 1,
       "maxDepth": 1,
-      "pathCount": 1,
+      "pathCount": "1",
       "parentCount": 0,
       "childCount": 1
     }
@@ -32,6 +32,5 @@
   "leaves": [
     "0x0000000000000000000000000000000000000000000000000000000000000002"
   ],
-  "maxDepth": 1,
-  "cycle": false
+  "maxDepth": 1
 }

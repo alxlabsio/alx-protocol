@@ -1,6 +1,6 @@
 {
-  "$schema": "[Placeholder]",
-  "$id": "[Placeholder]",
+  "$schema": "https://alxprotocol.com/protocol/1/schemas/error-code-registry.schema.json",
+  "$id": "https://alxprotocol.com/protocol/1/extensions/merkle/error-codes.json",
   "id": "merkle-error-codes",
   "extensionId": "merkle",
   "extensionVersion": "1.0.0",

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alxprotocol.com/protocol/1/schemas/graph-validation-request.schema.json",
+  "title": "ALX Graph Validation Request",
+  "description": "Portable finite-source encoding of validateGraph(seed, source, context) for ALX v1 conformance.",
+  "$comment": "This schema validates the request envelope, not Block validity. Reached Block candidates are deliberately allowed to contain protocol-invalid field values so checked invalid results can be represented by negative vectors.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["seed", "source", "context"],
+  "properties": {
+    "seed": { "$ref": "#/$defs/blockCandidate" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "blocks"],
+      "properties": {
+        "kind": { "const": "finite" },
+        "blocks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/blockCandidate" },
+          "description": "Order-independent supplied Block candidates. Duplicate and normalization-colliding claimed identities are retained for diagnosis when requested."
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "description": "Verification-context candidate. validateGraph validates it against the normative context requirements and rejects malformed contexts before producing a checked result."
+    }
+  },
+  "$defs": {
+    "blockCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockHash", "contentHash", "parentHashes", "content", "protocolVersion"],
+      "properties": {
+        "blockHash": { "type": "string" },
+        "contentHash": { "type": "string" },
+        "parentHashes": { "type": "array" },
+        "content": true,
+        "protocolVersion": { "type": "string" }
+      }
+    }
+  }
+}

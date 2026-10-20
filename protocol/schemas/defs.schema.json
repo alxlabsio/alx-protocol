@@ -1,12 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alxprotocol.com/protocol/1/schemas/defs.schema.json",
   "title": "ALX Shared Schema Definitions",
-  "$comment": "Public schema URL: [Placeholder]. Shared structural definitions only. These definitions do not verify cryptographic derivation, graph semantics, signature validity, or trace truth.",
+  "$comment": "Shared structural definitions only. These definitions do not verify cryptographic derivation, graph semantics, signature validity, or trace truth.",
   "$defs": {
     "hash": {
       "type": "string",
       "pattern": "^0x[a-f0-9]{64}$",
-      "description": "Keccak-256 digest of a canonicalized input. 0x-prefixed, 64-character lowercase hex."
+      "description": "A v1 domain-separated Keccak-256 protocol digest. 0x-prefixed, 64-character lowercase hex."
     },
     "definitionLevel": {
       "type": "string",
@@ -33,15 +34,21 @@
       "maxItems": 256,
       "description": "Declared upstream Block identities, bound into blockHash. Must be sorted and deduplicated; ordering is enforced by the protocol implementation."
     },
+    "graphValidationStatus": {
+      "type": "string",
+      "enum": ["valid", "invalid", "incomplete", "resource_limit_reached"],
+      "description": "Normative outcome of an attempted Graph validation. not_checked is intentionally excluded; use checked=false when validation was not performed."
+    },
     "attestation": {
       "type": "object",
-      "description": "Cryptographic claim over a blockHash. Signing is external to Block identity and does not affect blockHash computation.",
+      "description": "Cryptographic claim over the canonical ALX-ATTESTATION-V1 payload. Signing is external to Block identity and does not affect blockHash computation.",
       "properties": {
         "blockHash": {
           "$ref": "#/$defs/hash"
         },
         "attester": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "algorithm": {
           "type": "string",
@@ -49,10 +56,12 @@
         },
         "timestamp": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 9007199254740991
         },
         "signature": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         }
       },
       "required": [

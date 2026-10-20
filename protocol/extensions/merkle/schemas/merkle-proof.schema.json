@@ -1,8 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alxprotocol.com/protocol/1/extensions/merkle/schemas/merkle-proof.schema.json",
   "title": "ALX Merkle Proof",
   "description": "Merkle inclusion proof binding a Block hash (leaf) to an off-chain Merkle root. Does not affect Block identity or blockHash computation.",
-  "$comment": "Public schema URL: [Placeholder]. This schema validates proof shape only. It does not verify proof correctness.",
+  "$comment": "This schema validates proof shape only. It does not verify proof correctness.",
   "type": "object",
   "properties": {
     "root": {
@@ -16,7 +17,6 @@
     "proof": {
       "type": "array",
       "items": { "$ref": "../../../schemas/defs.schema.json#/$defs/hash" },
-      "maxItems": 512,
       "description": "Ordered sibling hashes from leaf to root."
     }
   },

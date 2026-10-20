@@ -1,9 +1,10 @@
 {
   "$comment": "Invalid for the signed-block extension schema: a signed-block profile must carry signing metadata",
   "block": {
-    "blockHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "contentHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "blockHash": "0xe55b2d84c895374f903e530bd51ceba437d63044d1fa8ee3bca8b0b148de54c3",
+    "contentHash": "0x0ea61eb63a1a41f089ae747941b2134ea67298e055006316568bff4cd3b80547",
     "parentHashes": [],
-    "content": "unsigned payload in a signed-block profile"
+    "content": "unsigned payload in a signed-block profile",
+    "protocolVersion": "1"
   }
 }

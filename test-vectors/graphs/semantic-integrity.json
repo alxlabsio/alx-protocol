@@ -1,0 +1,612 @@
+{
+  "$schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+  "suite": "semantic-integrity",
+  "description": "Verifier-level integrity checks for received Traces and authentic Graphs.",
+  "vectors": [
+    {
+      "id": "SI1",
+      "description": "duplicate exact Trace node is rejected by Trace verification",
+      "operation": "verifyTrace",
+      "input": {
+        "graph": {
+          "0x0000000000000000000000000000000000000000000000000000000000000001": [
+            "0x0000000000000000000000000000000000000000000000000000000000000002"
+          ],
+          "0x0000000000000000000000000000000000000000000000000000000000000002": []
+        },
+        "trace": {
+          "root": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "nodes": [
+            {
+              "hash": "0x0000000000000000000000000000000000000000000000000000000000000001",
+              "minDepth": 0,
+              "maxDepth": 0,
+              "pathCount": "1",
+              "parentCount": 1,
+              "childCount": 0
+            },
+            {
+              "hash": "0x0000000000000000000000000000000000000000000000000000000000000002",
+              "minDepth": 1,
+              "maxDepth": 1,
+              "pathCount": "1",
+              "parentCount": 0,
+              "childCount": 1
+            },
+            {
+              "hash": "0x0000000000000000000000000000000000000000000000000000000000000002",
+              "minDepth": 1,
+              "maxDepth": 1,
+              "pathCount": "1",
+              "parentCount": 0,
+              "childCount": 1
+            }
+          ],
+          "edges": [
+            {
+              "from": "0x0000000000000000000000000000000000000000000000000000000000000001",
+              "to": "0x0000000000000000000000000000000000000000000000000000000000000002"
+            }
+          ],
+          "leaves": [
+            "0x0000000000000000000000000000000000000000000000000000000000000002"
+          ],
+          "maxDepth": 1,
+          "cycle": false
+        }
+      },
+      "expected": {
+        "ok": false,
+        "issues": [
+          "duplicate_nodes",
+          "nodes_mismatch"
+        ]
+      }
+    },
+    {
+      "id": "SI2",
+      "description": "Trace with inconsistent leaf and pathCount semantics is rejected",
+      "operation": "verifyTrace",
+      "input": {
+        "graph": {
+          "0x0000000000000000000000000000000000000000000000000000000000000001": [
+            "0x0000000000000000000000000000000000000000000000000000000000000002",
+            "0x0000000000000000000000000000000000000000000000000000000000000003"
+          ],
+          "0x0000000000000000000000000000000000000000000000000000000000000002": [
+            "0x0000000000000000000000000000000000000000000000000000000000000004"
+          ],
+          "0x0000000000000000000000000000000000000000000000000000000000000003": [
+            "0x0000000000000000000000000000000000000000000000000000000000000004"
+          ],
+          "0x0000000000000000000000000000000000000000000000000000000000000004": []
+        },
+        "trace": {
+          "root": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "nodes": [
+            {
+              "hash": "0x0000000000000000000000000000000000000000000000000000000000000001",
+              "minDepth": 0,
+              "maxDepth": 0,
+              "pathCount": "1",
+              "parentCount": 2,
+              "childCount": 0
+            },
+            {
+              "hash": "0x0000000000000000000000000000000000000000000000000000000000000002",
+              "minDepth": 1,
+              "maxDepth": 1,
+              "pathCount": "1",
+              "parentCount": 1,
+              "childCount": 1
+            },
+            {
+              "hash": "0x0000000000000000000000000000000000000000000000000000000000000003",
+              "minDepth": 1,
+              "maxDepth": 1,
+              "pathCount": "1",
+              "parentCount": 1,
+              "childCount": 1
+            },
+            {
+              "hash": "0x0000000000000000000000000000000000000000000000000000000000000004",
+              "minDepth": 2,
+              "maxDepth": 2,
+              "pathCount": "1",
+              "parentCount": 0,
+              "childCount": 2
+            }
+          ],
+          "edges": [
+            {
+              "from": "0x0000000000000000000000000000000000000000000000000000000000000001",
+              "to": "0x0000000000000000000000000000000000000000000000000000000000000002"
+            },
+            {
+              "from": "0x0000000000000000000000000000000000000000000000000000000000000001",
+              "to": "0x0000000000000000000000000000000000000000000000000000000000000003"
+            },
+            {
+              "from": "0x0000000000000000000000000000000000000000000000000000000000000002",
+              "to": "0x0000000000000000000000000000000000000000000000000000000000000004"
+            },
+            {
+              "from": "0x0000000000000000000000000000000000000000000000000000000000000003",
+              "to": "0x0000000000000000000000000000000000000000000000000000000000000004"
+            }
+          ],
+          "leaves": [
+            "0x0000000000000000000000000000000000000000000000000000000000000003"
+          ],
+          "maxDepth": 2,
+          "cycle": false
+        }
+      },
+      "expected": {
+        "ok": false,
+        "issues": [
+          "nodes_mismatch",
+          "leaves_mismatch"
+        ]
+      }
+    },
+    {
+      "id": "SI3",
+      "description": "Graph authenticity fails when a parent block's content no longer matches its hash",
+      "operation": "verifyGraph",
+      "input": {
+        "blocks": [
+          {
+            "blockHash": "0x3474b112d72c5569003898e0a68d53dc5b1d81bd415ac6cdee38350504a53e76",
+            "contentHash": "0x139466e107024b7164ae59c9464f10262538bfd461a9184a324dbd897446aa01",
+            "parentHashes": [],
+            "content": {
+              "type": "tampered-root"
+            },
+            "protocolVersion": "1"
+          },
+          {
+            "blockHash": "0xdde0372d6ea1f5a4991f9556e67208edfe61e7edf396e0422939fe68cc92d262",
+            "contentHash": "0xd30c527e3bdea57dac5597af1ded03ae2da651b10ca53f38da4218e1e979354f",
+            "parentHashes": [
+              "0x3474b112d72c5569003898e0a68d53dc5b1d81bd415ac6cdee38350504a53e76"
+            ],
+            "content": {
+              "type": "child"
+            },
+            "protocolVersion": "1"
+          }
+        ]
+      },
+      "expected": {
+        "ok": false,
+        "brokenReason": "hash_mismatch"
+      }
+    },
+    {
+      "id": "SI4",
+      "description": "open-world trace with external parent is partial rather than complete",
+      "operation": "traceAttribution",
+      "input": {
+        "graph": {
+          "0x3333333333333333333333333333333333333333333333333333333333333333": [
+            "0xe55b2d84c895374f903e530bd51ceba437d63044d1fa8ee3bca8b0b148de54c3",
+            "0x0ea61eb63a1a41f089ae747941b2134ea67298e055006316568bff4cd3b80547"
+          ],
+          "0xe55b2d84c895374f903e530bd51ceba437d63044d1fa8ee3bca8b0b148de54c3": []
+        },
+        "rootHash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+        "context": {
+          "validationMode": "open-world",
+          "externalParents": [
+            {
+              "hash": "0x0ea61eb63a1a41f089ae747941b2134ea67298e055006316568bff4cd3b80547"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "validationMode": "open-world",
+        "complete": false,
+        "missingParents": [],
+        "externalParents": [
+          "0x0ea61eb63a1a41f089ae747941b2134ea67298e055006316568bff4cd3b80547"
+        ]
+      }
+    },
+    {
+      "id": "SI5",
+      "description": "Trace verification rejects false-complete open-world result",
+      "operation": "verifyTrace",
+      "input": {
+        "graph": {
+          "0x3333333333333333333333333333333333333333333333333333333333333333": [
+            "0xe55b2d84c895374f903e530bd51ceba437d63044d1fa8ee3bca8b0b148de54c3",
+            "0x0ea61eb63a1a41f089ae747941b2134ea67298e055006316568bff4cd3b80547"
+          ],
+          "0xe55b2d84c895374f903e530bd51ceba437d63044d1fa8ee3bca8b0b148de54c3": []
+        },
+        "context": {
+          "validationMode": "open-world",
+          "externalParents": [
+            {
+              "hash": "0x0ea61eb63a1a41f089ae747941b2134ea67298e055006316568bff4cd3b80547"
+            }
+          ]
+        },
+        "trace": {
+          "root": "0x3333333333333333333333333333333333333333333333333333333333333333",
+          "validationMode": "open-world",
+          "complete": true,
+          "nodes": [
+            {
+              "hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
+              "minDepth": 0,
+              "maxDepth": 0,
+              "pathCount": "1",
+              "parentCount": 2,
+              "childCount": 0
+            },
+            {
+              "hash": "0xe55b2d84c895374f903e530bd51ceba437d63044d1fa8ee3bca8b0b148de54c3",
+              "minDepth": 1,
+              "maxDepth": 1,
+              "pathCount": "1",
+              "parentCount": 0,
+              "childCount": 1
+            }
+          ],
+          "edges": [
+            {
+              "from": "0x3333333333333333333333333333333333333333333333333333333333333333",
+              "to": "0xe55b2d84c895374f903e530bd51ceba437d63044d1fa8ee3bca8b0b148de54c3"
+            },
+            {
+              "from": "0x3333333333333333333333333333333333333333333333333333333333333333",
+              "to": "0x0ea61eb63a1a41f089ae747941b2134ea67298e055006316568bff4cd3b80547"
+            }
+          ],
+          "leaves": [
+            "0xe55b2d84c895374f903e530bd51ceba437d63044d1fa8ee3bca8b0b148de54c3"
+          ],
+          "missingParents": [],
+          "externalParents": [
+            "0x0ea61eb63a1a41f089ae747941b2134ea67298e055006316568bff4cd3b80547"
+          ],
+          "maxDepth": 1,
+          "cycle": false,
+          "precisionLoss": false
+        }
+      },
+      "expected": {
+        "ok": false,
+        "issues": [
+          "unexpected_fields",
+          "complete_mismatch"
+        ]
+      }
+    },
+    {
+      "id": "SI6",
+      "description": "Trace rejects duplicate raw Graph parents before path propagation",
+      "operation": "traceAttribution",
+      "input": {
+        "graph": {
+          "0x0000000000000000000000000000000000000000000000000000000000000001": [
+            "0x0000000000000000000000000000000000000000000000000000000000000002",
+            "0x0000000000000000000000000000000000000000000000000000000000000002"
+          ],
+          "0x0000000000000000000000000000000000000000000000000000000000000002": []
+        },
+        "rootHash": "0x0000000000000000000000000000000000000000000000000000000000000001"
+      },
+      "expected": {
+        "errorCode": "ALX_DUPLICATE_PARENT"
+      }
+    },
+    {
+      "id": "SI7",
+      "description": "Trace rejects malformed Graph parent hashes",
+      "operation": "traceAttribution",
+      "input": {
+        "graph": {
+          "0x0000000000000000000000000000000000000000000000000000000000000001": [
+            "not-a-hash"
+          ]
+        },
+        "rootHash": "0x0000000000000000000000000000000000000000000000000000000000000001"
+      },
+      "expected": {
+        "errorCode": "ALX_INVALID_HASH"
+      }
+    },
+    {
+      "id": "SI8",
+      "description": "Trace rejects unsupported validation modes",
+      "operation": "traceAttribution",
+      "input": {
+        "graph": {
+          "0x0000000000000000000000000000000000000000000000000000000000000001": []
+        },
+        "rootHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
+        "context": {
+          "validationMode": "best-effort"
+        }
+      },
+      "expected": {
+        "errorCode": "ALX_INVALID_GRAPH"
+      }
+    },
+    {
+      "id": "SI9",
+      "description": "unreachable malformed source candidate does not affect Graph validation",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0x39aa7f2628396310744b43504be86a30bbdf5544fd8129e21e7f1578ca7eeb5e",
+          "contentHash": "0x9814d1eaf086b20b28f24460f5540fae276d3b040d23dc57b3a21823415bf912",
+          "parentHashes": [],
+          "content": {
+            "vector": "SI9",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": [
+            {
+              "blockHash": "not-a-hash",
+              "contentHash": "0x12006e428c4058b35d0d5efccd6efa6c5df5691578cbb0c5844c47629413ab15",
+              "parentHashes": [],
+              "content": {
+                "vector": "SI9",
+                "role": "unreachable"
+              },
+              "protocolVersion": "1"
+            }
+          ]
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x39aa7f2628396310744b43504be86a30bbdf5544fd8129e21e7f1578ca7eeb5e",
+          "externalParents": []
+        }
+      },
+      "expected": {
+        "protocolVersion": "1",
+        "checked": true,
+        "status": "valid",
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x39aa7f2628396310744b43504be86a30bbdf5544fd8129e21e7f1578ca7eeb5e",
+          "externalParents": []
+        },
+        "blocksExamined": 1,
+        "edgesExamined": 0,
+        "missingParents": [],
+        "externalParents": [],
+        "issues": []
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "SI10",
+      "description": "Graph validation rejects duplicate candidates for a required Block identity",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0xf79f34b0741b0887c5142d4a5a3feb0f99bf7bb29de8bcb702d665395e2a2ed7",
+          "contentHash": "0xb6ccd33a7e089d941c914ea547ab659622cd01b6dc87d13b17e0efe5aacb1813",
+          "parentHashes": [
+            "0x6eff6484abf040cc7cafb8b6553c8f88f3976067b91ceba8422fae1d3d3e0f1d"
+          ],
+          "content": {
+            "vector": "SI10",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": [
+            {
+              "blockHash": "0x6eff6484abf040cc7cafb8b6553c8f88f3976067b91ceba8422fae1d3d3e0f1d",
+              "contentHash": "0x2e01dbe6042453f514efee19ca653a8d6094d152e493d951bcc9b1afe5296c4b",
+              "parentHashes": [],
+              "content": {
+                "vector": "SI10",
+                "role": "parent"
+              },
+              "protocolVersion": "1"
+            },
+            {
+              "blockHash": "0x6eff6484abf040cc7cafb8b6553c8f88f3976067b91ceba8422fae1d3d3e0f1d",
+              "contentHash": "0x2e01dbe6042453f514efee19ca653a8d6094d152e493d951bcc9b1afe5296c4b",
+              "parentHashes": [],
+              "content": {
+                "vector": "SI10",
+                "role": "parent"
+              },
+              "protocolVersion": "1"
+            }
+          ]
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0xf79f34b0741b0887c5142d4a5a3feb0f99bf7bb29de8bcb702d665395e2a2ed7",
+          "externalParents": []
+        }
+      },
+      "expected": {
+        "protocolVersion": "1",
+        "checked": true,
+        "status": "invalid",
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0xf79f34b0741b0887c5142d4a5a3feb0f99bf7bb29de8bcb702d665395e2a2ed7",
+          "externalParents": []
+        },
+        "blocksExamined": 1,
+        "edgesExamined": 1,
+        "missingParents": [],
+        "externalParents": [],
+        "issues": [
+          {
+            "code": "ALX_DUPLICATE_BLOCK",
+            "blockHash": "0x6eff6484abf040cc7cafb8b6553c8f88f3976067b91ceba8422fae1d3d3e0f1d"
+          }
+        ]
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "SI11",
+      "description": "Graph validation rejects an unsupported validation mode",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0x6b766454d68501e2c5f0212bc1c158342c9e3ba3ceaf5769342df9615cffd8f2",
+          "contentHash": "0x18324e152167cceba573207c392c4127c038e69534585269e325c0cf31379e7c",
+          "parentHashes": [],
+          "content": {
+            "vector": "SI11",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": []
+        },
+        "context": {
+          "validationMode": "best-effort"
+        }
+      },
+      "expected": {
+        "errorCode": "ALX_INVALID_GRAPH"
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "SI12",
+      "description": "Graph diagnostic issues use normalized Block hash order",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0x1998e133b777c4d2afc6eeb2a9bf67c8c9cdb90eba51d95b6ceb6870d226b27b",
+          "contentHash": "0xd6a2f0cf34da926c093bbfba8518d4f5083902aab60d8c0035c4030c1a47dcca",
+          "parentHashes": [
+            "0x0000000000000000000000000000000000000000000000000000000000000011",
+            "0x0000000000000000000000000000000000000000000000000000000000000022"
+          ],
+          "content": {
+            "vector": "SI12",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": [
+            {
+              "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000022",
+              "contentHash": "0xaee10104cc39aebc3cd6b92103ceeea9de4340cf5e5e86d13ca560bc5c7a424d",
+              "parentHashes": [
+                "0x0000000000000000000000000000000000000000000000000000000000000022"
+              ],
+              "content": {
+                "vector": "SI12",
+                "role": "second"
+              },
+              "protocolVersion": "1"
+            },
+            {
+              "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000011",
+              "contentHash": "0x997dc5a7f8ae390acc88e2c425e36fd83e32ee70803496518867090d63fbcf96",
+              "parentHashes": [
+                "0x0000000000000000000000000000000000000000000000000000000000000011"
+              ],
+              "content": {
+                "vector": "SI12",
+                "role": "first"
+              },
+              "protocolVersion": "1"
+            }
+          ]
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x1998e133b777c4d2afc6eeb2a9bf67c8c9cdb90eba51d95b6ceb6870d226b27b",
+          "externalParents": []
+        }
+      },
+      "expected": {
+        "protocolVersion": "1",
+        "checked": true,
+        "status": "invalid",
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x1998e133b777c4d2afc6eeb2a9bf67c8c9cdb90eba51d95b6ceb6870d226b27b",
+          "externalParents": []
+        },
+        "blocksExamined": 3,
+        "edgesExamined": 4,
+        "missingParents": [],
+        "externalParents": [],
+        "issues": [
+          {
+            "code": "ALX_BLOCK_HASH_MISMATCH",
+            "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000011"
+          },
+          {
+            "code": "ALX_SELF_PARENT",
+            "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000011"
+          },
+          {
+            "code": "ALX_BLOCK_HASH_MISMATCH",
+            "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000022"
+          },
+          {
+            "code": "ALX_SELF_PARENT",
+            "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000022"
+          }
+        ]
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "SI13",
+      "description": "Graph authenticity rejects duplicate Block candidates instead of overwriting one",
+      "operation": "verifyGraph",
+      "input": {
+        "blocks": [
+          {
+            "blockHash": "0x63f3c543eb5ab4d645cfaf1aace70d6a712ce1571630d58573ea37bd3d88f771",
+            "contentHash": "0xbbaf054370f8274fd962af504a225b0e675f0124047a40691b008d277b249f56",
+            "parentHashes": [],
+            "content": { "vector": "GVO1", "role": "root" },
+            "protocolVersion": "1"
+          },
+          {
+            "blockHash": "0x63f3c543eb5ab4d645cfaf1aace70d6a712ce1571630d58573ea37bd3d88f771",
+            "contentHash": "0xbbaf054370f8274fd962af504a225b0e675f0124047a40691b008d277b249f56",
+            "parentHashes": [],
+            "content": { "vector": "GVO1", "role": "root" },
+            "protocolVersion": "1"
+          }
+        ]
+      },
+      "expected": {
+        "ok": false,
+        "brokenReason": "duplicate_block"
+      }
+    }
+  ]
+}

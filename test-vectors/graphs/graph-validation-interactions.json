@@ -1,0 +1,469 @@
+{
+  "$schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+  "suite": "graph-validation-interactions",
+  "description": "Normative Graph interaction, depth-plus-one, request-root, and deterministic collection cases.",
+  "vectors": [
+    {
+      "id": "GVI1",
+      "description": "an available invalid parent Block produces invalid with every deterministic identity issue",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0x1056223fb5539d50f6fca2447997fceceaf35b1fb8b17a2b5de74f6cd9c65181",
+          "contentHash": "0xeb957f56f290674b600d643a22063db8051661df512000650a214c04b977003d",
+          "parentHashes": [
+            "0x168960b33d5b2de02baae109d0604d892bd1e147ce51970a1580610c7b88bb06"
+          ],
+          "content": {
+            "vector": "GVO2",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": [
+            {
+              "blockHash": "0x168960b33d5b2de02baae109d0604d892bd1e147ce51970a1580610c7b88bb06",
+              "contentHash": "0x7f78bc1622cef7a937edaa1448ffae1b0868b726fede7a032c9aaac0ed8f7e78",
+              "parentHashes": [],
+              "content": {
+                "tampered": true
+              },
+              "protocolVersion": "1"
+            }
+          ]
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x1056223fb5539d50f6fca2447997fceceaf35b1fb8b17a2b5de74f6cd9c65181",
+          "externalParents": []
+        }
+      },
+      "expected": {
+        "protocolVersion": "1",
+        "checked": true,
+        "status": "invalid",
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x1056223fb5539d50f6fca2447997fceceaf35b1fb8b17a2b5de74f6cd9c65181",
+          "externalParents": []
+        },
+        "blocksExamined": 2,
+        "edgesExamined": 1,
+        "missingParents": [],
+        "externalParents": [],
+        "issues": [
+          {
+            "code": "ALX_BLOCK_HASH_MISMATCH",
+            "blockHash": "0x168960b33d5b2de02baae109d0604d892bd1e147ce51970a1580610c7b88bb06"
+          },
+          {
+            "code": "ALX_CONTENT_HASH_MISMATCH",
+            "blockHash": "0x168960b33d5b2de02baae109d0604d892bd1e147ce51970a1580610c7b88bb06"
+          }
+        ]
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "GVI2",
+      "description": "duplicate normalized parent declarations produce invalid and both declarations consume edge work",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0x1056223fb5539d50f6fca2447997fceceaf35b1fb8b17a2b5de74f6cd9c65181",
+          "contentHash": "0xeb957f56f290674b600d643a22063db8051661df512000650a214c04b977003d",
+          "parentHashes": [
+            "0x168960b33d5b2de02baae109d0604d892bd1e147ce51970a1580610c7b88bb06",
+            "0x168960b33d5b2de02baae109d0604d892bd1e147ce51970a1580610c7b88bb06"
+          ],
+          "content": {
+            "vector": "GVO2",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": [
+            {
+              "blockHash": "0x168960b33d5b2de02baae109d0604d892bd1e147ce51970a1580610c7b88bb06",
+              "contentHash": "0x7f78bc1622cef7a937edaa1448ffae1b0868b726fede7a032c9aaac0ed8f7e78",
+              "parentHashes": [],
+              "content": {
+                "vector": "GVO2",
+                "role": "parent"
+              },
+              "protocolVersion": "1"
+            }
+          ]
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x1056223fb5539d50f6fca2447997fceceaf35b1fb8b17a2b5de74f6cd9c65181",
+          "externalParents": []
+        }
+      },
+      "expected": {
+        "protocolVersion": "1",
+        "checked": true,
+        "status": "invalid",
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x1056223fb5539d50f6fca2447997fceceaf35b1fb8b17a2b5de74f6cd9c65181",
+          "externalParents": []
+        },
+        "blocksExamined": 2,
+        "edgesExamined": 2,
+        "missingParents": [],
+        "externalParents": [],
+        "issues": [
+          {
+            "code": "ALX_DUPLICATE_PARENT",
+            "blockHash": "0x1056223fb5539d50f6fca2447997fceceaf35b1fb8b17a2b5de74f6cd9c65181"
+          }
+        ]
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "GVI3",
+      "description": "required ancestry one edge beyond the former depth boundary is examined and may be incomplete",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0xa38df3f5e9a7977e4b9a5e64a1cd1e5132222e9f6659c75cbb07051dbdbd071d",
+          "contentHash": "0x1daf19cb24537a9acee07051a3caf8be71653847a42871934bc52210eb550e4d",
+          "parentHashes": [
+            "0xa5762a189aca53aee7db5f628b9664cc7f4a709ea7a9e43178ac07edf3d0a38a"
+          ],
+          "content": {
+            "vector": "GVO10",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": [
+            {
+              "blockHash": "0xa5762a189aca53aee7db5f628b9664cc7f4a709ea7a9e43178ac07edf3d0a38a",
+              "contentHash": "0x7831f2b5d840f27b040c387d56fb5c5c66d83149e730e2191280ea6d0a380634",
+              "parentHashes": [
+                "0x8aeda4fd14d3314d74f9b87b5e546f2067db2d00649dfffa601538ac2d45814e"
+              ],
+              "content": {
+                "vector": "GVO10",
+                "role": "parent"
+              },
+              "protocolVersion": "1"
+            }
+          ]
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0xa38df3f5e9a7977e4b9a5e64a1cd1e5132222e9f6659c75cbb07051dbdbd071d",
+          "externalParents": []
+        }
+      },
+      "expected": {
+        "protocolVersion": "1",
+        "checked": true,
+        "status": "incomplete",
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0xa38df3f5e9a7977e4b9a5e64a1cd1e5132222e9f6659c75cbb07051dbdbd071d",
+          "externalParents": []
+        },
+        "blocksExamined": 2,
+        "edgesExamined": 2,
+        "missingParents": [
+          "0x8aeda4fd14d3314d74f9b87b5e546f2067db2d00649dfffa601538ac2d45814e"
+        ],
+        "externalParents": [],
+        "issues": []
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "GVI4",
+      "description": "known invalidity takes precedence when a later deterministic edge budget is exhausted",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0xf3b59cca23799c99125af81b3979b39fb5c4c0348e08fadb8ce63097d265c9ad",
+          "contentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "parentHashes": [
+            "0x4fb4a8bf32dd4668a2e49000fb3a519b51ab7ef604506d84aa6223656539582d",
+            "0xe9cef5ff0cfd9ae0183724e3dd1887dac52e13bf375406f193da1baed7bbb16a"
+          ],
+          "content": {
+            "vector": "GVO3",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": [
+            {
+              "blockHash": "0xe9cef5ff0cfd9ae0183724e3dd1887dac52e13bf375406f193da1baed7bbb16a",
+              "contentHash": "0x0de79f8bd65a85eabc94fe11c5c662254fcf626e31e2bf28c050307ec1c46561",
+              "parentHashes": [],
+              "content": {
+                "vector": "GVO3",
+                "role": "right-parent"
+              },
+              "protocolVersion": "1"
+            },
+            {
+              "blockHash": "0x4fb4a8bf32dd4668a2e49000fb3a519b51ab7ef604506d84aa6223656539582d",
+              "contentHash": "0x4234fc97cf3e1268714e2999ddbdf463fcac0fec0e814dad3fb987cd2d7156da",
+              "parentHashes": [],
+              "content": {
+                "vector": "GVO3",
+                "role": "left-parent"
+              },
+              "protocolVersion": "1"
+            }
+          ]
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0xf3b59cca23799c99125af81b3979b39fb5c4c0348e08fadb8ce63097d265c9ad",
+          "externalParents": [],
+          "resourceLimits": {
+            "maxEdges": 1
+          }
+        }
+      },
+      "expected": {
+        "protocolVersion": "1",
+        "checked": true,
+        "status": "invalid",
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0xf3b59cca23799c99125af81b3979b39fb5c4c0348e08fadb8ce63097d265c9ad",
+          "externalParents": [],
+          "resourceLimits": {
+            "maxEdges": 1
+          }
+        },
+        "blocksExamined": 1,
+        "edgesExamined": 1,
+        "missingParents": [],
+        "externalParents": [],
+        "issues": [
+          {
+            "code": "ALX_CONTENT_HASH_MISMATCH",
+            "blockHash": "0xf3b59cca23799c99125af81b3979b39fb5c4c0348e08fadb8ce63097d265c9ad"
+          }
+        ],
+        "limitReached": {
+          "kind": "maxEdges"
+        }
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "GVI5",
+      "description": "resource exhaustion takes precedence after incomplete data is observed without a violation",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0xf3b59cca23799c99125af81b3979b39fb5c4c0348e08fadb8ce63097d265c9ad",
+          "contentHash": "0x0c493ebaf5a338973dd7d931108474cc157d86f3c0c869a26153466247e95567",
+          "parentHashes": [
+            "0x4fb4a8bf32dd4668a2e49000fb3a519b51ab7ef604506d84aa6223656539582d",
+            "0xe9cef5ff0cfd9ae0183724e3dd1887dac52e13bf375406f193da1baed7bbb16a"
+          ],
+          "content": {
+            "vector": "GVO3",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": []
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0xf3b59cca23799c99125af81b3979b39fb5c4c0348e08fadb8ce63097d265c9ad",
+          "externalParents": [],
+          "resourceLimits": {
+            "maxEdges": 1
+          }
+        }
+      },
+      "expected": {
+        "protocolVersion": "1",
+        "checked": true,
+        "status": "resource_limit_reached",
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0xf3b59cca23799c99125af81b3979b39fb5c4c0348e08fadb8ce63097d265c9ad",
+          "externalParents": [],
+          "resourceLimits": {
+            "maxEdges": 1
+          }
+        },
+        "blocksExamined": 1,
+        "edgesExamined": 1,
+        "missingParents": [
+          "0x4fb4a8bf32dd4668a2e49000fb3a519b51ab7ef604506d84aa6223656539582d"
+        ],
+        "externalParents": [],
+        "issues": [],
+        "limitReached": {
+          "kind": "maxEdges"
+        }
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "GVI6",
+      "description": "multiple unavailable declared parents are reported in ascending normalized hash order",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0xf3b59cca23799c99125af81b3979b39fb5c4c0348e08fadb8ce63097d265c9ad",
+          "contentHash": "0x0c493ebaf5a338973dd7d931108474cc157d86f3c0c869a26153466247e95567",
+          "parentHashes": [
+            "0x4fb4a8bf32dd4668a2e49000fb3a519b51ab7ef604506d84aa6223656539582d",
+            "0xe9cef5ff0cfd9ae0183724e3dd1887dac52e13bf375406f193da1baed7bbb16a"
+          ],
+          "content": {
+            "vector": "GVO3",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": []
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0xf3b59cca23799c99125af81b3979b39fb5c4c0348e08fadb8ce63097d265c9ad",
+          "externalParents": []
+        }
+      },
+      "expected": {
+        "protocolVersion": "1",
+        "checked": true,
+        "status": "incomplete",
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0xf3b59cca23799c99125af81b3979b39fb5c4c0348e08fadb8ce63097d265c9ad",
+          "externalParents": []
+        },
+        "blocksExamined": 1,
+        "edgesExamined": 2,
+        "missingParents": [
+          "0x4fb4a8bf32dd4668a2e49000fb3a519b51ab7ef604506d84aa6223656539582d",
+          "0xe9cef5ff0cfd9ae0183724e3dd1887dac52e13bf375406f193da1baed7bbb16a"
+        ],
+        "externalParents": [],
+        "issues": []
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "GVI7",
+      "description": "a supplied seed whose identity differs from context.graphRoot is rejected before Graph checking",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0x63f3c543eb5ab4d645cfaf1aace70d6a712ce1571630d58573ea37bd3d88f771",
+          "contentHash": "0xbbaf054370f8274fd962af504a225b0e675f0124047a40691b008d277b249f56",
+          "parentHashes": [],
+          "content": {
+            "vector": "GVO1",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": []
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "externalParents": []
+        }
+      },
+      "expected": {
+        "errorCode": "ALX_CONTEXT_ROOT_MISMATCH"
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "GVI8",
+      "description": "a malformed context root identifier is rejected before Graph checking",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0x63f3c543eb5ab4d645cfaf1aace70d6a712ce1571630d58573ea37bd3d88f771",
+          "contentHash": "0xbbaf054370f8274fd962af504a225b0e675f0124047a40691b008d277b249f56",
+          "parentHashes": [],
+          "content": {
+            "vector": "GVO1",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": []
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "not-a-hash",
+          "externalParents": []
+        }
+      },
+      "expected": {
+        "errorCode": "ALX_CONTEXT_ROOT_MISMATCH"
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "GVI9",
+      "description": "an absent required seed is rejected and is not reported as an incomplete checked Graph",
+      "operation": "validateGraph",
+      "input": {
+        "source": {
+          "kind": "finite",
+          "blocks": []
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x63f3c543eb5ab4d645cfaf1aace70d6a712ce1571630d58573ea37bd3d88f771",
+          "externalParents": []
+        }
+      },
+      "expected": {
+        "errorCode": "ALX_CONTEXT_ROOT_MISMATCH"
+      },
+      "comparison": "exact"
+    }
+  ]
+}

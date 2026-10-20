@@ -1,17 +1,18 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alxprotocol.com/protocol/1/schemas/block.schema.json",
   "title": "ALX Block",
   "description": "The ALX Protocol primitive — binds artifact content and parent lineage into a single deterministic blockHash.",
-  "$comment": "Public schema URL: [Placeholder]. This schema validates structural shape only. It does not verify contentHash, blockHash derivation, parent hash ordering, graph completeness, graph acyclicity, signature validity, or trace relational correctness.",
+  "$comment": "This schema validates structural shape only. It does not verify contentHash, blockHash derivation, parent hash ordering, graph completeness, graph acyclicity, signature validity, or trace relational correctness.",
   "type": "object",
   "properties": {
     "blockHash": {
       "$ref": "./defs.schema.json#/$defs/hash",
-      "description": "Deterministic Block identity — keccak256(canonicalize({ content, parentHashes })). Any change to content or parentHashes produces a different blockHash."
+      "description": "Deterministic Block identity — keccak256(UTF8(\"ALX-BLOCK-V1\\u0000\") || canonicalize({ content, parentHashes })). Any change to content or parentHashes produces a different blockHash."
     },
     "contentHash": {
       "$ref": "./defs.schema.json#/$defs/hash",
-      "description": "keccak256(canonicalize(content)) — content-only identity"
+      "description": "keccak256(UTF8(\"ALX-CONTENT-V1\\u0000\") || canonicalize(content)) — content-only identity"
     },
     "parentHashes": {
       "$ref": "./defs.schema.json#/$defs/parentHashes",
@@ -23,14 +24,15 @@
     "protocolVersion": {
       "type": "string",
       "const": "1",
-      "description": "Protocol algorithm version. Optional in v1, treated as version 1 when absent, and excluded from Block hash derivation."
+      "description": "Required protocol algorithm version. Excluded from Block hash derivation."
     }
   },
   "required": [
     "blockHash",
     "contentHash",
     "parentHashes",
-    "content"
+    "content",
+    "protocolVersion"
   ],
   "additionalProperties": false
 }

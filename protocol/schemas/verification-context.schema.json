@@ -1,8 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alxprotocol.com/protocol/1/schemas/verification-context.schema.json",
   "title": "ALX Verification Context",
-  "description": "Validation context passed to graph verification operations. Declares the validation mode, graph root, and any external parent boundaries.",
-  "$comment": "Public schema URL: [Placeholder]. This schema validates context shape only. It does not itself authorize open-world validation, prove Graph validity, or define mixed-version compatibility semantics.",
+  "description": "Validation context passed to Graph verification operations. Declares the validation mode, graph root, intentional depth scope, execution budgets, and any external parent boundaries.",
+  "$comment": "This schema validates context shape only. It is the context member of validateGraph(seed, source, context), does not itself authorize open-world validation, prove Graph validity, or define mixed-version compatibility semantics.",
   "type": "object",
   "properties": {
     "protocolVersion": {
@@ -17,6 +18,32 @@
     "graphRoot": {
       "$ref": "./defs.schema.json#/$defs/hash",
       "description": "blockHash of the Block at the root of the graph being verified."
+    },
+    "maxDepth": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "description": "Optional inclusive verification-scope boundary measured in parent edges from graphRoot. This is a claim boundary, not an execution budget."
+    },
+    "resourceLimits": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "description": "Optional deterministic execution budgets. Exhaustion produces resource_limit_reached unless a known protocol violation takes precedence.",
+      "properties": {
+        "maxBlocks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Inclusive maximum number of distinct Blocks that may be examined."
+        },
+        "maxEdges": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Inclusive maximum number of parent relationships that may be examined."
+        }
+      }
     },
     "extensions": {
       "type": "array",
@@ -72,7 +99,7 @@
         "required": ["validationMode"]
       },
       "then": {
-        "properties": { "externalParents": { "maxItems": 0 } }
+        "properties": { "externalParents": { "type": "array", "maxItems": 0 } }
       }
     }
   ]

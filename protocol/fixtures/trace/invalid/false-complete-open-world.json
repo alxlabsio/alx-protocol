@@ -7,7 +7,7 @@
       "hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
       "minDepth": 0,
       "maxDepth": 0,
-      "pathCount": 1,
+      "pathCount": "1",
       "parentCount": 1,
       "childCount": 0
     }
@@ -15,14 +15,13 @@
   "edges": [
     {
       "from": "0x3333333333333333333333333333333333333333333333333333333333333333",
-      "to": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      "to": "0x0ea61eb63a1a41f089ae747941b2134ea67298e055006316568bff4cd3b80547"
     }
   ],
   "leaves": [],
   "missingParents": [],
   "externalParents": [
-    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    "0x0ea61eb63a1a41f089ae747941b2134ea67298e055006316568bff4cd3b80547"
   ],
-  "maxDepth": 0,
-  "cycle": false
+  "maxDepth": 0
 }

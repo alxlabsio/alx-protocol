@@ -1,0 +1,21 @@
+{
+  "protocolVersion": "1",
+  "checked": true,
+  "status": "invalid",
+  "context": {
+    "protocolVersion": "1",
+    "validationMode": "closed-world",
+    "graphRoot": "0x0000000000000000000000000000000000000000000000000000000000000001",
+    "externalParents": []
+  },
+  "blocksExamined": 2,
+  "edgesExamined": 2,
+  "missingParents": [],
+  "externalParents": [],
+  "issues": [
+    {
+      "code": "ALX_GRAPH_CYCLE",
+      "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000001"
+    }
+  ]
+}

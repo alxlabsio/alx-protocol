@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alxprotocol.com/protocol/1/schemas/graph-verification.schema.json",
+  "title": "ALX Graph Verification",
+  "description": "Normative record of whether Graph validation was performed and, when checked, the resulting status within the exact verification context.",
+  "$comment": "This is the canonical result envelope for an accepted validateGraph(seed, source, context) request or an enclosing checked=false record. It is not a Block and has no protocol identity. A valid status is scoped to the echoed context and makes no claim about declared external parents or ancestry beyond maxDepth.",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "graphIssue": {
+      "type": "object",
+      "description": "A deterministic protocol violation attributed to an examined or required normalized Block identity. Human-readable messages are non-normative and are excluded from the canonical result.",
+      "additionalProperties": false,
+      "required": ["code", "blockHash"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^ALX_[A-Z0-9_]+$"
+        },
+        "blockHash": {
+          "$ref": "./defs.schema.json#/$defs/hash"
+        }
+      }
+    }
+  },
+  "required": ["protocolVersion", "checked"],
+  "properties": {
+    "protocolVersion": {
+      "type": "string",
+      "const": "1"
+    },
+    "checked": {
+      "type": "boolean",
+      "description": "True only when Graph validation was attempted. False means validation was not requested or performed and requires status to be absent."
+    },
+    "status": {
+      "$ref": "./defs.schema.json#/$defs/graphValidationStatus"
+    },
+    "context": {
+      "$ref": "./verification-context.schema.json"
+    },
+    "blocksExamined": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "edgesExamined": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "missingParents": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "./defs.schema.json#/$defs/hash" },
+      "description": "Required syntactically valid parent identities whose Blocks were unavailable. Absence alone is not a protocol violation."
+    },
+    "externalParents": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "./defs.schema.json#/$defs/hash" },
+      "description": "Unresolved parent identities explicitly declared outside the required open-world verification scope."
+    },
+    "issues": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/graphIssue" },
+      "description": "Canonical definite protocol violations discovered during validation, sorted by blockHash and then code. A non-empty collection establishes invalid regardless of lower-precedence conditions."
+    },
+    "limitReached": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "enum": ["maxBlocks", "maxEdges", "maxBytes", "time", "memory", "cryptographicWork", "concurrency", "other"]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Implementation-defined limit name. Required when kind is other."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "kind": { "const": "other" } },
+            "required": ["kind"]
+          },
+          "then": { "required": ["name"] }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "checked": { "const": false } },
+        "required": ["checked"]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            { "required": ["status"] },
+            { "required": ["context"] },
+            { "required": ["blocksExamined"] },
+            { "required": ["edgesExamined"] },
+            { "required": ["missingParents"] },
+            { "required": ["externalParents"] },
+            { "required": ["issues"] },
+            { "required": ["limitReached"] }
+          ]
+        }
+      },
+      "else": {
+        "required": ["status", "context", "blocksExamined", "edgesExamined", "missingParents", "externalParents", "issues"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "valid" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "missingParents": { "type": "array", "maxItems": 0 },
+          "issues": { "type": "array", "maxItems": 0 }
+        },
+        "not": { "required": ["limitReached"] }
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "invalid" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": { "issues": { "type": "array", "minItems": 1 } }
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "incomplete" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "missingParents": { "type": "array", "minItems": 1 },
+          "issues": { "type": "array", "maxItems": 0 }
+        },
+        "not": { "required": ["limitReached"] }
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "resource_limit_reached" } },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["limitReached"],
+        "properties": { "issues": { "type": "array", "maxItems": 0 } }
+      }
+    }
+  ]
+}

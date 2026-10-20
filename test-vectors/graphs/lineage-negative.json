@@ -1,11 +1,12 @@
 {
-  "$schema": "../schemas/test-vector.schema.json",
+  "$schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
   "suite": "lineage-negative",
   "description": "Lineage inputs that MUST be detected as invalid. Tests cycle detection, self-reference, and structural violations.",
   "vectors": [
     {
       "id": "LN1",
       "description": "self-referencing block MUST be detected",
+      "operation": "validateLineage",
       "input": {
         "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
         "parentHashes": ["0x0000000000000000000000000000000000000000000000000000000000000001"]
@@ -18,6 +19,7 @@
     {
       "id": "LN2",
       "description": "two-node cycle MUST be detected",
+      "operation": "traceAttribution",
       "graph": {
         "0x0000000000000000000000000000000000000000000000000000000000000001": ["0x0000000000000000000000000000000000000000000000000000000000000002"],
         "0x0000000000000000000000000000000000000000000000000000000000000002": ["0x0000000000000000000000000000000000000000000000000000000000000001"]
@@ -30,6 +32,7 @@
     {
       "id": "LN3",
       "description": "three-node cycle MUST be detected",
+      "operation": "traceAttribution",
       "graph": {
         "0x0000000000000000000000000000000000000000000000000000000000000001": ["0x0000000000000000000000000000000000000000000000000000000000000002"],
         "0x0000000000000000000000000000000000000000000000000000000000000002": ["0x0000000000000000000000000000000000000000000000000000000000000003"],
@@ -43,6 +46,7 @@
     {
       "id": "LN4",
       "description": "duplicate parents MUST be detected before normalization",
+      "operation": "validateLineage",
       "input": {
         "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
         "parentHashes": [
@@ -57,6 +61,7 @@
     {
       "id": "LN5",
       "description": "invalid hash format MUST reject normalization",
+      "operation": "normalizeHashes",
       "input": {
         "parentHashes": ["not-a-hash", "0xTOOSHORT", "0x0000000000000000000000000000000000000000000000000000000000000001"]
       },
@@ -67,6 +72,7 @@
     {
       "id": "LN6",
       "description": "uppercase hashes MUST be normalized to lowercase",
+      "operation": "normalizeHashes",
       "input": {
         "parentHashes": ["0x000000000000000000000000000000000000000000000000000000000000000A"]
       },

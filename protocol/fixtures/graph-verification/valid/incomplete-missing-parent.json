@@ -1,0 +1,16 @@
+{
+  "protocolVersion": "1",
+  "checked": true,
+  "status": "incomplete",
+  "context": {
+    "protocolVersion": "1",
+    "validationMode": "closed-world",
+    "graphRoot": "0x0000000000000000000000000000000000000000000000000000000000000001",
+    "externalParents": []
+  },
+  "blocksExamined": 1,
+  "edgesExamined": 1,
+  "missingParents": ["0x0000000000000000000000000000000000000000000000000000000000000002"],
+  "externalParents": [],
+  "issues": []
+}

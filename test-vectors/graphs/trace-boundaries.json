@@ -1,0 +1,63 @@
+{
+  "$schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+  "suite": "trace-boundaries",
+  "description": "Normative Trace root-request and malformed adjacency-key rejection cases.",
+  "vectors": [
+    {
+      "id": "TB1",
+      "description": "an omitted Trace root is rejected before any Trace is produced",
+      "operation": "traceAttribution",
+      "input": {
+        "graph": {}
+      },
+      "expected": {
+        "errorCode": "ALX_ROOT_HASH_REQUIRED"
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "TB2",
+      "description": "a malformed Trace root identifier is rejected",
+      "operation": "traceAttribution",
+      "input": {
+        "rootHash": "not-a-hash",
+        "graph": {}
+      },
+      "expected": {
+        "errorCode": "ALX_INVALID_HASH"
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "TB3",
+      "description": "a canonical Trace root absent from the supplied Graph is rejected",
+      "operation": "traceAttribution",
+      "input": {
+        "rootHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
+        "graph": {
+          "0x0000000000000000000000000000000000000000000000000000000000000002": []
+        }
+      },
+      "expected": {
+        "errorCode": "ALX_GRAPH_ROOT_NOT_FOUND"
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "TB4",
+      "description": "a malformed supplied Graph key is rejected during whole-input adjacency preparation",
+      "operation": "traceAttribution",
+      "input": {
+        "rootHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
+        "graph": {
+          "0x0000000000000000000000000000000000000000000000000000000000000001": [],
+          "not-a-hash": []
+        }
+      },
+      "expected": {
+        "errorCode": "ALX_INVALID_HASH"
+      },
+      "comparison": "exact"
+    }
+  ]
+}

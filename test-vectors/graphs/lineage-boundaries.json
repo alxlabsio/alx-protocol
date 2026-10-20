@@ -1,0 +1,314 @@
+{
+  "$schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+  "suite": "lineage-boundaries",
+  "description": "Boundary behavior for partial availability and out-of-order graph growth.",
+  "vectors": [
+    {
+      "id": "LB1",
+      "description": "partial Graph with unavailable required parent is incomplete",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0x3d498769d5e534e111498fde248f5754ca67c43a20398ff8183dc8e8bad136bb",
+          "contentHash": "0x2c0b5564dc84c694a18c41247e2bcca0ba203b70ba0d779d3aa3802daa1b8a29",
+          "parentHashes": [
+            "0x0000000000000000000000000000000000000000000000000000000000000022"
+          ],
+          "content": {
+            "vector": "LB1",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": []
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x3d498769d5e534e111498fde248f5754ca67c43a20398ff8183dc8e8bad136bb",
+          "externalParents": []
+        }
+      },
+      "expected": {
+        "protocolVersion": "1",
+        "checked": true,
+        "status": "incomplete",
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x3d498769d5e534e111498fde248f5754ca67c43a20398ff8183dc8e8bad136bb",
+          "externalParents": []
+        },
+        "blocksExamined": 1,
+        "edgesExamined": 1,
+        "missingParents": [
+          "0x0000000000000000000000000000000000000000000000000000000000000022"
+        ],
+        "externalParents": [],
+        "issues": []
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "LB2",
+      "description": "out-of-order child arrival is incomplete until parent exists",
+      "operation": "validateIncrementalBlock",
+      "input": {
+        "block": {
+          "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000032",
+          "parentHashes": [
+            "0x0000000000000000000000000000000000000000000000000000000000000031"
+          ]
+        },
+        "existingGraph": {}
+      },
+      "expected": {
+        "checked": true,
+        "status": "incomplete",
+        "missing": [
+          "0x0000000000000000000000000000000000000000000000000000000000000031"
+        ],
+        "cycle": false
+      }
+    },
+    {
+      "id": "LB3",
+      "description": "same child becomes valid after parent is available",
+      "operation": "validateIncrementalBlock",
+      "input": {
+        "block": {
+          "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000032",
+          "parentHashes": [
+            "0x0000000000000000000000000000000000000000000000000000000000000031"
+          ]
+        },
+        "existingGraph": {
+          "0x0000000000000000000000000000000000000000000000000000000000000031": []
+        }
+      },
+      "expected": {
+        "checked": true,
+        "status": "valid",
+        "missing": [],
+        "cycle": false
+      }
+    },
+    {
+      "id": "LB4",
+      "description": "closed-world context containing an external declaration is invalid",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0x0bf9d6f6cd5fa637492c5b0346c0321292b415377dfbbf56791254d9a725d03c",
+          "contentHash": "0xec45c9d801650a3fb9ca525bce2e72fac3291080b7bb7b4c30a69ca1c06ab389",
+          "parentHashes": [
+            "0x0000000000000000000000000000000000000000000000000000000000000042"
+          ],
+          "content": {
+            "vector": "LB4",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": []
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "closed-world",
+          "graphRoot": "0x0bf9d6f6cd5fa637492c5b0346c0321292b415377dfbbf56791254d9a725d03c",
+          "extensions": [],
+          "externalParents": [
+            {
+              "hash": "0x0000000000000000000000000000000000000000000000000000000000000042",
+              "reason": "external-boundary",
+              "declaredBy": "verification-context",
+              "requiredForFullValidation": true
+            }
+          ]
+        }
+      },
+      "expected": {
+        "errorCode": "ALX_EXTERNAL_PARENT_IN_CLOSED_WORLD"
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "LB5",
+      "description": "open-world validation accepts declared external parent",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0x4397f7e5961757989a6e8db158d505413effab38bf385d6d56e46f82c851da06",
+          "contentHash": "0x5314375d1ab9802fe0bd99ed612c60bdf432aefd5f556ed66ab9f36d390caba5",
+          "parentHashes": [
+            "0x0000000000000000000000000000000000000000000000000000000000000052"
+          ],
+          "content": {
+            "vector": "LB5",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": []
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "open-world",
+          "graphRoot": "0x4397f7e5961757989a6e8db158d505413effab38bf385d6d56e46f82c851da06",
+          "extensions": [],
+          "externalParents": [
+            {
+              "hash": "0x0000000000000000000000000000000000000000000000000000000000000052",
+              "reason": "external-boundary",
+              "declaredBy": "verification-context",
+              "requiredForFullValidation": true
+            }
+          ]
+        }
+      },
+      "expected": {
+        "protocolVersion": "1",
+        "checked": true,
+        "status": "valid",
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "open-world",
+          "graphRoot": "0x4397f7e5961757989a6e8db158d505413effab38bf385d6d56e46f82c851da06",
+          "extensions": [],
+          "externalParents": [
+            {
+              "hash": "0x0000000000000000000000000000000000000000000000000000000000000052",
+              "reason": "external-boundary",
+              "declaredBy": "verification-context",
+              "requiredForFullValidation": true
+            }
+          ]
+        },
+        "blocksExamined": 1,
+        "edgesExamined": 1,
+        "missingParents": [],
+        "externalParents": [
+          "0x0000000000000000000000000000000000000000000000000000000000000052"
+        ],
+        "issues": []
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "LB6",
+      "description": "open-world validation reports undeclared unavailable required parent as incomplete",
+      "operation": "validateGraph",
+      "input": {
+        "seed": {
+          "blockHash": "0x733f645156914ad8a2b153a0abd7acf2597e74bb17ca800f67a688e3d513ad0c",
+          "contentHash": "0xb4a9afe755945624589b91836fd897dc903b22289106124d135c47f2b6c9b1d5",
+          "parentHashes": [
+            "0x0000000000000000000000000000000000000000000000000000000000000062"
+          ],
+          "content": {
+            "vector": "LB6",
+            "role": "root"
+          },
+          "protocolVersion": "1"
+        },
+        "source": {
+          "kind": "finite",
+          "blocks": []
+        },
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "open-world",
+          "graphRoot": "0x733f645156914ad8a2b153a0abd7acf2597e74bb17ca800f67a688e3d513ad0c",
+          "extensions": [],
+          "externalParents": []
+        }
+      },
+      "expected": {
+        "protocolVersion": "1",
+        "checked": true,
+        "status": "incomplete",
+        "context": {
+          "protocolVersion": "1",
+          "validationMode": "open-world",
+          "graphRoot": "0x733f645156914ad8a2b153a0abd7acf2597e74bb17ca800f67a688e3d513ad0c",
+          "extensions": [],
+          "externalParents": []
+        },
+        "blocksExamined": 1,
+        "edgesExamined": 1,
+        "missingParents": [
+          "0x0000000000000000000000000000000000000000000000000000000000000062"
+        ],
+        "externalParents": [],
+        "issues": []
+      },
+      "comparison": "exact"
+    },
+    {
+      "id": "LB7",
+      "description": "omitted known set performs structural lineage validation without a resolution claim",
+      "operation": "validateLineage",
+      "input": {
+        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000071",
+        "parentHashes": [
+          "0x0000000000000000000000000000000000000000000000000000000000000072"
+        ]
+      },
+      "expected": {
+        "checked": true,
+        "status": "valid",
+        "missing": [],
+        "external": []
+      }
+    },
+    {
+      "id": "LB8",
+      "description": "explicit empty known set reports every declared parent as unresolved",
+      "operation": "validateLineage",
+      "input": {
+        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000081",
+        "parentHashes": [
+          "0x0000000000000000000000000000000000000000000000000000000000000082"
+        ],
+        "knownHashes": []
+      },
+      "expected": {
+        "checked": true,
+        "status": "incomplete",
+        "missing": [
+          "0x0000000000000000000000000000000000000000000000000000000000000082"
+        ],
+        "external": []
+      }
+    },
+    {
+      "id": "LB9",
+      "description": "populated known set resolves only hashes explicitly present",
+      "operation": "validateLineage",
+      "input": {
+        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000091",
+        "parentHashes": [
+          "0x0000000000000000000000000000000000000000000000000000000000000092",
+          "0x0000000000000000000000000000000000000000000000000000000000000093"
+        ],
+        "knownHashes": [
+          "0x0000000000000000000000000000000000000000000000000000000000000092"
+        ]
+      },
+      "expected": {
+        "checked": true,
+        "status": "incomplete",
+        "missing": [
+          "0x0000000000000000000000000000000000000000000000000000000000000093"
+        ],
+        "external": []
+      }
+    }
+  ]
+}

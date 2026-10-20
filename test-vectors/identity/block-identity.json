@@ -1,7 +1,11 @@
 {
-  "$schema": "../schemas/test-vector.schema.json",
+  "$schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
   "suite": "block-identity",
-  "description": "Block creation and identity derivation vectors",
+  "description": "Domain-separated Block creation and identity derivation vectors",
+  "hashDomains": {
+    "contentUtf8Hex": "414c582d434f4e54454e542d563100",
+    "blockUtf8Hex": "414c582d424c4f434b2d563100"
+  },
   "vectors": [
     {
       "id": "B1",
@@ -13,8 +17,8 @@
       },
       "expected": {
         "canonicalEnvelopeHex": "7b22636f6e74656e74223a6e756c6c2c22706172656e74486173686573223a5b5d7d",
-        "blockHash": "0x44e064968108cf3f2b0b2b480ceeb78d2ff4b7ca443481a0c88a18461cc5dbae",
-        "contentHash": "0xefbde2c3aee204a69b7696d4b10ff31137fe78e3946306284f806e2dfc68b805",
+        "blockHash": "0xaa7904f41028d35b35e28c36cac7e61a6f9cd225f0d9f001c2c078c138728a7f",
+        "contentHash": "0xeb9fa82776eb994d9b9568d58176e4bcb63babdbaa1224d5caf1c2586a00e888",
         "parentHashes": []
       },
       "assertions": [
@@ -35,8 +39,8 @@
       },
       "expected": {
         "canonicalEnvelopeHex": "7b22636f6e74656e74223a2268656c6c6f222c22706172656e74486173686573223a5b5d7d",
-        "blockHash": "0x744ec2ec3ead89af23488392ddd388a4608dd332fdf0ca24c2fc7dc9f4e6678c",
-        "contentHash": "0xf6fb31fdcaf3bd3f8350b3591a8d548dd83b099e7a76446b1fdda2f5ebdd1232",
+        "blockHash": "0x9dc44a816b18fcad7aca8e60fd83e43737c53d651bf02b7c25a13a9aec7c0878",
+        "contentHash": "0x4667ee84d1909ad88f1bee2a2139afe12a39bd6c9913933c24516fbd410af903",
         "parentHashes": []
       },
       "assertions": [
@@ -63,14 +67,14 @@
       },
       "expected_a": {
         "canonicalEnvelopeHex": "7b22636f6e74656e74223a7b2261223a322c227a223a317d2c22706172656e74486173686573223a5b5d7d",
-        "blockHash": "0x476f4adb62b1f76cd98a25fc02319fe8f7778be3f9c113e17493e3c879effd7e",
-        "contentHash": "0xdae6267db5994da55c63d71c49e689bcf1eec0e360f1c0c45a4cd1b6785968b9",
+        "blockHash": "0x325b702e9501d18ac8ef9d7719bcea4ded78fedc0de671b5ac0cc9da48299eab",
+        "contentHash": "0x6d006be975e40dc1cb7820368ecd688e6fce794e14fd4f0f5d90094c7001614a",
         "parentHashes": []
       },
       "expected_b": {
         "canonicalEnvelopeHex": "7b22636f6e74656e74223a7b2261223a322c227a223a317d2c22706172656e74486173686573223a5b5d7d",
-        "blockHash": "0x476f4adb62b1f76cd98a25fc02319fe8f7778be3f9c113e17493e3c879effd7e",
-        "contentHash": "0xdae6267db5994da55c63d71c49e689bcf1eec0e360f1c0c45a4cd1b6785968b9",
+        "blockHash": "0x325b702e9501d18ac8ef9d7719bcea4ded78fedc0de671b5ac0cc9da48299eab",
+        "contentHash": "0x6d006be975e40dc1cb7820368ecd688e6fce794e14fd4f0f5d90094c7001614a",
         "parentHashes": []
       },
       "assertions": [
@@ -97,8 +101,8 @@
       },
       "expected_a": {
         "canonicalEnvelopeHex": "7b22636f6e74656e74223a2274657374222c22706172656e74486173686573223a5b22307861616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161222c22307862626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262225d7d",
-        "blockHash": "0x34a85d186ff8afe5050c16d97bcf615f338c3d0ecc991d89c63bcb65003df9b1",
-        "contentHash": "0x57315cf71be5ffcaf957b9cc196b322e1c4d5a1832396abcee71d05d8caf41a6",
+        "blockHash": "0x59d151c9d230e8162b92518566b3e3392a2e29041f8a4cd5f9a5176275a3779c",
+        "contentHash": "0x43ad7f3d974d8040a18d89c00d8d237b9868e12c7eebcebdfcd7e39339836be8",
         "parentHashes": [
           "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
@@ -106,8 +110,8 @@
       },
       "expected_b": {
         "canonicalEnvelopeHex": "7b22636f6e74656e74223a2274657374222c22706172656e74486173686573223a5b22307861616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161222c22307862626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262225d7d",
-        "blockHash": "0x34a85d186ff8afe5050c16d97bcf615f338c3d0ecc991d89c63bcb65003df9b1",
-        "contentHash": "0x57315cf71be5ffcaf957b9cc196b322e1c4d5a1832396abcee71d05d8caf41a6",
+        "blockHash": "0x59d151c9d230e8162b92518566b3e3392a2e29041f8a4cd5f9a5176275a3779c",
+        "contentHash": "0x43ad7f3d974d8040a18d89c00d8d237b9868e12c7eebcebdfcd7e39339836be8",
         "parentHashes": [
           "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
@@ -138,16 +142,16 @@
       },
       "expected_a": {
         "canonicalEnvelopeHex": "7b22636f6e74656e74223a2274657374222c22706172656e74486173686573223a5b22307861616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161225d7d",
-        "blockHash": "0x892bc3824019f3f0eb3291ae17c255b658095503431929f3d06be5222e17b30c",
-        "contentHash": "0x57315cf71be5ffcaf957b9cc196b322e1c4d5a1832396abcee71d05d8caf41a6",
+        "blockHash": "0x80c37789419f0c83f96d34c3cdd466c4f4650bb2aef48994624b89a10b161c9c",
+        "contentHash": "0x43ad7f3d974d8040a18d89c00d8d237b9868e12c7eebcebdfcd7e39339836be8",
         "parentHashes": [
           "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         ]
       },
       "expected_b": {
         "canonicalEnvelopeHex": "7b22636f6e74656e74223a2274657374222c22706172656e74486173686573223a5b22307861616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161225d7d",
-        "blockHash": "0x892bc3824019f3f0eb3291ae17c255b658095503431929f3d06be5222e17b30c",
-        "contentHash": "0x57315cf71be5ffcaf957b9cc196b322e1c4d5a1832396abcee71d05d8caf41a6",
+        "blockHash": "0x80c37789419f0c83f96d34c3cdd466c4f4650bb2aef48994624b89a10b161c9c",
+        "contentHash": "0x43ad7f3d974d8040a18d89c00d8d237b9868e12c7eebcebdfcd7e39339836be8",
         "parentHashes": [
           "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         ]
@@ -170,14 +174,14 @@
       },
       "expected_a": {
         "canonicalEnvelopeHex": "7b22636f6e74656e74223a22616c706861222c22706172656e74486173686573223a5b5d7d",
-        "blockHash": "0x43411893d3614bf652204c3d1f850f2a8f2c81ee6562285d41e4535c4ca907ff",
-        "contentHash": "0x21b24c111758bd585b3308b0ba2514057092e2fc80cdf9362307bf5066ceecab",
+        "blockHash": "0xdbab2d8278d7ae88c6d7c1e3e4957256da2771367a3a07c0301a297d8a299817",
+        "contentHash": "0xde68c0fe25d1ed39a81ed8a0953c9c94575c151eadacf517a973804e4a90521d",
         "parentHashes": []
       },
       "expected_b": {
         "canonicalEnvelopeHex": "7b22636f6e74656e74223a2262657461222c22706172656e74486173686573223a5b5d7d",
-        "blockHash": "0xa7792fd062093d75637d8a7dd51e7bada29fe4e0ded775966a03ed94f6866358",
-        "contentHash": "0xb1616cba3d12900e1791ad012cd0d4572a4db51b58eb2f77c2b1ccf2f49f452a",
+        "blockHash": "0x701838ded5090272f83af395663b65ce449d310be50a9d4b4edab0c6e891d262",
+        "contentHash": "0x2d39b563a17e756669dc456a77957e84e1c38d8c690c2496d38007005b130392",
         "parentHashes": []
       },
       "assertions": [
@@ -203,16 +207,16 @@
       },
       "expected_a": {
         "canonicalEnvelopeHex": "7b22636f6e74656e74223a2273616d65222c22706172656e74486173686573223a5b22307861616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161225d7d",
-        "blockHash": "0x029d4f34723b2eb38d1e880a0e2d00eacefc65530c3ceb568bd16f9ad0f4395e",
-        "contentHash": "0x73cbb54dbba0021a437eda0fa1db23dab32bab5000c0206395b833aff782bac5",
+        "blockHash": "0x0c7054cc0dc64dc1a5a8826e6138aa3f9621f86014b519b67992558255aae2c1",
+        "contentHash": "0x446bbef7a1ac562d96f8cc402e3846389d58b2b4a8427c3e945db498298f79d4",
         "parentHashes": [
           "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         ]
       },
       "expected_b": {
         "canonicalEnvelopeHex": "7b22636f6e74656e74223a2273616d65222c22706172656e74486173686573223a5b22307862626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262225d7d",
-        "blockHash": "0x499f42f39b344f1d74384d59babaa7293ac7a5696b210f57f8d42d3bd9ee02ef",
-        "contentHash": "0x73cbb54dbba0021a437eda0fa1db23dab32bab5000c0206395b833aff782bac5",
+        "blockHash": "0xe22069206627cf68693fc985b623fdb09a887e38aaa5ea913a0a6d0393169371",
+        "contentHash": "0x446bbef7a1ac562d96f8cc402e3846389d58b2b4a8427c3e945db498298f79d4",
         "parentHashes": [
           "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         ]
@@ -230,7 +234,11 @@
         "content": {
           "workflow": "multi-agent-review",
           "approved": true,
-          "scores": [0.92, 0.87, 0.95],
+          "scores": [
+            0.92,
+            0.87,
+            0.95
+          ],
           "metadata": {
             "region": "us-east",
             "reviewed": null
@@ -244,7 +252,11 @@
             "reviewed": null,
             "region": "us-east"
           },
-          "scores": [0.92, 0.87, 0.95],
+          "scores": [
+            0.92,
+            0.87,
+            0.95
+          ],
           "approved": true,
           "workflow": "multi-agent-review"
         },
@@ -252,14 +264,14 @@
       },
       "expected_a": {
         "canonicalEnvelopeHex": "7b22636f6e74656e74223a7b22617070726f766564223a747275652c226d65746164617461223a7b22726567696f6e223a2275732d65617374222c227265766965776564223a6e756c6c7d2c2273636f726573223a5b302e39322c302e38372c302e39355d2c22776f726b666c6f77223a226d756c74692d6167656e742d726576696577227d2c22706172656e74486173686573223a5b5d7d",
-        "blockHash": "0x530e4ab8c0e9db1213172c3c762e80ea476efd3d0b97bd4591191f66c1457737",
-        "contentHash": "0xb014b1230f8185367375f77130223a11ebb37e2021dc305bc07a508e15b90e8b",
+        "blockHash": "0x013e3048dab52bb0b21e2ee015d61bfde59aee5c83493520f903b7712b4bf072",
+        "contentHash": "0x589362dcae4f095f7f8ced0461308c1555052b1e68eaf1da037361204f229104",
         "parentHashes": []
       },
       "expected_b": {
         "canonicalEnvelopeHex": "7b22636f6e74656e74223a7b22617070726f766564223a747275652c226d65746164617461223a7b22726567696f6e223a2275732d65617374222c227265766965776564223a6e756c6c7d2c2273636f726573223a5b302e39322c302e38372c302e39355d2c22776f726b666c6f77223a226d756c74692d6167656e742d726576696577227d2c22706172656e74486173686573223a5b5d7d",
-        "blockHash": "0x530e4ab8c0e9db1213172c3c762e80ea476efd3d0b97bd4591191f66c1457737",
-        "contentHash": "0xb014b1230f8185367375f77130223a11ebb37e2021dc305bc07a508e15b90e8b",
+        "blockHash": "0x013e3048dab52bb0b21e2ee015d61bfde59aee5c83493520f903b7712b4bf072",
+        "contentHash": "0x589362dcae4f095f7f8ced0461308c1555052b1e68eaf1da037361204f229104",
         "parentHashes": []
       },
       "assertions": [

@@ -7,15 +7,13 @@
 
 ## Purpose
 
-The Content Envelope is an optional content profile for applications that choose typed, indexed, schema-bound, or conformance-bound structure inside `Block.content`. Opaque JSON-serializable content remains valid without this profile.
+The Content Envelope is an optional content profile for applications that choose typed, indexed, schema-bound, or conformance-bound structure inside `Block.content`. Any ALX value remains valid content without this profile.
 
-The v1 schema remains available locally at [`../../schemas/content-envelope.schema.json`](../../schemas/content-envelope.schema.json). Its public schema URL is temporarily:
+The v1 schema remains available locally at [`../../schemas/content-envelope.schema.json`](../../schemas/content-envelope.schema.json). Its immutable public identifier is:
 
 ```text
-[Placeholder]
+https://alxprotocol.com/protocol/1/schemas/content-envelope.schema.json
 ```
-
-Replace the placeholder after a working public schema URL is published.
 
 Using this profile does not change canonicalization, `contentHash`, `blockHash`, parent relationships, Graph verification, Trace behavior, or core conformance. Applications independently decide whether to recognize or require the profile.
 

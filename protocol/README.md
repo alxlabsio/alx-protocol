@@ -1,6 +1,6 @@
 # ALX Protocol Artifacts
 
-This directory contains the ALX Protocol specification, schemas, conformance vectors, registries, and operational discovery files.
+This directory contains the ALX Protocol specification, schemas, registries, extension definitions, and operational discovery files. Canonical core vectors are exposed at the repository-level [`test-vectors/`](../test-vectors/).
 
 ## Protocol Authority
 
@@ -8,7 +8,7 @@ This directory contains the ALX Protocol specification, schemas, conformance vec
 |---|---|---|
 | [spec.md](spec.md) | Normative | Protocol behavior and requirements |
 | [schemas/](schemas/) | Normative | Protocol document shapes and structural constraints |
-| [test-vectors/](test-vectors/) | Normative | Exact outputs, rejection cases, boundaries, and semantic assertions |
+| [test-vectors/](../test-vectors/) | Normative | Exact outputs, rejection cases, boundaries, and semantic assertions |
 | [error-codes.json](error-codes.json) | Normative | Core protocol error identifiers |
 | [extensions/*/error-codes.json](extensions/) | Normative within each extension | Extension error identifiers |
 | [suites.json](suites.json) | Operational | Conformance-suite discovery and comparison modes |
@@ -17,9 +17,27 @@ This directory contains the ALX Protocol specification, schemas, conformance vec
 | [chains/base-mainnet.json](chains/base-mainnet.json) | Informative | Application deployment configuration |
 | [retrieval-api.yaml](retrieval-api.yaml) | Informative | Retrieval API description |
 
-Canonical protocol behavior is defined by spec.md, schemas/, and test-vectors/. Exact error identifiers are defined by the applicable error registry. suites.json and extension manifests provide discovery metadata and do not define protocol behavior. Chain configuration describes application infrastructure and does not affect Block validity or identity.
+Canonical protocol behavior is defined by `spec.md`, `schemas/`, and the repository-level [`test-vectors/`](../test-vectors/). Exact error identifiers are defined by the applicable error registry. `suites.json` and extension manifests provide discovery metadata and do not define protocol behavior. Chain configuration describes application infrastructure and does not affect Block validity or identity.
 
 If an implementation or explanatory document conflicts with a canonical protocol source, the canonical source takes precedence.
+
+## Public Topic Entry Points
+
+The repository root exposes stable topic maps without duplicating normative
+requirements:
+
+- [Specification map](../SPECIFICATION.md)
+- [Canonicalization](../CANONICALIZATION.md)
+- [Identity](../IDENTITY.md)
+- [Graph and Trace](../GRAPH.md)
+- [Conformance](../CONFORMANCE.md)
+- [Security](../SECURITY.md)
+- [Versioning](../VERSIONING.md)
+- [Optional extensions](../EXTENSIONS.md)
+- [Glossary](../GLOSSARY.md)
+
+These entry points organize and link the canonical artifacts. They do not
+replace `spec.md`, schemas, vectors, or error registries as protocol authority.
 
 ## Fixtures And Test Vectors
 
@@ -42,11 +60,12 @@ The core Block shape is:
   "blockHash": "0x...",
   "contentHash": "0x...",
   "parentHashes": [],
-  "content": {}
+  "content": {},
+  "protocolVersion": "1"
 }
 ~~~
 
-protocolVersion is optional for version 1 Blocks as defined by [spec.md](spec.md) and [schemas/block.schema.json](schemas/block.schema.json).
+`protocolVersion` is required for version 1 Blocks as defined by [spec.md](spec.md) and [schemas/block.schema.json](schemas/block.schema.json).
 
 Core Block identity excludes content-addressed storage identifiers, signatures, Merkle proofs, verification receipts, evidence bundles, storage-provider metadata, and application-specific meaning.
 
@@ -54,11 +73,11 @@ Core Block identity excludes content-addressed storage identifiers, signatures, 
 
 Current optional extensions cover the Content Envelope profile, signing, and Merkle proofs. Extension behavior remains outside core Block identity and core conformance unless an implementation separately claims extension support.
 
-The Content Envelope schema remains under [schemas/](schemas/) while extension discovery metadata lives under [extensions/content-profile/](extensions/content-profile/). Its public schema URL is `[Placeholder]` until a working replacement is published. Opaque `Block.content` remains valid without the profile.
+The Content Envelope schema remains under [schemas/](schemas/) while extension discovery metadata lives under [extensions/content-profile/](extensions/content-profile/). Opaque `Block.content` remains valid without the profile.
 
 ## Optional Records
 
-[schemas/verification-receipt.schema.json](schemas/verification-receipt.schema.json) defines an optional application record for completed Graph verification runs. Creating or exchanging a receipt is not required to create, validate, verify, or trace Blocks.
+[schemas/graph-validation-request.schema.json](schemas/graph-validation-request.schema.json) defines the portable finite-source encoding of `validateGraph(seed, source, context)`. [schemas/graph-verification.schema.json](schemas/graph-verification.schema.json) defines the complete scoped Graph result model, including deterministic language-neutral `{ code, blockHash }` issues. [schemas/verification-receipt.schema.json](schemas/verification-receipt.schema.json) defines an optional application record of that result, including an explicit record that Graph verification was not performed. Creating or exchanging a receipt is not required to create, validate, verify, or trace Blocks.
 
 ## Versioning
 
@@ -73,12 +92,12 @@ The Content Envelope schema remains under [schemas/](schemas/) while extension d
 
 ## Publication
 
-Public URLs for ALX schema and registry JSON artifacts are currently `[Placeholder]`. The publication build skips those JSON artifacts until working identifiers are restored. [retrieval-api.yaml](retrieval-api.yaml) continues to use its configured publication path.
+Schema and registry JSON artifacts use immutable versioned `$id` URLs under `https://alxprotocol.com/protocol/1/`. The canonical copies are the files in this directory. The documentation site publishes the same paths so those identifiers resolve on the public web. [retrieval-api.yaml](retrieval-api.yaml) is published at the same prefix.
 
-[../scripts/build-protocol-site.js](../scripts/build-protocol-site.js) builds the publication directory. [.github/workflows/pages.yml](../.github/workflows/pages.yml) publishes configured artifacts from main.
+The documentation site in [`../site`](../site) publishes the protocol documentation and these artifacts.
 
 ## Related Documents
 
-- [../docs/implementers/implementer-guide.md](../docs/implementers/implementer-guide.md)
+- [../docs/implementers/language-implementation-guide.md](../docs/implementers/language-implementation-guide.md)
 - [../docs/implementers/conformance.md](../docs/implementers/conformance.md)
 - [../reference-implementations/README.md](../reference-implementations/README.md)

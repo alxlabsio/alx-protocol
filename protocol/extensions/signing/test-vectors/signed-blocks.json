@@ -7,20 +7,24 @@
       "description": "singular attestation wrapper validates",
       "input": {
         "block": {
-          "blockHash": "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
-          "contentHash": "0x5fe9e5dcdf0168c245170402b2410ff46a8eb6958a408981407720b8fd0b045a",
+          "blockHash": "0x11ae58fe634f1e1e375d12b5d06b28bbe2f5d68b75162996a26bf08b1f8f017e",
+          "contentHash": "0x80c37e06c9536276ad8935e8396f0f436079d42f4061dcd0ba41414039f095d8",
           "parentHashes": [],
-          "content": "market analysis findings"
+          "content": "market analysis findings",
+          "protocolVersion": "1"
         },
         "attestation": {
-          "blockHash": "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
+          "blockHash": "0x11ae58fe634f1e1e375d12b5d06b28bbe2f5d68b75162996a26bf08b1f8f017e",
           "attester": "reviewer-001",
           "algorithm": "fixture",
           "timestamp": 1778788800,
-          "signature": "reviewer-001:f533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421"
+          "signature": "reviewer-001:25a24fe432300f79dbe5e8a1702ef9db349544f9cda2585df7c3a4a89b5b4161"
         }
       },
-      "expected": { "ok": true, "attestationCount": 1 }
+      "expected": {
+        "ok": true,
+        "attestationCount": 1
+      }
     },
     {
       "id": "SB2",
@@ -28,69 +32,83 @@
       "note": "Both attestation (singular, deprecated) and attestations (plural) are intentionally present to verify backward-compat handling: implementations must prefer attestations when both exist.",
       "input": {
         "block": {
-          "blockHash": "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
-          "contentHash": "0x5fe9e5dcdf0168c245170402b2410ff46a8eb6958a408981407720b8fd0b045a",
+          "blockHash": "0x11ae58fe634f1e1e375d12b5d06b28bbe2f5d68b75162996a26bf08b1f8f017e",
+          "contentHash": "0x80c37e06c9536276ad8935e8396f0f436079d42f4061dcd0ba41414039f095d8",
           "parentHashes": [],
-          "content": "market analysis findings"
+          "content": "market analysis findings",
+          "protocolVersion": "1"
         },
         "attestation": {
-          "blockHash": "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
+          "blockHash": "0x11ae58fe634f1e1e375d12b5d06b28bbe2f5d68b75162996a26bf08b1f8f017e",
           "attester": "reviewer-001",
           "algorithm": "fixture",
           "timestamp": 1778788800,
-          "signature": "reviewer-001:f533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421"
+          "signature": "reviewer-001:25a24fe432300f79dbe5e8a1702ef9db349544f9cda2585df7c3a4a89b5b4161"
         },
         "attestations": [
           {
-            "blockHash": "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
+            "blockHash": "0x11ae58fe634f1e1e375d12b5d06b28bbe2f5d68b75162996a26bf08b1f8f017e",
             "attester": "reviewer-001",
             "algorithm": "fixture",
             "timestamp": 1778788800,
-            "signature": "reviewer-001:f533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421"
+            "signature": "reviewer-001:25a24fe432300f79dbe5e8a1702ef9db349544f9cda2585df7c3a4a89b5b4161"
           },
           {
-            "blockHash": "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
+            "blockHash": "0x11ae58fe634f1e1e375d12b5d06b28bbe2f5d68b75162996a26bf08b1f8f017e",
             "attester": "reviewer-002",
             "algorithm": "fixture",
             "timestamp": 1778788860,
-            "signature": "reviewer-002:f533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421"
+            "signature": "reviewer-002:1086aaa425401e90ee858b0ce4b29ea60158918fc52d9528cec21be410f2c03b"
           }
         ]
       },
-      "expected": { "ok": true, "attestationCount": 2 }
+      "expected": {
+        "ok": true,
+        "attestationCount": 2
+      }
     },
     {
       "id": "SB3",
       "description": "attestation bound to wrong block hash is rejected",
       "input": {
         "block": {
-          "blockHash": "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
-          "contentHash": "0x5fe9e5dcdf0168c245170402b2410ff46a8eb6958a408981407720b8fd0b045a",
+          "blockHash": "0x11ae58fe634f1e1e375d12b5d06b28bbe2f5d68b75162996a26bf08b1f8f017e",
+          "contentHash": "0x80c37e06c9536276ad8935e8396f0f436079d42f4061dcd0ba41414039f095d8",
           "parentHashes": [],
-          "content": "market analysis findings"
+          "content": "market analysis findings",
+          "protocolVersion": "1"
         },
         "attestation": {
-          "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "blockHash": "0x3ec9a00c15140ce2e53eec137470ceff564636b682a95b949115113432677f8e",
           "attester": "reviewer-001",
           "algorithm": "fixture",
           "timestamp": 1778788800,
-          "signature": "reviewer-001:f533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421"
+          "signature": "reviewer-001:8bcb1ef7b03bccb81b4bfc73137e5d5ebd026c601d43fda7b6985c5b185a9fc8"
         }
       },
-      "expected": { "ok": false, "attestationCount": 1, "reason": "attestation.blockHash does not match block.blockHash" }
+      "expected": {
+        "ok": false,
+        "attestationCount": 1,
+        "reason": "attestation.blockHash does not match block.blockHash"
+      }
     },
     {
       "id": "SB4",
       "description": "missing attestation is rejected",
       "input": {
         "block": {
-          "blockHash": "0xf533b235998cf12094a11c66ec4d03adfd8657d9c8afa0684cecd8ffa17ab421",
-          "contentHash": "0x5fe9e5dcdf0168c245170402b2410ff46a8eb6958a408981407720b8fd0b045a",
+          "blockHash": "0x11ae58fe634f1e1e375d12b5d06b28bbe2f5d68b75162996a26bf08b1f8f017e",
+          "contentHash": "0x80c37e06c9536276ad8935e8396f0f436079d42f4061dcd0ba41414039f095d8",
           "parentHashes": [],
-          "content": "market analysis findings"
+          "content": "market analysis findings",
+          "protocolVersion": "1"
         }
       },
-      "expected": { "ok": false, "attestationCount": 0, "reason": "no attestation present" }
+      "expected": {
+        "ok": false,
+        "attestationCount": 0,
+        "reason": "no attestation present"
+      }
     }
   ]
 }

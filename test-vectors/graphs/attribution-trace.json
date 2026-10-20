@@ -1,7 +1,7 @@
 {
-  "$schema": "../schemas/test-vector.schema.json",
+  "$schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
   "suite": "attribution-trace",
-  "description": "Attribution tracing vectors \u2014 deterministic lineage resolution. Hashes are written as 0x + 63 zeros + N for readability (e.g. 0x000...0001 = node 1).",
+  "description": "Attribution tracing vectors — deterministic lineage resolution. Hashes are written as 0x + 63 zeros + N for readability (e.g. 0x000...0001 = node 1).",
   "vectors": [
     {
       "id": "T1",
@@ -23,11 +23,10 @@
           "0x0000000000000000000000000000000000000000000000000000000000000003"
         ],
         "maxDepth": 2,
-        "cycle": false,
         "pathCounts": {
-          "0x0000000000000000000000000000000000000000000000000000000000000001": 1,
-          "0x0000000000000000000000000000000000000000000000000000000000000002": 1,
-          "0x0000000000000000000000000000000000000000000000000000000000000003": 1
+          "0x0000000000000000000000000000000000000000000000000000000000000001": "1",
+          "0x0000000000000000000000000000000000000000000000000000000000000002": "1",
+          "0x0000000000000000000000000000000000000000000000000000000000000003": "1"
         }
       }
     },
@@ -53,16 +52,15 @@
         "leaves": [
           "0x0000000000000000000000000000000000000000000000000000000000000004"
         ],
-        "cycle": false,
         "nodes": {
           "0x0000000000000000000000000000000000000000000000000000000000000004": {
-            "pathCount": 2,
+            "pathCount": "2",
             "minDepth": 2,
             "maxDepth": 2,
             "childCount": 2
           },
           "0x0000000000000000000000000000000000000000000000000000000000000002": {
-            "pathCount": 1,
+            "pathCount": "1",
             "childCount": 1
           }
         }
@@ -91,7 +89,7 @@
       "expected": {
         "nodes": {
           "0x0000000000000000000000000000000000000000000000000000000000000004": {
-            "pathCount": 2,
+            "pathCount": "2",
             "minDepth": 2,
             "maxDepth": 3
           }
@@ -114,7 +112,7 @@
         "maxDepth": 0,
         "nodes": {
           "0x0000000000000000000000000000000000000000000000000000000000000001": {
-            "pathCount": 1
+            "pathCount": "1"
           }
         }
       }
@@ -151,13 +149,13 @@
         "nodeCount": 11,
         "leafCount": 10,
         "edgeCount": 10,
-        "allLeafPathCount": 1,
+        "allLeafPathCount": "1",
         "allLeafChildCount": 1
       }
     },
     {
       "id": "T6",
-      "description": "determinism \u2014 same input produces identical output",
+      "description": "determinism — same input produces identical output",
       "note": "Run traceAttribution twice with same graph and root. Outputs must be deeply equal.",
       "graph": {
         "0x0000000000000000000000000000000000000000000000000000000000000001": [
@@ -207,15 +205,14 @@
           "0x0000000000000000000000000000000000000000000000000000000000000006"
         ],
         "maxDepth": 4,
-        "cycle": false,
         "nodes": {
           "0x0000000000000000000000000000000000000000000000000000000000000004": {
-            "pathCount": 2,
+            "pathCount": "2",
             "minDepth": 2,
             "maxDepth": 3
           },
           "0x0000000000000000000000000000000000000000000000000000000000000006": {
-            "pathCount": 2,
+            "pathCount": "2",
             "minDepth": 3,
             "maxDepth": 4
           }
@@ -253,14 +250,13 @@
           "0x0000000000000000000000000000000000000000000000000000000000000015"
         ],
         "maxDepth": 2,
-        "cycle": false,
         "nodes": {
           "0x0000000000000000000000000000000000000000000000000000000000000014": {
-            "pathCount": 2,
+            "pathCount": "2",
             "childCount": 2
           },
           "0x0000000000000000000000000000000000000000000000000000000000000015": {
-            "pathCount": 2,
+            "pathCount": "2",
             "childCount": 2
           }
         }
@@ -268,8 +264,8 @@
     },
     {
       "id": "T9",
-      "description": "cycle detected — traceAttribution reports cycle:true and stops traversal",
-      "note": "A two-node cycle: node 1 → node 2 → node 1. traceAttribution must detect the cycle and set cycle:true without infinite recursion.",
+      "description": "cyclic Graph is rejected before Trace construction",
+      "note": "A two-node cycle is invalid Graph input. traceAttribution must fail with ALX_GRAPH_CYCLE and produce no AttributionTrace.",
       "graph": {
         "0x0000000000000000000000000000000000000000000000000000000000000001": [
           "0x0000000000000000000000000000000000000000000000000000000000000002"
@@ -280,8 +276,7 @@
       },
       "root": "0x0000000000000000000000000000000000000000000000000000000000000001",
       "expected": {
-        "cycle": true,
-        "complete": false
+        "errorCode": "ALX_GRAPH_CYCLE"
       }
     },
     {
@@ -296,7 +291,6 @@
       "root": "0x0000000000000000000000000000000000000000000000000000000000000001",
       "expected": {
         "complete": false,
-        "cycle": false,
         "nodeCount": 1,
         "missingParents": [
           "0x0000000000000000000000000000000000000000000000000000000000000002"
@@ -316,18 +310,61 @@
       "context": {
         "validationMode": "open-world",
         "externalParents": [
-          { "hash": "0x0000000000000000000000000000000000000000000000000000000000000002" }
+          {
+            "hash": "0x0000000000000000000000000000000000000000000000000000000000000002"
+          }
         ]
       },
       "expected": {
         "validationMode": "open-world",
         "complete": false,
-        "cycle": false,
         "nodeCount": 1,
         "externalParents": [
           "0x0000000000000000000000000000000000000000000000000000000000000002"
         ],
         "missingParents": []
+      }
+    },
+    {
+      "id": "T12",
+      "description": "exact pathCount above JavaScript safe-integer precision",
+      "generatedFibonacciDepth": 80,
+      "root": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "expected": {
+        "nodeCount": 80,
+        "edgeCount": 157,
+        "maxDepth": 79,
+        "nodes": {
+          "0x0000000000000000000000000000000000000000000000000000000000000050": {
+            "pathCount": "23416728348467685",
+            "minDepth": 40,
+            "maxDepth": 79
+          }
+        }
+      }
+    },
+    {
+      "id": "T13",
+      "description": "childCount excludes children outside the reachable Trace",
+      "note": "Node 3 references node 2 but is not reachable from root node 1. Node 2 therefore has one Trace-local child, not two children from the supplied Graph population.",
+      "graph": {
+        "0x0000000000000000000000000000000000000000000000000000000000000001": [
+          "0x0000000000000000000000000000000000000000000000000000000000000002"
+        ],
+        "0x0000000000000000000000000000000000000000000000000000000000000002": [],
+        "0x0000000000000000000000000000000000000000000000000000000000000003": [
+          "0x0000000000000000000000000000000000000000000000000000000000000002"
+        ]
+      },
+      "root": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "expected": {
+        "nodeCount": 2,
+        "edgeCount": 1,
+        "nodes": {
+          "0x0000000000000000000000000000000000000000000000000000000000000002": {
+            "childCount": 1
+          }
+        }
       }
     }
   ]

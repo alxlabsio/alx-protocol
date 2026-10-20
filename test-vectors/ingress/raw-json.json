@@ -1,0 +1,55 @@
+{
+  "$schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+  "suite": "raw-json-ingress",
+  "description": "Raw serialized JSON ingress fixtures, kept separate from decoded ALX-value vectors.",
+  "vectors": [
+    {
+      "id": "RI1",
+      "description": "valid UTF-8 JSON is decoded into one ALX value",
+      "operation": "decodeRawJson",
+      "input": { "rawHex": "7b2261223a312c2262223a5b747275652c6e756c6c5d7d" },
+      "expected": { "ok": true, "value": { "a": 1, "b": [true, null] } },
+      "comparison": "exact"
+    },
+    {
+      "id": "RI2",
+      "description": "malformed JSON is rejected before ALX value processing",
+      "operation": "decodeRawJson",
+      "input": { "rawHex": "7b2261223a" },
+      "expected": { "ok": false, "errorCode": "ALX_SCHEMA_INVALID" },
+      "comparison": "exact"
+    },
+    {
+      "id": "RI3",
+      "description": "malformed UTF-8 is rejected without replacement decoding",
+      "operation": "decodeRawJson",
+      "input": { "rawHex": "ff" },
+      "expected": { "ok": false, "errorCode": "ALX_SCHEMA_INVALID" },
+      "comparison": "exact"
+    },
+    {
+      "id": "RI4",
+      "description": "duplicate top-level JSON members are rejected before member loss",
+      "operation": "decodeRawJson",
+      "input": { "rawHex": "7b2261223a312c2261223a327d" },
+      "expected": { "ok": false, "errorCode": "ALX_SCHEMA_INVALID" },
+      "comparison": "exact"
+    },
+    {
+      "id": "RI5",
+      "description": "duplicate nested JSON members are rejected at every depth",
+      "operation": "decodeRawJson",
+      "input": { "rawHex": "7b226f75746572223a7b2278223a312c2278223a327d7d" },
+      "expected": { "ok": false, "errorCode": "ALX_SCHEMA_INVALID" },
+      "comparison": "exact"
+    },
+    {
+      "id": "RI6",
+      "description": "trailing non-whitespace data is rejected",
+      "operation": "decodeRawJson",
+      "input": { "rawHex": "7b2261223a317d20747261696c696e67" },
+      "expected": { "ok": false, "errorCode": "ALX_SCHEMA_INVALID" },
+      "comparison": "exact"
+    }
+  ]
+}

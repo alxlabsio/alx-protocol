@@ -1,23 +1,31 @@
 {
   "receiptVersion": "1",
-  "protocolVersion": "1",
   "verifiedAt": 1710000000,
   "verifier": { "name": "alx", "version": "1.0.0" },
-  "root": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  "validationMode": "open-world",
-  "ok": true,
-  "complete": false,
-  "blockCount": 2,
-  "edgeCount": 2,
-  "externalParents": [
-    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-  ],
-  "missingParents": [],
-  "errors": [],
-  "warnings": [
-    {
-      "code": "ALX_PARTIAL_OPEN_WORLD_TRACE",
-      "message": "Open-world verification passed with unresolved declared external parents."
-    }
-  ]
+  "verification": {
+    "protocolVersion": "1",
+    "checked": true,
+    "status": "valid",
+    "context": {
+      "protocolVersion": "1",
+      "validationMode": "open-world",
+      "graphRoot": "0xe55b2d84c895374f903e530bd51ceba437d63044d1fa8ee3bca8b0b148de54c3",
+      "extensions": [],
+      "externalParents": [
+        {
+          "hash": "0x0ea61eb63a1a41f089ae747941b2134ea67298e055006316568bff4cd3b80547",
+          "reason": "external-boundary",
+          "declaredBy": "verification-context",
+          "requiredForFullValidation": true
+        }
+      ]
+    },
+    "blocksExamined": 2,
+    "edgesExamined": 2,
+    "externalParents": [
+      "0x0ea61eb63a1a41f089ae747941b2134ea67298e055006316568bff4cd3b80547"
+    ],
+    "missingParents": [],
+    "issues": []
+  }
 }

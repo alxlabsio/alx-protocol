@@ -28,7 +28,7 @@ info:
     from any source. Fetching from a trusted endpoint does not substitute
     for local recomputation.
 
-    Published copy: https://xandrlabs.github.io/alx-protocol/protocol/1/retrieval-api.yaml
+    Published copy: https://alxprotocol.com/protocol/1/retrieval-api.yaml
 
     Reference server hardening (optional): per-IP rate limits and API key on
     write operations via environment variables (see CLI retrieval server docs).
@@ -278,16 +278,16 @@ components:
 
     Block:
       type: object
-      required: [blockHash, contentHash, parentHashes, content]
+      required: [blockHash, contentHash, parentHashes, content, protocolVersion]
       properties:
         blockHash:
           type: string
           pattern: "^0x[a-f0-9]{64}$"
-          description: "keccak256(canonicalize({ content, parentHashes }))"
+          description: "Domain-separated v1 Keccak-256 Block identity"
         contentHash:
           type: string
           pattern: "^0x[a-f0-9]{64}$"
-          description: "keccak256(canonicalize(content))"
+          description: "Domain-separated v1 Keccak-256 content identity"
         parentHashes:
           type: array
           items:
@@ -297,6 +297,10 @@ components:
           description: Sorted, deduplicated dependency set
         content:
           description: Opaque JSON-serializable payload — the protocol never inspects it
+        protocolVersion:
+          type: string
+          enum: ["1"]
+          description: Required protocol algorithm version; excluded from Block hash derivation
 
     BlockResponse:
       type: object

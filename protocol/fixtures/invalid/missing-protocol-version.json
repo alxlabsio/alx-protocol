@@ -1,0 +1,7 @@
+{
+  "$comment": "Invalid: protocolVersion is required",
+  "blockHash": "0x3ec9a00c15140ce2e53eec137470ceff564636b682a95b949115113432677f8e",
+  "contentHash": "0x3ec9a00c15140ce2e53eec137470ceff564636b682a95b949115113432677f8e",
+  "parentHashes": [],
+  "content": "missing protocol version"
+}

@@ -1,8 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alxprotocol.com/protocol/1/schemas/extension-manifest.schema.json",
   "title": "ALX Extension Manifest",
   "description": "Machine-readable lifecycle metadata for an ALX Protocol extension.",
-  "$comment": "Public schema URL: [Placeholder]. This schema validates manifest shape only; compatibility semantics remain defined by the protocol spec and conformance policy.",
+  "$comment": "This schema validates manifest shape only; compatibility semantics remain defined by the protocol spec and conformance policy.",
   "type": "object",
   "properties": {
     "id": {

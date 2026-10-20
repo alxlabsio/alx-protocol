@@ -1,5 +1,5 @@
 {
-  "$schema": "../schemas/test-vector.schema.json",
+  "$schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
   "suite": "parent-normalization",
   "description": "Normative fail-closed parentHashes normalization behavior.",
   "vectors": [

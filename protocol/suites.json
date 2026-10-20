@@ -1,73 +1,191 @@
 {
+  "$schema": "https://alxprotocol.com/protocol/1/schemas/suite-manifest.schema.json",
+  "$id": "https://alxprotocol.com/protocol/1/suites.json",
+  "protocol": "ALX",
   "protocolVersion": 1,
+  "vectorFormat": "1",
   "core": {
     "required": true,
     "suites": [
       {
         "id": "canonicalization",
-        "path": "protocol/test-vectors/canonicalization.json",
+        "path": "test-vectors/canonicalization/canonicalization.json",
+        "operation": "canonicalize",
+        "executionModel": "canonicalization-exact",
         "required": true,
-        "comparison": "exact"
+        "comparison": "exact",
+        "vectorCount": 31,
+        "schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+        "expectedResultSchema": "https://alxprotocol.com/protocol/1/schemas/expected-results.schema.json",
+        "sha256": "ffc53d01cbef4f18dd1067040b5c5f6b523c6496bdc9f0c6f653310d72fb9396"
       },
       {
         "id": "canonicalization-negative",
-        "path": "protocol/test-vectors/canonicalization-negative.json",
+        "path": "test-vectors/canonicalization/canonicalization-negative.json",
+        "operation": "canonicalize",
+        "executionModel": "canonicalization-rejection",
         "required": true,
-        "comparison": "semantic"
+        "comparison": "semantic",
+        "vectorCount": 11,
+        "schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+        "expectedResultSchema": "https://alxprotocol.com/protocol/1/schemas/expected-results.schema.json",
+        "sha256": "d97f5349c0edce2e9fcf3bfd722a9ea1b91cb1ae071eb9bae8d7350daef177f6"
       },
       {
         "id": "canonicalization-depth",
-        "path": "protocol/test-vectors/canonicalization-depth.json",
+        "path": "test-vectors/canonicalization/canonicalization-depth.json",
+        "operation": "canonicalize",
+        "executionModel": "canonicalization-depth",
         "required": true,
-        "comparison": "semantic"
+        "comparison": "semantic",
+        "vectorCount": 2,
+        "schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+        "expectedResultSchema": "https://alxprotocol.com/protocol/1/schemas/expected-results.schema.json",
+        "sha256": "5774f88ca9e0b3d2eb5034dde2eee7bf0d39316ffbd6f9de244431b7e5dc0489"
       },
       {
         "id": "block-identity",
-        "path": "protocol/test-vectors/block-identity.json",
+        "path": "test-vectors/identity/block-identity.json",
+        "operation": "createBlock",
+        "executionModel": "block-identity",
         "required": true,
-        "comparison": "semantic"
+        "comparison": "semantic",
+        "vectorCount": 8,
+        "schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+        "expectedResultSchema": "https://alxprotocol.com/protocol/1/schemas/expected-results.schema.json",
+        "sha256": "b9887d29430c24c3cebc0edde2205f624d1d014a0d0369db9a59b8fba1385bd4"
+      },
+      {
+        "id": "raw-json-ingress",
+        "path": "test-vectors/ingress/raw-json.json",
+        "operation": "decodeRawJson",
+        "executionModel": "exact-operation",
+        "required": true,
+        "comparison": "exact",
+        "vectorCount": 6,
+        "schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+        "expectedResultSchema": "https://alxprotocol.com/protocol/1/schemas/expected-results.schema.json",
+        "sha256": "e107298b4846f6205df66a3d6886f25af2c3fb2d3b8d51c8ca54ac532fb14eb9"
       },
       {
         "id": "parent-normalization",
-        "path": "protocol/test-vectors/parent-normalization.json",
+        "path": "test-vectors/blocks/parent-normalization.json",
+        "operation": "normalizeHashes",
+        "executionModel": "parent-normalization",
         "required": true,
-        "comparison": "semantic"
+        "comparison": "semantic",
+        "vectorCount": 10,
+        "schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+        "expectedResultSchema": "https://alxprotocol.com/protocol/1/schemas/expected-results.schema.json",
+        "sha256": "53a14797a843440938aaf5bc467622ca245de249bce5e36852cbd025f16a02d6"
       },
       {
         "id": "parent-limits",
-        "path": "protocol/test-vectors/parent-limits.json",
+        "path": "test-vectors/blocks/parent-limits.json",
+        "operation": "createBlock",
+        "executionModel": "parent-limits",
         "required": true,
-        "comparison": "semantic"
+        "comparison": "semantic",
+        "vectorCount": 2,
+        "schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+        "expectedResultSchema": "https://alxprotocol.com/protocol/1/schemas/expected-results.schema.json",
+        "sha256": "50c8f60bab9f941296dbef322e1f151d044ebdfffeb821243ddc2d6f08ae7223"
       },
       {
         "id": "attribution-trace",
-        "path": "protocol/test-vectors/attribution-trace.json",
+        "path": "test-vectors/graphs/attribution-trace.json",
+        "operation": "traceAttribution",
+        "executionModel": "attribution-trace",
         "required": true,
-        "comparison": "semantic"
+        "comparison": "semantic",
+        "vectorCount": 13,
+        "schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+        "expectedResultSchema": "https://alxprotocol.com/protocol/1/schemas/expected-results.schema.json",
+        "sha256": "7ebc895626f69c1e8691404cf8e39e95358eeda12d0f7886f370e06d6fc046a2"
+      },
+      {
+        "id": "trace-boundaries",
+        "path": "test-vectors/graphs/trace-boundaries.json",
+        "operation": "traceAttribution",
+        "executionModel": "exact-operation",
+        "required": true,
+        "comparison": "exact",
+        "vectorCount": 4,
+        "schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+        "expectedResultSchema": "https://alxprotocol.com/protocol/1/schemas/expected-results.schema.json",
+        "sha256": "130278b20dc5c3f89ad9ae39742fcb75902c15bf46b93a1d3f66382b98129fab"
       },
       {
         "id": "lineage-negative",
-        "path": "protocol/test-vectors/lineage-negative.json",
+        "path": "test-vectors/graphs/lineage-negative.json",
+        "operation": "per-vector",
+        "executionModel": "lineage-negative",
         "required": true,
-        "comparison": "semantic"
+        "comparison": "semantic",
+        "vectorCount": 6,
+        "schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+        "expectedResultSchema": "https://alxprotocol.com/protocol/1/schemas/expected-results.schema.json",
+        "sha256": "96c254be2d4f4f623326bdbebbcfdecf7b5a50523c5a62be5956c97ee1aee595"
       },
       {
         "id": "lineage-boundaries",
-        "path": "protocol/test-vectors/lineage-boundaries.json",
+        "path": "test-vectors/graphs/lineage-boundaries.json",
+        "operation": "per-vector",
+        "executionModel": "lineage-boundaries",
         "required": true,
-        "comparison": "semantic"
+        "comparison": "semantic",
+        "vectorCount": 9,
+        "schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+        "expectedResultSchema": "https://alxprotocol.com/protocol/1/schemas/expected-results.schema.json",
+        "sha256": "26531ea450507aaab6f3f90fd37703dc160ad64bb8f94998cce376435931a314"
+      },
+      {
+        "id": "graph-validation-outcomes",
+        "path": "test-vectors/graphs/graph-validation-outcomes.json",
+        "operation": "per-vector",
+        "executionModel": "graph-validation-outcomes",
+        "required": true,
+        "comparison": "exact",
+        "vectorCount": 15,
+        "schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+        "expectedResultSchema": "https://alxprotocol.com/protocol/1/schemas/expected-results.schema.json",
+        "sha256": "de86beb4f3bcb1597525529bfcb2e1629897630a0f336564b674dc859a7f3985"
+      },
+      {
+        "id": "graph-validation-interactions",
+        "path": "test-vectors/graphs/graph-validation-interactions.json",
+        "operation": "validateGraph",
+        "executionModel": "exact-operation",
+        "required": true,
+        "comparison": "exact",
+        "vectorCount": 9,
+        "schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+        "expectedResultSchema": "https://alxprotocol.com/protocol/1/schemas/expected-results.schema.json",
+        "sha256": "dbf8decd1abdb612cd3733f40b994641e298557f0a48c431012a0cefe138cd2f"
       },
       {
         "id": "semantic-validity",
-        "path": "protocol/test-vectors/semantic-validity.json",
+        "path": "test-vectors/graphs/semantic-validity.json",
+        "operation": "per-vector",
+        "executionModel": "semantic-validity",
         "required": true,
-        "comparison": "semantic"
+        "comparison": "semantic",
+        "vectorCount": 9,
+        "schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+        "expectedResultSchema": "https://alxprotocol.com/protocol/1/schemas/expected-results.schema.json",
+        "sha256": "626ce6e13c636b28e52d63277c35b640e6031a036bab67d7cf9369dd82cb1c51"
       },
       {
         "id": "semantic-integrity",
-        "path": "protocol/test-vectors/semantic-integrity.json",
+        "path": "test-vectors/graphs/semantic-integrity.json",
+        "operation": "per-vector",
+        "executionModel": "semantic-integrity",
         "required": true,
-        "comparison": "semantic"
+        "comparison": "semantic",
+        "vectorCount": 13,
+        "schema": "https://alxprotocol.com/protocol/1/schemas/test-vector.schema.json",
+        "expectedResultSchema": "https://alxprotocol.com/protocol/1/schemas/expected-results.schema.json",
+        "sha256": "17987104027b9a60bfee9c66df2c3672541fc2567e5fcc071303a3192612a2d0"
       }
     ]
   },
