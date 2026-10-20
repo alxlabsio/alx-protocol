@@ -16,6 +16,7 @@ import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import sdk from "./sdk.js";
+import { parseStrictJsonBytes } from "./strict-json.js";
 
 const { validateBlock } = sdk;
 
@@ -139,7 +140,7 @@ async function fetchAndVerify(url, expectedHash, source) {
 
   let data;
   try {
-    data = await res.json();
+    data = parseStrictJsonBytes(new Uint8Array(await res.arrayBuffer()));
   } catch {
     return null;
   }
@@ -156,7 +157,12 @@ async function fetchAndVerify(url, expectedHash, source) {
     return null;
   }
 
-  const validation = validateBlock(block);
+  let validation;
+  try {
+    validation = validateBlock(block);
+  } catch {
+    return null;
+  }
   if (!validation.ok) {
     return null;
   }

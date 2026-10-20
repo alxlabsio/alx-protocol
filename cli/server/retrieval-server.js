@@ -20,6 +20,7 @@ import {
   isMutationMethod,
 } from "../lib/retrieval-guard.js";
 import { REPO_ROOT } from "../lib/repo-root.js";
+import { parseStrictJsonBytes } from "../lib/strict-json.js";
 
 const RETRIEVAL_OPENAPI_PATH = resolve(REPO_ROOT, "protocol/retrieval-api.yaml");
 
@@ -39,7 +40,7 @@ function readBody(req) {
       }
       chunks.push(chunk);
     });
-    req.on("end", () => resolvePromise(Buffer.concat(chunks).toString("utf-8")));
+    req.on("end", () => resolvePromise(Buffer.concat(chunks)));
     req.on("error", reject);
   });
 }
@@ -74,13 +75,13 @@ async function parseJsonBody(req, res) {
     return undefined;
   }
 
-  if (!raw.trim()) {
+  if (raw.length === 0) {
     sendJson(res, 400, { error: "Request body is empty" });
     return undefined;
   }
 
   try {
-    return JSON.parse(raw);
+    return parseStrictJsonBytes(raw);
   } catch {
     sendJson(res, 400, { error: "Invalid JSON in request body" });
     return undefined;
@@ -129,7 +130,14 @@ function createHandlers(store, defaultGateway) {
       return;
     }
 
-    const block = store.getBlock(hash);
+    let block;
+    try {
+      block = store.getBlock(hash);
+    } catch {
+      if (includeBody) sendJson(res, 500, { error: "Stored Block failed strict verification" });
+      else sendEmpty(res, 500);
+      return;
+    }
     if (!block) {
       if (includeBody) {
         sendJson(res, 404, { error: "Block not found", blockHash: hash });

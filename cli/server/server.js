@@ -15,6 +15,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { readProtocolVersion } from "../lib/protocol-version.js";
 import sdk from "../lib/sdk.js";
+import { parseStrictJsonBytes } from "../lib/strict-json.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -43,7 +44,7 @@ function readBody(req) {
       }
       chunks.push(chunk);
     });
-    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
+    req.on("end", () => resolve(Buffer.concat(chunks)));
     req.on("error", reject);
   });
 }
@@ -76,13 +77,13 @@ async function parseJsonBody(req, res) {
     return undefined;
   }
 
-  if (!raw.trim()) {
+  if (raw.length === 0) {
     sendJson(res, 400, { error: "Request body is empty" });
     return undefined;
   }
 
   try {
-    return JSON.parse(raw);
+    return parseStrictJsonBytes(raw);
   } catch {
     sendJson(res, 400, { error: "Invalid JSON in request body" });
     return undefined;

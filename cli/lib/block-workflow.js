@@ -5,6 +5,7 @@
 
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { parseStrictJsonBytes } from "./strict-json.js";
 
 const HASH_RE = /^0x[a-f0-9]{64}$/;
 
@@ -34,7 +35,7 @@ export function readParentBlockHash(parentPath, opts = {}) {
   }
   let block;
   try {
-    block = JSON.parse(readFileSync(absolute, "utf-8"));
+    block = parseStrictJsonBytes(readFileSync(absolute));
   } catch {
     throw new Error(`Invalid JSON in parent Block file: ${parentPath}`);
   }

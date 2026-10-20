@@ -2,13 +2,15 @@
  * ALXAnchor transaction helpers.
  *
  * Submits anchor() and anchorBatch() transactions to ALXAnchor on Base.
- * Contract address: protocol/chains/base-mainnet.json → contracts.anchor.deployment.address
+ * Contract address: protocol/chains/base-mainnet.json → contracts.anchor.deployments
  * ABI: contracts/abis/ALXAnchor.json
  *
  * Environment variables (process.env fallback when opts omit the value):
  *   ALX_BASE_SEPOLIA_RPC_URL — Base Sepolia RPC endpoint
  *   ALX_DEPLOY_KEY     — Hex private key for signing transactions
- *   ALX_ANCHOR_ADDRESS — Override contract address
+ *   ALX_ANCHOR_ADDRESS — Override the selected network's contract address
+ *   ALX_ANCHOR_ADDRESS_BASE_SEPOLIA — Configured Base Sepolia override
+ *   ALX_ANCHOR_ADDRESS_BASE_MAINNET — Configured Base mainnet override
  */
 
 import { ethers } from "ethers";

@@ -181,16 +181,16 @@ components:
   schemas:
     Block:
       type: object
-      required: [blockHash, contentHash, parentHashes, content]
+      required: [blockHash, contentHash, parentHashes, content, protocolVersion]
       properties:
         blockHash:
           type: string
           pattern: "^0x[a-f0-9]{64}$"
-          description: "keccak256(canonicalize({ content, parentHashes }))"
+          description: "Domain-separated v1 Keccak-256 Block identity"
         contentHash:
           type: string
           pattern: "^0x[a-f0-9]{64}$"
-          description: "keccak256(canonicalize(content))"
+          description: "Domain-separated v1 Keccak-256 content identity"
         parentHashes:
           type: array
           items:
@@ -200,6 +200,10 @@ components:
           description: Sorted, deduplicated dependency set
         content:
           description: Opaque JSON-serializable payload
+        protocolVersion:
+          type: string
+          enum: ["1"]
+          description: Required protocol algorithm version; excluded from Block hash derivation
 
     AttributionTrace:
       type: object
@@ -218,7 +222,8 @@ components:
               maxDepth:
                 type: integer
               pathCount:
-                type: integer
+                type: string
+                pattern: '^[1-9][0-9]*$'
               parentCount:
                 type: integer
               childCount:
@@ -239,8 +244,6 @@ components:
         maxDepth:
           type: integer
         cycle:
-          type: boolean
-        precisionLoss:
           type: boolean
 
   responses:

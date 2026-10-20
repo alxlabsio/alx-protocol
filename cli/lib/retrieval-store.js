@@ -5,6 +5,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import sdk from "./sdk.js";
+import { parseStrictJsonBytes } from "./strict-json.js";
 
 const { validateBlock } = sdk;
 
@@ -32,7 +33,7 @@ function loadCidIndex(dataDir) {
   const path = cidIndexPath(dataDir);
   if (!existsSync(path)) return {};
   try {
-    const parsed = JSON.parse(readFileSync(path, "utf-8"));
+    const parsed = parseStrictJsonBytes(readFileSync(path));
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
@@ -69,9 +70,14 @@ export function createRetrievalStore(dataDir) {
       const path = blockPath(dataDir, hash);
       if (!existsSync(path)) return null;
       try {
-        return JSON.parse(readFileSync(path, "utf-8"));
+        const block = parseStrictJsonBytes(readFileSync(path));
+        const validation = validateBlock(block);
+        if (!validation.ok) {
+          throw Object.assign(new Error("Stored Block failed validation"), { code: "INVALID_BLOCK" });
+        }
+        return block;
       } catch {
-        return null;
+        throw Object.assign(new Error("Stored Block could not be strictly verified"), { code: "INVALID_BLOCK" });
       }
     },
 
@@ -93,7 +99,12 @@ export function createRetrievalStore(dataDir) {
         throw Object.assign(new Error("Invalid blockHash format"), { code: "INVALID_HASH" });
       }
 
-      const validation = validateBlock(block);
+      let validation;
+      try {
+        validation = validateBlock(block);
+      } catch {
+        throw Object.assign(new Error("Block failed validation"), { code: "INVALID_BLOCK" });
+      }
       if (!validation.ok) {
         throw Object.assign(new Error("Block failed validation"), { code: "INVALID_BLOCK" });
       }

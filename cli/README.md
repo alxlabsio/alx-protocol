@@ -1,6 +1,6 @@
 # @alx-protocol/cli
 
-Command-line interface and HTTP verification server for ALX Protocol — an open standard that gives every AI-generated artifact a deterministic identity, verifiable lineage, and traceable attribution.
+The ALX Protocol CLI creates, stores, verifies, retrieves, and anchors Blocks. CLI behavior is tooling behavior; protocol validity remains defined by the [specification](https://alxprotocol.com/documentation/specification/), the [JSON schemas](https://alxprotocol.com/documentation/reference/json-schemas), and the [conformance vectors](https://alxprotocol.com/documentation/conformance/vectors).
 
 ## Install
 
@@ -8,223 +8,250 @@ Command-line interface and HTTP verification server for ALX Protocol — an open
 npm install -g @alx-protocol/cli
 ```
 
-## Quickstart
+`@alx-protocol/cli` 1.0.0 on npm fails to start because it imports a module the package does not include. Use version 1.0.1 or later; until it is published, run the CLI from a repository clone.
+
+From a repository clone:
 
 ```bash
-# Create a starter project with example blocks
-alx init && cd alx-starter
-
-# Validate a block's integrity
-alx block verify research.block.json
-
-# Validate an entire graph (checks for cycles, missing parents)
-alx graph verify graph.json
-
-# Inspect a block field-by-field
-alx block inspect decision.block.json
-
-# Trace attribution from a block through its lineage
-alx graph trace 0xabc123... --file graph.json
-
-# Create a three-step local chain
-alx block create research.json
-alx block create analysis.md --parent @last
-alx block create decision.json --parent @last
-
-# Run the official conformance test suite
-alx test-vectors run
+pnpm install
+pnpm build
+node cli/bin/alx.js --help
 ```
 
-## Commands
+## Local Block Workflow
 
-```
-alx init [dir] [--provider s3|ipfs|retrieval]
-                              Create a starter project; optionally append storage provider env stubs
-alx block show <reference>          Print a Block by hash, prefix, @last, or file
-alx block verify <reference>        Validate a Block by hash, prefix, @last, or file
-alx block inspect <file>             Explain a block field-by-field
-alx block create <file> [--parent <reference>] [--parents <references>] [--dry-run]
-                              Content: --content, --content-file, --from-ipfs, --from-s3,
-                              --from-url, positional path, or stdin
-                              --dry-run: compute hash only, no file writes or state changes
-alx block link [<content.json>] <parent>[,...] [out.block.json] [--dry-run]
-                              Parent: file path, 0x hash, @last, @latest, or @parent
-                              --dry-run: compute hash only, no file writes or state changes
-alx block list [--recent N|--all] [--json]
-                              Recent or all indexed project Blocks
-alx block types [--json]       List known advisory content types with field schemas
-alx anchor create <block.json>      Anchor one validated Block
-alx anchor create --hashes <h1,h2,...> [--batch-id <id>]
-                              Anchor a transaction batch of Block hashes
-alx anchor status <blockHash> Query on-chain anchor status
-alx graph trace <hash> --file <f>    Trace attribution through a graph
-alx test-vectors run           Run official conformance tests
-alx conformance run            Run cross-implementation conformance suite
-alx extension-conformance merkle|signing
-                              Run optional extension conformance (self-test)
-alx block proof <file>               Merkle inclusion proof for a block in a graph
-alx test run <tests> --against <v> Run acceptance tests from sealed test Blocks
-alx doctor                     Check environment: Node version, .env, IPFS, S3, retrieval server, Base/EVM
-alx server start [--port 8080]        Start local HTTP verification server
-alx version                    Show CLI and protocol version
-```
-
-From a git clone, use `node cli/bin/alx.js` instead of `alx` if the CLI is not installed globally.
-
-Add `--json` to any command for machine-readable output:
+Create a root Block, create two derived Blocks, inspect the project index, and verify the current head:
 
 ```bash
-# Create a block from inline content
-alx block create --content '{"type":"ai.response","text":"analysis results"}' --json
-
-# Create a block from remote content — IPFS, S3, or any URL
-alx block create --from-ipfs QmYwAPJzv5CZsnA... --out ipfs-content.block.json
-alx block create --from-s3 s3://my-bucket/reports/q4.pdf --out q4-report.block.json
-alx block create --from-url https://example.com/data.json --out remote.block.json
-
-# Dry-run: compute hash, print result, write nothing
-alx block create --content '{"type":"ai.prompt","text":"Summarize Q4"}' --dry-run --json
-
-# Link with positional args (content, parent, out)
-alx block link ./decision-content.json research.block.json decision.block.json
-
-# Chain using the automatically persisted last Block
-alx block create ./follow-up.json --parent @last
+alx block create --content '{"type":"research","summary":"Collect Q4 infrastructure data"}'
+alx block create --content '{"type":"analysis","summary":"Evaluate the collected data"}' --parent @last
+alx block create --content '{"type":"decision","summary":"Approve the infrastructure plan"}' --parent @last
 alx block list --all
-
-# Or flags + content file
-alx block link --content-file ./decision-content.json \
-  --parent research.block.json \
-  --out decision.block.json \
-  --append-graph graph.json
-
-# List known advisory content types
-alx block types
-alx block types --json
-
-# Check environment readiness
-alx doctor
-
-# Initialize with storage provider env stubs
-alx init my-project --provider s3
-alx init my-project --provider ipfs
+alx block show @last
+alx block verify @last
 ```
 
-## HTTP Verification Server
+Every non-dry-run creation stores a canonical copy at `.alx/blocks/<blockHash>.block.json`. The project index is stored in `.alx/state.json`. `--out` writes an additional copy.
 
-Start a stateless verification server. Clients verify Blocks over HTTP with no SDK dependency:
+## Directory Structure
+
+| Path | Responsibility |
+|---|---|
+| `bin/alx.js` | Process bootstrap and top-level dispatch |
+| `commands/` | Command handlers grouped by public command noun |
+| `lib/` | Argument parsing, local state, graph sources, storage providers, and SDK integration |
+| `server/` | Verification and retrieval HTTP services |
+| `__tests__/` | CLI behavioral and regression tests |
+| `openapi.yaml` | Informative verification HTTP API description |
+| `Dockerfile` | Verification service container entry point |
+
+The CLI imports canonical operations from `@alx-protocol/sdk`. Files under `cli/` define local storage, command routing, display, and transport behavior. They do not define Block validity.
+
+## Content Inputs
+
+`block create` resolves local content in precedence order.
+
+| Source | Syntax | Commands |
+|---|---|---|
+| Inline JSON | `--content '<json>'` | `create` |
+| JSON or UTF-8 text file | `--content-file <path>` | `create` |
+| Positional file | `alx block create <path>` | `create` |
+| Standard input | `--content -` or piped JSON | `create` |
+| IPFS | `--from-ipfs <cid>` | `create` |
+| S3-compatible storage | `--from-s3 <s3://bucket/key>` | `create` |
+| HTTP | `--from-url <url>` | `create` |
+
+`.json` files are parsed as JSON. Markdown, plain-text, CSV, and YAML files are represented as document content with a basename, media type, and exact text.
+
+## Parent References
+
+`block create` accepts one Block reference per repeatable `--parent` option. Parent hashes are resolved before Block identity is derived.
+
+Accepted references are:
+
+- a full `blockHash`, including a hash absent from local storage;
+- a unique indexed hash prefix;
+- a Block file path;
+- `@last` for the last Block persisted in the nearest `.alx` project store.
+
+`@last` is a local mutable selector. The resolved full hash, never the selector, is stored in `parentHashes`.
+
+`--verify-parents` requires every parent reference to resolve to an available, valid local Block.
+
+## Command Reference
+
+### Project Commands
+
+| Command | Purpose |
+|---|---|
+| `alx doctor` | Check Node.js and optional provider, retrieval, and Base configuration |
+| `alx version` | Print the CLI and protocol versions |
+
+### Block Commands
+
+| Command | Purpose |
+|---|---|
+| `alx block create <file> [options]` | Derive identity from content and immutable parent hashes, then persist the Block |
+| `alx block show <reference>` | Resolve a local reference and emit the complete stored Block JSON without validating it |
+| `alx block verify <reference>` | Recompute Block identity and report whether the stored identity is valid |
+| `alx block list [--recent N|--all] [--json]` | Enumerate indexed project Blocks without revalidating them |
+| `alx block publish <file> [options]` | Publish a valid Block to IPFS, a retrieval server, or both |
+| `alx block resolve <blockHash> [options]` | Retrieve and verify a Block from configured sources |
+
+Creation options:
+
+| Option | Effect |
+|---|---|
+| `--parent <reference>` | Add one parent; repeatable for merges |
+| `--verify-parents` | Require all parents to resolve and validate locally |
+| `--out <path>` | Write an additional Block copy |
+| `--dry-run` | Compute the Block without writing files or state |
+| `--json` | Emit machine-readable output |
+
+Publication options:
+
+| Option | Effect |
+|---|---|
+| `--ipfs <endpoint>` | Pin through an IPFS API endpoint |
+| `--endpoint <url>` | Publish through the retrieval HTTP API |
+| `--api-key <key>` | Authenticate a retrieval write |
+| `--cid-map <path>` | Override the local Block-to-CID mapping path |
+| `--gateway <url>` | Set the IPFS gateway used in output |
+
+Resolution options are `--endpoint <url>`, `--gateway <url>`, `--cid-map <path>`, and `--json`.
+
+### Graph Commands
+
+| Command | Purpose |
+|---|---|
+| `alx graph parents <reference> [options]` | Return direct declared parents |
+| `alx graph children <reference> [options]` | Return directly observed children from the selected source |
+| `alx graph ancestors <reference> [options]` | Traverse declared parents recursively |
+| `alx graph descendants <reference> [options]` | Traverse observed children recursively |
+| `alx graph verify <file>` | Validate every Block and the Graph structure |
+| `alx graph trace <reference> [options]` | Compute the protocol-defined Attribution Trace from a root Block |
+
+Graph query options are `--file <graph.json>` and `--json`. Without `--file`, queries use the nearest `.alx/state.json` project index. A Graph file may contain either an array of Block objects or an adjacency object that maps each full `blockHash` to its `parentHashes` array.
+
+Graph references accept a full hash, a unique indexed hash prefix, a Block file, or `@last`. Prefixes resolve against indexed Blocks in the selected source. `@last` resolves through the local project index.
+
+### Graph Relationship Semantics
+
+`parents` and `ancestors` follow immutable `parentHashes` declarations. A direct parent result is complete when the selected Block's parent declaration is available. Recursive ancestry is `partial` when traversal reaches a parent hash whose declaration is absent.
+
+`children` and `descendants` reverse parent declarations observed in the selected source. Their completeness is always `source-relative`. The absence of an observed child does not prove that no Block outside the source references the target.
+
+Traversal excludes the queried root from its results. Recursive results use the shortest discovered distance as `depth`. Results are ordered by `depth` and then `blockHash`.
+
+`trace` remains distinct from navigation. It returns the protocol-defined `AttributionTrace`, including nodes, edges, minimum and maximum depths, `pathCount`, leaves, missing and external parents, validation mode, and completeness. Cyclic Graphs fail Trace construction.
+
+### Graph JSON Output
+
+Navigation commands return this shape:
+
+```json
+{
+  "relationship": "children",
+  "root": "0x...",
+  "source": {
+    "type": "local-index",
+    "path": "/project/.alx/state.json",
+    "globalCompleteness": "unknown"
+  },
+  "completeness": "source-relative",
+  "count": 1,
+  "blocks": [
+    {
+      "blockHash": "0x...",
+      "depth": 1,
+      "indexed": true,
+      "available": true
+    }
+  ]
+}
+```
+
+`indexed` reports whether the selected source contains a declaration for the returned Block. `available` reports whether Block bytes are locally available from that source. An adjacency-map entry is indexed but does not contain Block bytes.
+
+`path`, `stats`, generic graph queries, and network-backed traversal are not CLI commands. Their data-source and result semantics are not defined in this version.
+
+### Anchor Commands
+
+Anchoring is optional infrastructure and does not affect Block validity.
+
+| Command | Purpose |
+|---|---|
+| `alx anchor create <block.json> [options]` | Anchor one validated `blockHash` |
+| `alx anchor create --hashes <h1,h2,...> [--batch-id <id>] [options]` | Anchor a batch containing at least two hashes |
+| `alx anchor status <blockHash> [--rpc-url <url>] [--json]` | Query anchor state |
+
+Write options are `--rpc-url <url>`, `--private-key <key>`, and `--json`.
+
+### Service Commands
+
+| Command | Purpose |
+|---|---|
+| `alx server start [--port 8080]` | Start the stateless verification API |
+| `alx retrieval start [--port 8081] [--data-dir <path>] [--gateway <url>]` | Start the persistent retrieval API |
+
+### Test and Conformance Commands
+
+| Command | Purpose |
+|---|---|
+| `alx test run <tests-block.json> --against <validator-block.json>` | Run cases stored in a tests Block against supported validator code |
+| `alx test-vectors run` | Run the built-in core conformance self-test |
+| `alx conformance run` | Run the core conformance self-test |
+| `alx conformance run --impl <command>` | Run core conformance against an external adapter |
+| `alx extension-conformance merkle [--impl <command>]` | Run Merkle extension conformance |
+| `alx extension-conformance signing [--impl <command>]` | Run signing extension conformance |
+
+## JSON Output and Exit Status
+
+Commands with `--json` emit JSON to standard output. Human-readable status output is the default.
+
+Successful finite commands exit with status `0`. Invalid input, failed verification, unresolved required data, and failed conformance commands exit with a nonzero status. Long-running server commands continue until terminated.
+
+## Verification HTTP API
+
+`alx server start` exposes the API defined by [`openapi.yaml`](./openapi.yaml).
+
+| Method | Path | Operation |
+|---|---|---|
+| `GET` | `/health` | Check server and SDK status |
+| `GET` | `/version` | Read CLI and protocol versions |
+| `GET` | `/openapi.yaml` | Read the OpenAPI definition |
+| `POST` | `/block/create` | Create a Block |
+| `POST` | `/block/validate` | Validate a Block |
+| `POST` | `/trace` | Compute a Trace |
+
+## Retrieval HTTP API
+
+`alx retrieval start` implements the [retrieval API](https://alxprotocol.com/documentation/reference/rest-api).
+
+| Method | Path | Operation |
+|---|---|---|
+| `GET` | `/health` | Check service status |
+| `GET` | `/openapi.yaml` | Read the API definition |
+| `GET` | `/block/{blockHash}` | Retrieve a Block |
+| `HEAD` | `/block/{blockHash}` | Check availability |
+| `POST` | `/block` | Publish a Block |
+| `GET` | `/block/{blockHash}/cid` | Retrieve a CID mapping |
+| `POST` | `/blocks` | Retrieve a batch |
+
+## Development Verification
+
+From the repository root:
 
 ```bash
-alx server start --port 8080
+pnpm run test:cli
+pnpm run verify
 ```
 
-Or run with Docker:
-
-```bash
-docker build -f cli/Dockerfile -t alx-server .
-docker run -p 8080:8080 alx-server
-```
-
-### Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Health check (verifies SDK is functional) |
-| GET | `/version` | CLI + protocol version |
-| GET | `/openapi.yaml` | OpenAPI 3.1 spec ([`openapi.yaml`](./openapi.yaml)) |
-| POST | `/block/create` | Create a block from content + parents |
-| POST | `/block/validate` | Validate a block's integrity |
-| POST | `/trace` | Trace attribution through a graph |
-
-### Example
-
-```bash
-# Health check
-curl http://localhost:8080/health
-
-# Create a block
-curl -X POST http://localhost:8080/block/create \
-  -H "Content-Type: application/json" \
-  -d '{"content":{"type":"ai.response","text":"Market analysis complete"},"parentHashes":[]}'
-
-```
-
-### Limits
-
-- Request body: 10 MB maximum
-- Request timeout: 30 seconds
-- Structured JSON logging to stdout
-
-## Retrieval server
-
-The verification server (`alx server start`) and the Block retrieval server (`alx retrieval start`) are separate processes on different ports. Retrieval implements [`protocol/retrieval-api.yaml`](../protocol/retrieval-api.yaml).
-
-```bash
-alx retrieval start --port 8081 --data-dir ./.alx-retrieval
-
-# Optional hardening (reference server best practice)
-export ALX_RETRIEVAL_API_KEY="team-secret"
-export ALX_RETRIEVAL_RATE_LIMIT=120
-alx block publish research.block.json --endpoint http://localhost:8081
-```
-
-OpenAPI spec: [`protocol/retrieval-api.yaml`](../protocol/retrieval-api.yaml) · Pages copy: `https://xandrlabs.github.io/alx-protocol/protocol/1/retrieval-api.yaml`
-
-### Retrieval endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Health check |
-| GET | `/openapi.yaml` | Retrieval OpenAPI spec |
-| GET | `/block/{blockHash}` | Retrieve a Block |
-| HEAD | `/block/{blockHash}` | Check Block existence |
-| POST | `/block` | Publish a Block (also accepts `{ block, cid? }`) |
-| GET | `/block/{blockHash}/cid` | IPFS CID mapping |
-| POST | `/blocks` | Batch retrieve by `blockHashes` |
-
-### Team workflow
-
-Alice runs a shared retrieval store; Bob resolves by `blockHash` without a local CID map:
-
-```bash
-# Alice
-alx retrieval start --port 8081
-alx block publish research.block.json --endpoint http://alice:8081 --ipfs http://localhost:5001
-
-# Bob
-alx block resolve 0xabc... --endpoint http://alice:8081
-```
-
-This is the default team path and requires no blockchain. Public discovery belongs to the planned XNDR.network layer described in [`docs/decisions/008-storage-and-discovery-boundaries.md`](../docs/decisions/008-storage-and-discovery-boundaries.md).
-
-### Example
-
-```bash
-curl -X POST http://localhost:8081/block \
-  -H "Content-Type: application/json" \
-  -d @research.block.json
-
-curl http://localhost:8081/block/0xabc123...
-```
-
-## Monorepo layout
-
-In the protocol repository, pnpm workspaces include `sdk` (`@alx-protocol/sdk`) and `cli` (`@alx-protocol/cli`). The root `package.json` is private and exposes `bin.alx` pointing at `cli/bin/alx.js`, so contributors can run `pnpm exec alx` or `node cli/bin/alx.js` after `pnpm build` without publishing the CLI package. Published installs use `@alx-protocol/cli` from npm.
-
-## Documentation
-
-- [ALX Protocol Specification](https://github.com/xandrlabs/alx-protocol/blob/main/protocol/spec.md)
-- [Five-Minute Quickstart](https://github.com/xandrlabs/alx-protocol/blob/main/docs/integrators/quickstart.md)
-- [SDK API Reference](https://github.com/xandrlabs/alx-protocol/blob/main/docs/integrators/api-reference.md)
-- [Deployment Checklist](https://github.com/xandrlabs/alx-protocol/blob/main/docs/integrators/deployment-checklist.md)
-- [Integration Adapters](https://github.com/xandrlabs/alx-protocol/blob/main/docs/integrators/adapters.md)
-- [Full Documentation Index](https://github.com/xandrlabs/alx-protocol/blob/main/docs/README.md)
-
-## License
-
-MIT
+The repository root `package.json` is authoritative for repository scripts.
 
 ## Related Documents
 
-- [SDK](../sdk/README.md)
-- [Protocol specification](../protocol/spec.md)
+- [Protocol specification](https://alxprotocol.com/documentation/specification/)
+- [Architecture overview](https://alxprotocol.com/documentation/overview/architecture-overview)
+- [SDK](https://www.npmjs.com/package/@alx-protocol/sdk)
+- [Retrieval API](https://alxprotocol.com/documentation/reference/rest-api)

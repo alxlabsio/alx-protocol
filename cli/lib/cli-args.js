@@ -1,19 +1,18 @@
 /**
- * CLI argument parsing for block create/link (content sources and positionals).
+ * CLI argument parsing for Block creation content, parents, and output.
  */
 
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { basename, extname, resolve } from "node:path";
+import { parseStrictJson as parseJsonWithoutDuplicateMembers } from "./strict-json.js";
 
 const HASH_RE = /^0x[a-f0-9]{64}$/;
 
 const FLAGS_WITH_VALUE = new Set([
   "--content",
   "--content-file",
-  "--parents",
   "--parent",
   "--out",
-  "--append-graph",
 ]);
 
 export class CliInputError extends Error {
@@ -61,12 +60,14 @@ export function getPositionals(argv) {
 function readStdinIfAvailable(cwd = process.cwd()) {
   void cwd;
   if (process.stdin.isTTY) return null;
+  let buffer;
   try {
-    const raw = readFileSync(0, "utf-8").trim();
-    return raw.length > 0 ? raw : null;
+    buffer = readFileSync(0);
   } catch {
     return null;
   }
+  const raw = decodeUtf8(buffer, "stdin").trim();
+  return raw.length > 0 ? raw : null;
 }
 
 /**
@@ -95,7 +96,7 @@ function decodeUtf8(buffer, path) {
  */
 function parseJsonStrict(raw) {
   try {
-    return JSON.parse(stripUtf8Bom(raw));
+    return parseJsonWithoutDuplicateMembers(stripUtf8Bom(raw));
   } catch {
     throw new CliInputError(`Invalid JSON: ${raw.slice(0, 80)}${raw.length > 80 ? "..." : ""}`);
   }
@@ -250,10 +251,7 @@ function flagValues(args, flagName) {
 }
 
 export function parseParentReferences(args) {
-  return [
-    ...flagValues(args, "--parent"),
-    ...flagValues(args, "--parents"),
-  ].flatMap((value) => value.split(","))
+  return flagValues(args, "--parent")
     .map((value) => value.trim())
     .filter(Boolean);
 }
@@ -274,10 +272,9 @@ function resolveOptionalPath(token, cwd = process.cwd()) {
  *   contentSource: string,
  *   parents: string[],
  *   outPath: string|null,
- *   graphPath: string|null,
  *   json: boolean,
  *   dryRun: boolean,
- *   validateParents: boolean,
+ *   verifyParents: boolean,
  *   positionals: string[],
  * }}
  */
@@ -307,73 +304,14 @@ export function parseBlockCreateArgs(args) {
     }
   }
 
-  const graphPath = resolveOptionalPath(flagValue(args, "--append-graph"));
-
   return {
     content,
     contentSource: source,
     parents,
     outPath,
-    graphPath,
     json: args.includes("--json"),
     dryRun: args.includes("--dry-run"),
-    validateParents: args.includes("--validate-parents"),
-    positionals,
-  };
-}
-
-/**
- * @param {string[]} args
- * @returns {{
- *   content: object,
- *   contentSource: string,
- *   parentTokens: string[],
- *   outPath: string|null,
- *   graphPath: string|null,
- *   validateParents: boolean,
- *   json: boolean,
- *   dryRun: boolean,
- *   positionals: string[],
- * }}
- */
-export function parseBlockLinkArgs(args) {
-  const positionals = getPositionals(args);
-
-  const { content, source } = resolveContentInput({
-    args,
-    positionalCandidates: positionals.length > 0 ? [positionals[0]] : [],
-  });
-
-  let parentSpec = flagValue(args, "--parent");
-  if (!parentSpec && positionals.length >= 2) {
-    parentSpec = positionals[1];
-  }
-  if (!parentSpec) {
-    throw new CliInputError(
-      "Parent required: --parent <file>[,<file>...] or second positional (e.g. alx block link content.json parent.block.json)",
-    );
-  }
-
-  const parentTokens = parentSpec
-    .split(",")
-    .map((p) => p.trim())
-    .filter(Boolean);
-
-  const outPath =
-    resolveOptionalPath(flagValue(args, "--out")) ??
-    (positionals.length >= 3 ? resolveOptionalPath(positionals[2]) : null);
-
-  const graphPath = resolveOptionalPath(flagValue(args, "--append-graph"));
-
-  return {
-    content,
-    contentSource: source,
-    parentTokens,
-    outPath,
-    graphPath,
-    validateParents: args.includes("--validate-parents"),
-    json: args.includes("--json"),
-    dryRun: args.includes("--dry-run"),
+    verifyParents: args.includes("--verify-parents"),
     positionals,
   };
 }

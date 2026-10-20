@@ -1,13 +1,13 @@
 {
   "name": "@alx-protocol/cli",
-  "version": "1.0.0",
-  "description": "ALX Protocol CLI — create, validate, inspect, and trace blocks from the command line",
+  "version": "1.0.1",
+  "description": "ALX Protocol CLI — create, verify, retrieve, and trace Blocks from the command line",
   "type": "module",
   "bin": {
     "alx": "./bin/alx.js"
   },
   "scripts": {
-    "test": "node --test __tests__/*.test.js"
+    "test": "node --test ../tests/integration/cli"
   },
   "dependencies": {
     "@alx-protocol/sdk": "workspace:*"
@@ -31,11 +31,7 @@
     "node": ">=20.12 <23"
   },
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/xandrlabs/alx-protocol",
-    "directory": "cli"
-  },
+  "homepage": "https://alxprotocol.com",
   "keywords": [
     "alx",
     "protocol",

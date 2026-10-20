@@ -7,18 +7,17 @@ import {
   cmdTestVectors,
 } from "./conformance.js";
 import { cmdGraph } from "./graph.js";
-import { cmdTestRouter } from "./proof-test.js";
-import { cmdDoctor, cmdInit, cmdVersion } from "./project.js";
+import { cmdTestRouter } from "./test.js";
+import { cmdDoctor, cmdVersion } from "./project.js";
 import { cmdRetrieval, cmdServer } from "./servers.js";
 
 export const commandDefinitions = Object.freeze([
-  { name: "init", handler: cmdInit, source: "project" },
   { name: "block", handler: cmdBlock, source: "block" },
   { name: "graph", handler: cmdGraph, source: "graph" },
   { name: "anchor", handler: cmdAnchor, source: "anchor" },
   { name: "server", handler: cmdServer, source: "servers" },
   { name: "retrieval", handler: cmdRetrieval, source: "servers" },
-  { name: "test", handler: cmdTestRouter, source: "proof-test" },
+  { name: "test", handler: cmdTestRouter, source: "test" },
   { name: "test-vectors", handler: cmdTestVectors, source: "conformance" },
   { name: "conformance", handler: cmdConformance, source: "conformance" },
   {

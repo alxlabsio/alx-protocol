@@ -43,21 +43,26 @@ function loadContractAbi(config, contractId) {
 /**
  * @param {object} config
  * @param {"anchor"} contractId
+ * @param {string} [networkId]
  */
-export function resolveContractAddress(config, contractId) {
+export function resolveContractAddress(config, contractId, networkId) {
   const entry = config.contracts?.[contractId];
   if (!entry) return null;
 
-  const envKey = entry.deployment?.addressEnv;
+  const selectedNetwork = networkId || resolveContractNetwork(config, contractId);
+  const deployment = entry.deployments?.[selectedNetwork];
+  if (!deployment) return null;
+
+  const envKey = deployment.addressEnv;
   if (envKey && process.env[envKey]?.trim()) {
     return process.env[envKey].trim();
   }
 
-  return entry.deployment?.address || null;
+  return deployment.address || null;
 }
 
 export function resolveContractNetwork(config, contractId) {
-  return config.contracts?.[contractId]?.deployment?.network || null;
+  return config.contracts?.[contractId]?.defaultNetwork || null;
 }
 
 export function resolveNetwork(config, networkId) {

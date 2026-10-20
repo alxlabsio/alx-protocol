@@ -5,14 +5,12 @@ import {
   ALX_VERSION,
   PROTOCOL_VERSION,
   buildGraph,
-  canonicalizeProtocolJson,
   createBlock,
   deriveContentHash,
   validateBlock,
   validateGraph,
 } from "../lib/cli-context.js";
 import {
-  appendBlockToGraph,
   bold,
   die,
   dieJson,
@@ -26,20 +24,13 @@ import {
   readInput,
   red,
 } from "../lib/cli-utils.js";
-import {
-  parseBlockCreateArgs,
-  parseBlockLinkArgs,
-  parseParentReferences,
-} from "../lib/cli-args.js";
+import { parseBlockCreateArgs, parseParentReferences } from "../lib/cli-args.js";
+import { parseStrictJsonBytes } from "../lib/strict-json.js";
 import {
   listAllFromState,
   listRecentFromState,
   persistBlockWrite,
 } from "../lib/cli-state.js";
-import {
-  checkContentType,
-  CONTENT_TYPE_SCHEMAS,
-} from "../lib/content-types.js";
 import {
   findBlockJsonFilesInCwd,
   resolveBlockReferenceToPath,
@@ -50,7 +41,6 @@ import {
   fetchFromS3,
   fetchFromUrl,
 } from "../lib/storage-providers.js";
-import { cmdProof } from "./proof-test.js";
 import { cmdPublish, cmdResolve } from "./storage.js";
 
 export function cmdValidate(args) {
@@ -122,53 +112,9 @@ export function cmdValidate(args) {
   }
 }
 
-function cmdInspect(args) {
-  const filePath = args[0];
-  if (!filePath || filePath.startsWith("--"))
-    die("Usage: alx block inspect <file>");
-
-  const input = readInput(filePath);
-  const block = parseJson(input);
-
-  if (!block.blockHash) die("Input must be a Block object");
-
-  const result = validateBlock(block);
-  const canonical = canonicalizeProtocolJson({
-    content: block.content ?? null,
-    parentHashes: block.parentHashes ?? [],
-  });
-  const contentCanonical = canonicalizeProtocolJson(block.content ?? null);
-
-  const pad = (s) => s.padEnd(16);
-  console.log(`\n${bold("Block Inspection")}\n`);
-  console.log(`  ${bold(pad("blockHash"))}  ${block.blockHash}`);
-  console.log(
-    `  ${bold(pad("contentHash"))}  ${block.contentHash || deriveContentHash(block.content)}`,
-  );
-  console.log(
-    `  ${bold(pad("parentHashes"))}  ${(block.parentHashes || []).length === 0 ? "(none — this is a root block)" : ""}`,
-  );
-  for (const p of block.parentHashes || []) {
-    console.log(`  ${"".padEnd(16)}    ${dim(p)}`);
-  }
-  console.log(
-    `  ${bold(pad("content"))}  ${typeof block.content === "object" ? JSON.stringify(block.content) : String(block.content)}`,
-  );
-  console.log();
-  console.log(`  ${bold(pad("Canonical form"))}  ${canonical.length} bytes`);
-  console.log(
-    `  ${bold(pad("Content canonical"))}  ${contentCanonical.length} bytes`,
-  );
-  console.log(
-    `  ${bold(pad("Integrity"))}  ${result.ok ? green("VALID — hash matches content + parents") : red("INVALID — hash does not match")}`,
-  );
-  console.log(`  ${bold(pad("Protocol"))}  v${PROTOCOL_VERSION}`);
-  console.log();
-}
-
 function printBlockCreated(
   block,
-  { storedPath, outPath, graphPath, label = "Block created" },
+  { storedPath, outPath, label = "Block created" },
 ) {
   console.log();
   ok(label);
@@ -178,8 +124,6 @@ function printBlockCreated(
   if (storedPath) console.log(`  ${bold("stored")}       ${storedPath}`);
   if (outPath && outPath !== storedPath)
     console.log(`  ${bold("copied")}       ${outPath}`);
-  if (graphPath)
-    console.log(`  ${bold("graph")}        appended to ${graphPath}`);
   console.log();
   console.log(dim("  Use --json for machine-readable output"));
   console.log();
@@ -193,6 +137,17 @@ function dieInput(err, useJson = false) {
 
 async function cmdBlockCreate(args) {
   const useJson = args.includes("--json");
+
+  for (const removedOption of [
+    "--parents",
+    "--validate-parents",
+    "--append-graph",
+  ]) {
+    if (args.includes(removedOption)) {
+      dieInput(new Error(`Unknown option: ${removedOption}`), useJson);
+      return;
+    }
+  }
 
   // ── --from-* fetch shortcuts ──────────────────────────────────────────────
   const fromIpfsIdx = args.indexOf("--from-ipfs");
@@ -238,19 +193,14 @@ async function cmdBlockCreate(args) {
     const outIdx = args.indexOf("--out");
     const outPath =
       outIdx !== -1 ? resolve(process.cwd(), args[outIdx + 1]) : null;
-    const graphPath =
-      args.indexOf("--append-graph") !== -1
-        ? resolve(process.cwd(), args[args.indexOf("--append-graph") + 1])
-        : null;
     parsed = {
       content: fetchedContent,
       contentSource: "fetch",
       parents: parseParentReferences(args),
       outPath,
-      graphPath,
       json: useJson,
       dryRun: args.includes("--dry-run"),
-      validateParents: args.includes("--validate-parents"),
+      verifyParents: args.includes("--verify-parents"),
     };
   } else {
     try {
@@ -266,7 +216,7 @@ async function cmdBlockCreate(args) {
     try {
       parentHashes = resolveParentTokensToHashes(parsed.parents, {
         cwd: process.cwd(),
-        validateSeal: parsed.validateParents ? validateBlock : undefined,
+        validateSeal: parsed.verifyParents ? validateBlock : undefined,
       });
     } catch (err) {
       dieInput(err, useJson);
@@ -274,19 +224,18 @@ async function cmdBlockCreate(args) {
     }
   }
 
-  const block = createBlock(parsed.content, parentHashes);
-
-  // Content type warnings (advisory only — never block creation)
-  const warnings = checkContentType(parsed.content);
-  if (warnings.length > 0 && !parsed.json) {
-    for (const w of warnings) console.log(`  ${dim("⚠")} ${dim(w)}`);
+  let block;
+  try {
+    block = createBlock(parsed.content, parentHashes);
+  } catch (err) {
+    dieInput(err, useJson);
+    return;
   }
 
   let persisted = null;
   if (!parsed.dryRun) {
     try {
       persisted = persistBlockWrite({ block, outPath: parsed.outPath });
-      if (parsed.graphPath) appendBlockToGraph(parsed.graphPath, block);
     } catch (err) {
       dieInput(err, useJson);
       return;
@@ -300,69 +249,7 @@ async function cmdBlockCreate(args) {
     printBlockCreated(block, {
       storedPath: parsed.dryRun ? null : persisted?.canonicalPath,
       outPath: parsed.dryRun ? null : parsed.outPath,
-      graphPath: parsed.dryRun ? null : parsed.graphPath,
       label: parsed.dryRun ? "Block (dry-run)" : "Block created",
-    });
-    if (parsed.dryRun) {
-      console.log(
-        dim(
-          "  --dry-run: hashes computed, no files written, state not updated",
-        ),
-      );
-      console.log();
-    }
-  }
-  process.exit(0);
-}
-
-async function cmdBlockLink(args) {
-  const useJson = args.includes("--json");
-  let parsed;
-  try {
-    parsed = parseBlockLinkArgs(args);
-  } catch (err) {
-    dieInput(err, useJson);
-    return;
-  }
-
-  let parents;
-  try {
-    parents = resolveParentTokensToHashes(parsed.parentTokens, {
-      cwd: process.cwd(),
-      validateSeal: parsed.validateParents ? validateBlock : undefined,
-    });
-  } catch (err) {
-    dieInput(err, useJson);
-    return;
-  }
-
-  const block = createBlock(parsed.content, parents);
-
-  const warnings = checkContentType(parsed.content);
-  if (warnings.length > 0 && !parsed.json) {
-    for (const w of warnings) console.log(`  ${dim("⚠")} ${dim(w)}`);
-  }
-
-  let persisted = null;
-  if (!parsed.dryRun) {
-    try {
-      persisted = persistBlockWrite({ block, outPath: parsed.outPath });
-      if (parsed.graphPath) appendBlockToGraph(parsed.graphPath, block);
-    } catch (err) {
-      dieInput(err, useJson);
-      return;
-    }
-  }
-
-  if (parsed.json) {
-    if (parsed.dryRun) json({ ok: true, dryRun: true, block });
-    else json(block);
-  } else {
-    printBlockCreated(block, {
-      storedPath: parsed.dryRun ? null : persisted?.canonicalPath,
-      outPath: parsed.dryRun ? null : parsed.outPath,
-      graphPath: parsed.dryRun ? null : parsed.graphPath,
-      label: parsed.dryRun ? "Block (dry-run)" : "Block linked",
     });
     if (parsed.dryRun) {
       console.log(
@@ -412,7 +299,8 @@ function cmdBlockList(args) {
   for (const file of diskFiles) {
     if (!showAll && rows.length >= limit) break;
     try {
-      const block = JSON.parse(readFileSync(file, "utf-8"));
+      const block = parseStrictJsonBytes(readFileSync(file));
+      if (!validateBlock(block).ok) continue;
       const hash = String(block.blockHash || "").toLowerCase();
       if (!hash || seen.has(hash)) continue;
       seen.add(hash);
@@ -469,7 +357,7 @@ function cmdBlockList(args) {
     info(`    ${row.blockHash.slice(0, 18)}...${when}${availability}`);
   }
   console.log();
-  console.log(dim("  Parent shorthand: @last  @latest  @parent"));
+  console.log(dim("  Parent shorthand: @last"));
   console.log();
 }
 
@@ -500,52 +388,16 @@ function cmdBlockVerify(args) {
   return cmdValidate([path]);
 }
 
-function cmdBlockTypes(args) {
-  if (args.includes("--json")) {
-    json(
-      Object.entries(CONTENT_TYPE_SCHEMAS).map(([type, schema]) => ({
-        type,
-        ...schema,
-      })),
-    );
-    return;
-  }
-  console.log(`\n${bold("Known content types")}\n`);
-  for (const [type, schema] of Object.entries(CONTENT_TYPE_SCHEMAS)) {
-    console.log(`  ${bold(type)}`);
-    console.log(`  ${dim(schema.description)}`);
-    if (schema.required?.length)
-      console.log(`    required: ${schema.required.join(", ")}`);
-    if (schema.oneOf?.length)
-      console.log(
-        `    one of:  ${schema.oneOf.map((g) => g.join("+")).join(" | ")}`,
-      );
-    if (schema.optional?.length)
-      console.log(`    optional: ${dim(schema.optional.join(", "))}`);
-    console.log();
-  }
-  console.log(
-    dim(
-      "  The protocol does not enforce content shape. These are advisory schemas.",
-    ),
-  );
-  console.log();
-}
-
 export async function cmdBlock(args) {
   const sub = args[0];
   const rest = args.slice(1);
   if (sub === "create") return await cmdBlockCreate(rest);
-  if (sub === "link") return cmdBlockLink(rest);
   if (sub === "list") return cmdBlockList(rest);
   if (sub === "show") return cmdBlockShow(rest);
-  if (sub === "types") return cmdBlockTypes(rest);
   if (sub === "verify") return cmdBlockVerify(rest);
-  if (sub === "inspect") return cmdInspect(rest);
-  if (sub === "proof") return cmdProof(rest);
   if (sub === "publish") return await cmdPublish(rest);
   if (sub === "resolve") return await cmdResolve(rest);
   die(
-    "Usage: alx block create | link | show | list | types | verify | inspect | proof | publish | resolve",
+    "Usage: alx block create | show | verify | list | publish | resolve",
   );
 }
