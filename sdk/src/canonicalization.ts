@@ -5,9 +5,9 @@
  *
  * Guarantees:
  *   - Same input → same output, always, on any platform
- *   - Object keys: sorted lexicographically, undefined values excluded
+ *   - Object keys: sorted by UTF-16 code units
  *   - Arrays: order-preserving (a sequence, not a set)
- *   - null and undefined: both canonicalize to "null" (canonical empty)
+ *   - null is canonical; undefined and other language-native values are rejected
  *   - Numbers: -0 → 0, safe integer range enforced, non-finite rejected
  *   - BigInt, Symbol: rejected (not representable in JSON)
  */
@@ -32,7 +32,8 @@ export function canonicalizeProtocolJson(value: unknown): string {
 /** Recursion state is private so callers cannot bypass the protocol depth limit. */
 function canonicalizeProtocolJsonInner(value: unknown, depth: number, seen: WeakSet<object>): string {
   if (depth > MAX_DEPTH) throw protocolError(ErrorCode.CANONICALIZATION_DEPTH, `Canonicalization depth exceeded ${MAX_DEPTH}`);
-  if (value === undefined || value === null) return "null";
+  if (value === null) return "null";
+  if (value === undefined) throw protocolError(ErrorCode.CANONICALIZATION_UNSUPPORTED_TYPE, "undefined is not an ALX value");
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "bigint") throw protocolError(ErrorCode.CANONICALIZATION_BIGINT, "BigInt not allowed: use a string or safe integer");
   if (typeof value === "symbol") throw protocolError(ErrorCode.CANONICALIZATION_SYMBOL, "Symbol not allowed");
@@ -47,7 +48,10 @@ function canonicalizeProtocolJsonInner(value: unknown, depth: number, seen: Weak
     }
     return JSON.stringify(value);
   }
-  if (typeof value === "string") return JSON.stringify(value);
+  if (typeof value === "string") {
+    assertValidUnicode(value);
+    return JSON.stringify(value);
+  }
 
   if (typeof value !== "object") {
     throw protocolError(ErrorCode.CANONICALIZATION_UNSUPPORTED_TYPE, `Unsupported type: ${typeof value}`);
@@ -57,21 +61,53 @@ function canonicalizeProtocolJsonInner(value: unknown, depth: number, seen: Weak
   seen.add(value);
   try {
     if (Array.isArray(value)) {
-      // Array.from visits sparse slots, exposing them as undefined so they canonicalize to null.
-      return "[" + Array.from(value, (item) => canonicalizeProtocolJsonInner(item, depth + 1, seen)).join(",") + "]";
+      for (let index = 0; index < value.length; index++) {
+        if (!Object.prototype.hasOwnProperty.call(value, index)) {
+          throw protocolError(ErrorCode.CANONICALIZATION_UNSUPPORTED_TYPE, "Sparse arrays are not ALX values");
+        }
+      }
+      return "[" + value.map((item) => canonicalizeProtocolJsonInner(item, depth + 1, seen)).join(",") + "]";
     }
 
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw protocolError(ErrorCode.CANONICALIZATION_UNSUPPORTED_TYPE, "Only plain string-keyed objects are ALX values");
+    }
     const obj = value as Record<string, unknown>;
+    const ownKeys = Reflect.ownKeys(obj);
+    if (ownKeys.some((key) => typeof key !== "string")) {
+      throw protocolError(ErrorCode.CANONICALIZATION_UNSUPPORTED_TYPE, "Object keys must be strings");
+    }
+    if (ownKeys.some((key) => !Object.prototype.propertyIsEnumerable.call(obj, key))) {
+      throw protocolError(ErrorCode.CANONICALIZATION_UNSUPPORTED_TYPE, "Object properties must be enumerable data properties");
+    }
     const parts: string[] = [];
-    for (const key of Object.keys(obj).sort()) {
-      const item = obj[key];
-      if (item !== undefined) {
-        parts.push(JSON.stringify(key) + ":" + canonicalizeProtocolJsonInner(item, depth + 1, seen));
+    for (const key of (ownKeys as string[]).sort()) {
+      assertValidUnicode(key);
+      const descriptor = Object.getOwnPropertyDescriptor(obj, key);
+      if (!descriptor || !("value" in descriptor)) {
+        throw protocolError(ErrorCode.CANONICALIZATION_UNSUPPORTED_TYPE, "Object accessors are not ALX values");
       }
+      parts.push(JSON.stringify(key) + ":" + canonicalizeProtocolJsonInner(descriptor.value, depth + 1, seen));
     }
     return "{" + parts.join(",") + "}";
   } finally {
     // Reuse across sibling branches is valid; only an active ancestor is cyclic.
     seen.delete(value);
+  }
+}
+
+function assertValidUnicode(value: string): void {
+  for (let index = 0; index < value.length; index++) {
+    const code = value.charCodeAt(index);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (!(next >= 0xdc00 && next <= 0xdfff)) {
+        throw protocolError(ErrorCode.CANONICALIZATION_INVALID_UNICODE, "Unpaired UTF-16 high surrogate");
+      }
+      index++;
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      throw protocolError(ErrorCode.CANONICALIZATION_INVALID_UNICODE, "Unpaired UTF-16 low surrogate");
+    }
   }
 }

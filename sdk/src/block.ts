@@ -4,18 +4,18 @@
  * A block is a content-addressed container with lineage.
  * The protocol does not interpret content. It hashes, links, and verifies.
  *
- * Block = { blockHash, contentHash, parentHashes, content }
+ * Block = { blockHash, contentHash, parentHashes, content, protocolVersion }
  *
- *   blockHash   = keccak256(canonicalize({ content, parentHashes }))
- *   contentHash = keccak256(canonicalize(content))
+ *   blockHash   = keccak256("ALX-BLOCK-V1\0" || canonicalize({ content, parentHashes }))
+ *   contentHash = keccak256("ALX-CONTENT-V1\0" || canonicalize(content))
  *
  * Invariants:
  *   1. Same content + same parents → same blockHash (deterministic)
- *   2. Hash is irreversible (keccak-256)
+ *   2. Block and content hashes occupy distinct v1 domains
  *   3. parentHashes are normalized, sorted, and deduplicated (canonical ordering)
  *   4. parentHashes are an unordered dependency set — order is a content-level concern
- *   5. Content is opaque (the protocol never inspects it)
- *   6. null and undefined content are equivalent (both canonicalize to "null")
+ *   5. Content semantics are opaque; canonicalization validates its ALX value structure
+ *   6. undefined and other non-ALX values are rejected
  *   7. Attestations are optional extension data, orthogonal to block identity, and excluded from hash computation
  */
 
@@ -26,6 +26,10 @@ import type { Signer, Verifier, BlockAttestation } from "./signatures.js";
 import sha3pkg from "js-sha3";
 
 const { keccak_256 } = sha3pkg;
+
+export const CONTENT_HASH_DOMAIN = "ALX-CONTENT-V1\0" as const;
+export const BLOCK_HASH_DOMAIN = "ALX-BLOCK-V1\0" as const;
+export const ATTESTATION_HASH_DOMAIN = "ALX-ATTESTATION-V1\0" as const;
 
 export {
   normalizeHash,
@@ -46,8 +50,8 @@ export interface Block {
   contentHash: string;
   parentHashes: string[];
   content: unknown;
-  /** Protocol algorithm version. Excluded from hash derivation. Absent means "1". */
-  protocolVersion?: string;
+  /** Required protocol algorithm version. Excluded from hash derivation. */
+  protocolVersion: "1";
 }
 
 /** Optional signing-extension wrapper around a core Block. */
@@ -98,22 +102,34 @@ export interface BlockValidation {
 /**
  * Derive a deterministic block hash from content and lineage.
  *
- * blockHash = keccak256(canonicalize({ content, parentHashes }))
+ * blockHash = keccak256("ALX-BLOCK-V1\0" || canonicalize({ content, parentHashes }))
  */
 export function deriveBlockHash(content: unknown, parentHashes?: string[]): string {
-  return "0x" + keccak_256(canonicalizeProtocolJson({
-    content: content ?? null,
+  const canonical = canonicalizeProtocolJson({
+    content,
     parentHashes: normalizeHashes(parentHashes),
-  }));
+  });
+  return "0x" + keccak_256(BLOCK_HASH_DOMAIN + canonical);
 }
 
 /**
  * Derive a content hash (without lineage).
  *
- * contentHash = keccak256(canonicalize(content))
+ * contentHash = keccak256("ALX-CONTENT-V1\0" || canonicalize(content))
  */
 export function deriveContentHash(content: unknown): string {
-  return "0x" + keccak_256(canonicalizeProtocolJson(content ?? null));
+  return "0x" + keccak_256(CONTENT_HASH_DOMAIN + canonicalizeProtocolJson(content));
+}
+
+/** Derive the authenticated digest for a portable Block attestation. */
+export function deriveAttestationDigest(input: Omit<BlockAttestation, "signature">): Uint8Array {
+  const canonical = canonicalizeProtocolJson({
+    algorithm: input.algorithm,
+    attester: input.attester,
+    blockHash: normalizeHash(input.blockHash),
+    timestamp: input.timestamp,
+  });
+  return hexToBytes("0x" + keccak_256(ATTESTATION_HASH_DOMAIN + canonical));
 }
 
 /**
@@ -125,7 +141,7 @@ export function createBlock(content: unknown, parentHashes?: string[]): Block {
     blockHash:       deriveBlockHash(content, parents),
     contentHash:     deriveContentHash(content),
     parentHashes:    parents,
-    content:         content ?? null,
+    content,
     protocolVersion: "1",
   };
 }
@@ -165,15 +181,20 @@ async function buildAttestation(blockHash: string, signer: Signer, timestamp?: n
     throw protocolError(ErrorCode.INVALID_TIMESTAMP, "timestamp must be a non-negative safe integer");
   }
 
-  const hashBytes = hexToBytes(blockHash);
-  const signature = await signer.sign(hashBytes);
   const attester = await signer.getId();
-
-  return {
+  if (typeof attester !== "string" || attester.length === 0) {
+    throw protocolError(ErrorCode.INVALID_KEY, "signer identifier must be a non-empty string");
+  }
+  const payload = {
     blockHash,
     attester,
     algorithm: signer.algorithm,
     timestamp: ts,
+  };
+  const signature = await signer.sign(deriveAttestationDigest(payload));
+
+  return {
+    ...payload,
     signature,
   };
 }
@@ -223,7 +244,20 @@ function getAttestations(signedBlock: SignedBlock): BlockAttestation[] {
  * Validate that a block's hash matches its content and parents (synchronous, hash-only).
  */
 export function validateBlock(block: Block): BlockValidation {
-  if (block.protocolVersion !== undefined && block.protocolVersion !== "1") {
+  if (block === null || typeof block !== "object" || Array.isArray(block)) {
+    throw protocolError(ErrorCode.SCHEMA_INVALID, "Block must be an object");
+  }
+  const fields = Object.keys(block).sort();
+  const requiredFields = ["blockHash", "content", "contentHash", "parentHashes", "protocolVersion"];
+  if (JSON.stringify(fields) !== JSON.stringify(requiredFields)
+      || typeof block.blockHash !== "string"
+      || typeof block.contentHash !== "string"
+      || !Array.isArray(block.parentHashes)
+      || !Object.prototype.hasOwnProperty.call(block, "content")
+      || typeof block.protocolVersion !== "string") {
+    throw protocolError(ErrorCode.SCHEMA_INVALID, "Block fields do not match the core Block schema");
+  }
+  if (block.protocolVersion !== "1") {
     throw protocolError(ErrorCode.UNSUPPORTED_VERSION,
       `Unsupported protocolVersion: "${block.protocolVersion}". Only "1" is recognized.`);
   }
@@ -287,8 +321,6 @@ export async function validateSignedBlock(
   }
 
   const results: AttestationValidation[] = [];
-  const hashBytes = hexToBytes(signedBlock.block.blockHash);
-
   for (const att of attestations) {
     // Check blockHash matches
     if (att.blockHash !== signedBlock.block.blockHash) {
@@ -310,7 +342,12 @@ export async function validateSignedBlock(
     }
 
     // Verify signature
-    const sigResult = await v.verify(hashBytes, att.signature, att.attester);
+    const sigResult = await v.verify(deriveAttestationDigest({
+      blockHash: att.blockHash,
+      attester: att.attester,
+      algorithm: att.algorithm,
+      timestamp: att.timestamp,
+    }), att.signature, att.attester);
     results.push({
       ok: sigResult.ok,
       attester: sigResult.signer || att.attester,

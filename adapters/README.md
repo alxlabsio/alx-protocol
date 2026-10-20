@@ -1,6 +1,6 @@
 # ALX Application Adapters
 
-- **Status:** Optional application package
+- **Status:** Optional application package; not yet published to npm, so use it from a repository checkout
 - **Audience:** Application and infrastructure developers
 - **Authority:** Non-normative; protocol behavior remains governed by [`../protocol/spec.md`](../protocol/spec.md)
 - **Last reviewed:** 2026-08-03
@@ -27,5 +27,5 @@ Applications can implement `BlockStore` for a database selected by the applicati
 ## Related Documents
 
 - [`../docs/integrators/storage.md`](../docs/integrators/storage.md)
-- [`../docs/integrators/adapters.md`](../docs/integrators/adapters.md)
+- [`../docs/integrators/block-storage-adapters.md`](../docs/integrators/block-storage-adapters.md)
 - [`../protocol/spec.md`](../protocol/spec.md)

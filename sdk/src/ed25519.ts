@@ -59,14 +59,14 @@ async function loadEd25519(): Promise<Ed25519Lib> {
   throw protocolError(ErrorCode.CRYPTO_REQUIRED, "@noble/ed25519 or @noble/curves is required. Install: npm install @noble/ed25519");
 }
 
-/** Convert a hex string to Uint8Array. */
-function hexToBytes(hex: string): Uint8Array {
-  const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
-  const bytes = new Uint8Array(clean.length / 2);
-  for (let i = 0; i < clean.length; i += 2) {
-    bytes[i / 2] = parseInt(clean.substring(i, i + 2), 16);
-  }
-  return bytes;
+/** Decode a fixed-width hexadecimal value. */
+function fixedHexToBytes(value: string, byteLength: number, allowMissingPrefix = false): Uint8Array | null {
+  const pattern = allowMissingPrefix
+    ? new RegExp(`^(?:0x)?[a-fA-F0-9]{${byteLength * 2}}$`)
+    : new RegExp(`^0x[a-f0-9]{${byteLength * 2}}$`);
+  if (!pattern.test(value)) return null;
+  const clean = value.startsWith("0x") ? value.slice(2) : value;
+  return Uint8Array.from({ length: byteLength }, (_, i) => Number.parseInt(clean.slice(i * 2, i * 2 + 2), 16));
 }
 
 /** Convert Uint8Array to hex string. */
@@ -92,10 +92,11 @@ export class Ed25519Signer implements Signer {
    * @param privateKey — 32-byte Ed25519 private key as Uint8Array or hex string (with or without 0x prefix)
    */
   constructor(privateKey: Uint8Array | string) {
-    this.privateKey = typeof privateKey === "string" ? hexToBytes(privateKey) : privateKey;
-    if (this.privateKey.length !== 32) {
+    const decoded = typeof privateKey === "string" ? fixedHexToBytes(privateKey, 32, true) : privateKey;
+    if (!decoded || decoded.length !== 32) {
       throw protocolError(ErrorCode.INVALID_KEY, "Ed25519 private key must be exactly 32 bytes");
     }
+    this.privateKey = decoded;
   }
 
   async getId(): Promise<string> {
@@ -108,6 +109,9 @@ export class Ed25519Signer implements Signer {
   }
 
   async sign(data: Uint8Array): Promise<string> {
+    if (data.length !== 32) {
+      throw protocolError(ErrorCode.INVALID_SIGNATURE_FORMAT, "Ed25519 attestation input must be a 32-byte digest");
+    }
     const ed = await loadEd25519();
     const signature = await ed.sign(data, this.privateKey);
     return "0x" + bytesToHex(signature instanceof Uint8Array ? signature : new Uint8Array(signature));
@@ -131,9 +135,12 @@ export class Ed25519Verifier implements Verifier {
       return { ok: false, signer: "" };
     }
 
+    const sigBytes = fixedHexToBytes(signature, 64);
+    const pubBytes = fixedHexToBytes(expectedSigner, 32);
+    if (data.length !== 32 || !sigBytes || !pubBytes) {
+      return { ok: false, signer: expectedSigner };
+    }
     const ed = await loadEd25519();
-    const sigBytes = hexToBytes(signature);
-    const pubBytes = hexToBytes(expectedSigner);
 
     try {
       const valid = await ed.verify(sigBytes, data, pubBytes);

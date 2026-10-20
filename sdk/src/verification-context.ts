@@ -19,6 +19,11 @@ export interface VerificationContext {
   protocolVersion: "1";
   validationMode: ValidationMode;
   graphRoot: string;
-  extensions: string[];
+  maxDepth?: number;
+  resourceLimits?: {
+    maxBlocks?: number;
+    maxEdges?: number;
+  };
+  extensions?: string[];
   externalParents: ExternalParentBoundary[];
 }

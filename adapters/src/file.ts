@@ -1,6 +1,6 @@
 import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import type { Block } from "@alx-protocol/sdk";
+import { parseStrictJsonBytes, type Block } from "@alx-protocol/sdk";
 import type { BlockStore, BlockSummary } from "./block-store.js";
 import { assertValidStoredBlock, normalizeStoreKey, summarizeBlock } from "./block-store.js";
 
@@ -33,7 +33,7 @@ export class FileBlockStore implements BlockStore {
 
   async get(blockHash: string): Promise<Block | null> {
     try {
-      const block = JSON.parse(await readFile(this.pathFor(blockHash), "utf8")) as Block;
+      const block = parseStrictJsonBytes(await readFile(this.pathFor(blockHash))) as Block;
       assertValidStoredBlock(block);
       return block;
     } catch (error) {

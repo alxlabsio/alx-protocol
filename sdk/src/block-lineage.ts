@@ -13,11 +13,15 @@
  * It only verifies that the references form a valid DAG.
  */
 
-import { normalizeHashLenient } from "./hash-utils.js";
+import { normalizeHash, normalizeHashLenient } from "./hash-utils.js";
 import { ErrorCode, protocolError } from "./errors.js";
+import { validateGraphVerification } from "./graph-validation.js";
+import type { GraphValidationStatus, GraphVerification } from "./graph-validation.js";
 
 /** Result of single-block lineage validation. */
 export interface LineageResult {
+  checked: true;
+  status: GraphValidationStatus;
   ok: boolean;
   blockHash: string;
   parents: string[];
@@ -60,10 +64,13 @@ export function validateLineage(
   knownHashes?: Set<string> | string[],
   context?: GraphValidationContext,
 ): LineageResult {
-  const hash = normalize(blockHash);
-  const known = knownHashes instanceof Set
-    ? knownHashes
-    : new Set((knownHashes ?? []).map(normalize));
+  const hash = normalizeHash(blockHash);
+  if (!Array.isArray(parentHashes)) {
+    throw protocolError(ErrorCode.INVALID_HASH, "parentHashes must be an array");
+  }
+  const known = knownHashes === undefined
+    ? undefined
+    : new Set([...knownHashes].map(normalizeHash));
 
   const { unique, duplicates, selfRef, missing, external } = classifyParents(hash, parentHashes, known, context);
 
@@ -71,7 +78,11 @@ export function validateLineage(
   // Full graph cycles require validateGraph.
   const cycle = selfRef;
 
+  const status = lineageStatus(duplicates, missing, selfRef || cycle);
+
   return {
+    checked: true,
+    status,
     ok: duplicates.length === 0 && missing.length === 0 && !selfRef,
     blockHash: hash,
     parents: unique,
@@ -83,14 +94,14 @@ export function validateLineage(
   };
 }
 
-/**
- * Validate an entire block graph for structural integrity.
- */
-export function validateGraph(
+/** Validate an entire adjacency Graph for structural integrity. */
+export function validateGraphStructure(
   graph: Map<string, string[]> | Array<[string, string[]]>,
   context?: GraphValidationContext,
 ): GraphResult {
-  const g = graph instanceof Map ? graph : new Map(graph);
+  const g = prepareGraph(graph);
+  const mode = validationMode(context);
+  const declaredExternal = normalizedExternalParents(context);
   const allHashes = new Set(g.keys());
   const issues: LineageResult[] = [];
   const externalParents = new Set<string>();
@@ -104,7 +115,23 @@ export function validateGraph(
     edges += parents.length;
     if (parents.length === 0) roots.push(hash);
 
-    const result = validateLineage(hash, parents, allHashes, context);
+    const classified = classifyPreparedParents(hash, parents, allHashes, mode, declaredExternal);
+    const result: LineageResult = {
+      checked: true,
+      status: lineageStatus(
+        classified.duplicates,
+        classified.missing,
+        classified.selfRef || cycleNodes.has(hash),
+      ),
+      ok: classified.duplicates.length === 0 && classified.missing.length === 0 && !classified.selfRef,
+      blockHash: hash,
+      parents: classified.unique,
+      duplicates: classified.duplicates,
+      missing: classified.missing,
+      external: classified.external,
+      selfRef: classified.selfRef,
+      cycle: classified.selfRef,
+    };
     for (const parent of result.external) externalParents.add(parent);
 
     if (cycleNodes.has(hash)) {
@@ -120,10 +147,31 @@ export function validateGraph(
     blocks: g.size,
     edges,
     roots: roots.sort(),
-    mode: context?.validationMode ?? "closed-world",
+    mode,
     externalParents: [...externalParents].sort(),
-    issues,
+    issues: issues.sort((a, b) => a.blockHash < b.blockHash ? -1 : a.blockHash > b.blockHash ? 1 : 0),
   };
+}
+
+/** Execute canonical Block Graph verification or the deprecated adjacency-only compatibility form. */
+export function validateGraph(seed: unknown, source: unknown, context: unknown): GraphVerification;
+/** @deprecated Use validateGraph(seed, source, context) for canonical Graph verification. */
+export function validateGraph(
+  graph: Map<string, string[]> | Array<[string, string[]]>,
+  context?: GraphValidationContext,
+): GraphResult;
+export function validateGraph(
+  seedOrGraph: unknown,
+  sourceOrContext?: unknown,
+  context?: unknown,
+): GraphVerification | GraphResult {
+  if (seedOrGraph instanceof Map || Array.isArray(seedOrGraph)) {
+    return validateGraphStructure(
+      seedOrGraph as Map<string, string[]> | Array<[string, string[]]>,
+      sourceOrContext as GraphValidationContext | undefined,
+    );
+  }
+  return validateGraphVerification(seedOrGraph, sourceOrContext, context);
 }
 
 /**
@@ -132,11 +180,7 @@ export function validateGraph(
 export function buildGraph(
   blocks: Array<{ blockHash: string; parentHashes?: string[] }>,
 ): Map<string, string[]> {
-  const g = new Map<string, string[]>();
-  for (const b of blocks) {
-    g.set(normalize(b.blockHash), (b.parentHashes ?? []).map(normalize).sort());
-  }
-  return g;
+  return prepareGraph(blocks.map((block) => [block.blockHash, block.parentHashes ?? []]));
 }
 
 /**
@@ -159,15 +203,21 @@ export function verifyGraph(
   }
 
   const byHash = new Map<string, { blockHash: string; content: unknown; parentHashes?: string[] }>();
+  const duplicateHashes = new Set<string>();
   for (const b of blocks) {
-    byHash.set(normalize(b.blockHash), b);
+    const hash = normalize(b.blockHash);
+    if (byHash.has(hash)) duplicateHashes.add(hash);
+    else byHash.set(hash, b);
   }
 
   let verified = 0;
-  const broken: VerifyResult["broken"] = [];
+  const broken: VerifyResult["broken"] = [...duplicateHashes]
+    .sort()
+    .map((blockHash) => ({ blockHash, reason: "duplicate_block" }));
 
   for (const b of blocks) {
     const hash = normalize(b.blockHash);
+    if (duplicateHashes.has(hash)) continue;
 
     // Verify the block's own hash
     const expected = computeHash(b.content, b.parentHashes ?? []);
@@ -192,7 +242,11 @@ export function verifyGraph(
   return {
     ok: broken.length === 0,
     verified,
-    broken,
+    broken: broken.sort((left, right) => (
+      left.blockHash.localeCompare(right.blockHash)
+      || left.reason.localeCompare(right.reason)
+      || (left.parentHash ?? "").localeCompare(right.parentHash ?? "")
+    )),
   };
 }
 
@@ -203,7 +257,17 @@ export function addBlockToGraph(
   block: { blockHash: string; parentHashes?: string[] },
   graph: Map<string, string[]>,
 ): Map<string, string[]> {
-  graph.set(normalize(block.blockHash), (block.parentHashes ?? []).map(normalize).sort());
+  const blockHash = normalizeHash(block.blockHash);
+  for (const existingHash of graph.keys()) {
+    if (normalizeHash(existingHash) === blockHash) {
+      throw protocolError(ErrorCode.DUPLICATE_BLOCK, `Graph already contains ${blockHash}`);
+    }
+  }
+  const parents = (block.parentHashes ?? []).map(normalizeHash);
+  if (new Set(parents).size !== parents.length) {
+    throw protocolError(ErrorCode.DUPLICATE_PARENT, "Graph entry contains duplicate parent hashes");
+  }
+  graph.set(blockHash, parents.sort());
   return graph;
 }
 
@@ -218,8 +282,10 @@ export function validateIncrementalBlock(
   existingGraph: Map<string, string[]>,
   context?: GraphValidationContext,
 ): LineageResult {
-  const hash = normalize(block.blockHash);
-  const knownHashes = new Set(existingGraph.keys());
+  validationMode(context);
+  const hash = normalizeHash(block.blockHash);
+  const preparedGraph = prepareGraph(existingGraph);
+  const knownHashes = new Set(preparedGraph.keys());
 
   const { unique, duplicates, selfRef, missing, external } = classifyParents(hash, block.parentHashes ?? [], knownHashes, context);
 
@@ -228,17 +294,19 @@ export function validateIncrementalBlock(
   let cycle = selfRef;
   if (!cycle) {
     const visited = new Set<string>();
-    const stack = [...unique.filter((p) => existingGraph.has(p))];
+    const stack = [...unique.filter((p) => preparedGraph.has(p))];
     while (stack.length > 0) {
       const current = stack.pop()!;
       if (current === hash) { cycle = true; break; }
       if (visited.has(current)) continue;
       visited.add(current);
-      for (const parent of existingGraph.get(current) ?? []) stack.push(parent);
+      for (const parent of preparedGraph.get(current) ?? []) stack.push(parent);
     }
   }
 
   return {
+    checked: true,
+    status: lineageStatus(duplicates, missing, selfRef || cycle),
     ok: duplicates.length === 0 && missing.length === 0 && !selfRef && !cycle,
     blockHash: hash,
     parents: unique,
@@ -269,10 +337,39 @@ interface ClassifiedParents {
 function classifyParents(
   blockHash: string,
   parentHashes: string[],
-  knownHashes: Set<string>,
+  knownHashes: Set<string> | undefined,
   context?: GraphValidationContext,
 ): ClassifiedParents {
-  const raw = (parentHashes ?? []).map(normalize);
+  if (!Array.isArray(parentHashes)) {
+    throw protocolError(ErrorCode.INVALID_HASH, "parentHashes must be an array");
+  }
+  const raw = parentHashes.map(normalizeHash);
+  return classifyPreparedParents(
+    blockHash,
+    raw,
+    knownHashes,
+    validationMode(context),
+    normalizedExternalParents(context),
+  );
+}
+
+function lineageStatus(
+  duplicates: string[],
+  missing: string[],
+  invalidRelationship: boolean,
+): GraphValidationStatus {
+  if (duplicates.length > 0 || invalidRelationship) return "invalid";
+  if (missing.length > 0) return "incomplete";
+  return "valid";
+}
+
+function classifyPreparedParents(
+  blockHash: string,
+  raw: string[],
+  knownHashes: Set<string> | undefined,
+  mode: "closed-world" | "open-world",
+  declaredExternal: Set<string>,
+): ClassifiedParents {
   const unique = [...new Set(raw)].sort();
 
   const seen = new Set<string>();
@@ -283,9 +380,7 @@ function classifyParents(
   }
 
   const selfRef = unique.includes(blockHash);
-  const mode = context?.validationMode ?? "closed-world";
-  const declaredExternal = new Set((context?.externalParents ?? []).map((e) => normalize(e.hash)));
-  const unresolved = unique.filter((p) => !knownHashes.has(p));
+  const unresolved = knownHashes === undefined ? [] : unique.filter((p) => !knownHashes.has(p));
   const external = mode === "open-world" ? unresolved.filter((p) => declaredExternal.has(p)) : [];
   const missing = unresolved.filter((p) => !external.includes(p));
 
@@ -303,27 +398,83 @@ function classifyParents(
  * Returns the set of nodes that participate in a cycle.
  */
 function detectAllCycles(graph: Map<string, string[]>): Set<string> {
-  const visiting = new Set<string>();
-  const visited = new Set<string>();
   const inCycle = new Set<string>();
-
-  function visit(node: string): boolean {
-    if (visited.has(node)) return false;
-    if (visiting.has(node)) {
-      inCycle.add(node);
-      return true;
+  const state = new Map<string, 0 | 1 | 2>();
+  for (const start of graph.keys()) {
+    if (state.get(start) === 2) continue;
+    const stack: Array<{ node: string; next: number }> = [{ node: start, next: 0 }];
+    const path: string[] = [start];
+    state.set(start, 1);
+    while (stack.length) {
+      const frame = stack[stack.length - 1];
+      const parents = graph.get(frame.node) ?? [];
+      if (frame.next >= parents.length) {
+        state.set(frame.node, 2);
+        stack.pop();
+        path.pop();
+        continue;
+      }
+      const parent = normalize(parents[frame.next++]);
+      if (state.get(parent) === 1) {
+        const cycleStart = path.lastIndexOf(parent);
+        for (const node of path.slice(cycleStart)) inCycle.add(node);
+      } else if (state.get(parent) !== 2 && graph.has(parent)) {
+        state.set(parent, 1);
+        stack.push({ node: parent, next: 0 });
+        path.push(parent);
+      }
     }
-    visiting.add(node);
-    for (const parent of graph.get(node) ?? []) {
-      if (visit(parent)) inCycle.add(node);
-    }
-    visiting.delete(node);
-    visited.add(node);
-    return false;
-  }
-
-  for (const node of graph.keys()) {
-    visit(node);
   }
   return inCycle;
+}
+
+function validationMode(context?: GraphValidationContext): "closed-world" | "open-world" {
+  const mode = (context?.validationMode as string | undefined) ?? "closed-world";
+  if (mode !== "closed-world" && mode !== "open-world") {
+    throw protocolError(ErrorCode.INVALID_GRAPH, "validationMode must be closed-world or open-world");
+  }
+  return mode;
+}
+
+function normalizedExternalParents(context?: GraphValidationContext): Set<string> {
+  const entries = context?.externalParents ?? [];
+  if (!Array.isArray(entries)) {
+    throw protocolError(ErrorCode.INVALID_GRAPH, "externalParents must be an array");
+  }
+  return new Set(entries.map((entry) => {
+    if (entry === null || typeof entry !== "object" || typeof entry.hash !== "string") {
+      throw protocolError(ErrorCode.INVALID_HASH, "external parent hash must be a string");
+    }
+    return normalizeHash(entry.hash);
+  }));
+}
+
+function prepareGraph(
+  graph: Map<string, string[]> | Array<[string, string[]]>,
+): Map<string, string[]> {
+  const entries = graph instanceof Map ? [...graph.entries()] : graph;
+  if (!Array.isArray(entries)) {
+    throw protocolError(ErrorCode.INVALID_GRAPH, "graph must be a Map or entry array");
+  }
+
+  const prepared = new Map<string, string[]>();
+  for (const entry of entries) {
+    if (!Array.isArray(entry) || entry.length !== 2) {
+      throw protocolError(ErrorCode.INVALID_GRAPH, "graph entries must contain a key and parent array");
+    }
+    const [rawHash, rawParents] = entry;
+    const hash = normalizeHash(rawHash);
+    if (prepared.has(hash)) {
+      throw protocolError(ErrorCode.DUPLICATE_BLOCK, "distinct Graph keys normalize to " + hash);
+    }
+    if (!Array.isArray(rawParents)) {
+      throw protocolError(ErrorCode.INVALID_HASH, "Graph parentHashes must be an array");
+    }
+    const parents = rawParents.map(normalizeHash);
+    if (new Set(parents).size !== parents.length) {
+      throw protocolError(ErrorCode.DUPLICATE_PARENT, "Graph entry contains duplicate parent hashes");
+    }
+    prepared.set(hash, parents.sort());
+  }
+  return prepared;
 }

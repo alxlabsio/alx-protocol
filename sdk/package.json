@@ -1,6 +1,6 @@
 {
   "name": "@alx-protocol/sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "ALX Protocol TypeScript SDK — deterministic infrastructure for verifiable content, interoperable context, and traceable attribution",
   "type": "module",
   "main": "./dist/index.js",
@@ -101,11 +101,7 @@
     "node": ">=20 <23"
   },
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/xandrlabs/alx-protocol",
-    "directory": "sdk"
-  },
+  "homepage": "https://alxprotocol.com",
   "keywords": [
     "alx",
     "protocol",
@@ -113,7 +109,6 @@
     "typescript",
     "blocks",
     "lineage",
-    "settlement",
     "attribution",
     "deterministic",
     "verifiable"

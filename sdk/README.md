@@ -1,6 +1,6 @@
 # @alx-protocol/sdk
 
-TypeScript/JavaScript SDK for ALX Protocol — an open standard that gives every AI-generated artifact a deterministic identity, verifiable lineage, and traceable attribution.
+TypeScript/JavaScript SDK for ALX Protocol, an open protocol that gives every output, human or machine, a deterministic identity, declared lineage, and independent verification.
 
 ## Install
 
@@ -66,11 +66,21 @@ console.log(review.attestation.attester);   // "compliance-reviewer-001"
 console.log(review.attestation.algorithm);  // "ed25519"
 
 // Step 3: Validate the full pipeline
-const graph = buildGraph([report, review]);
-console.log(validateGraph(graph).ok);  // true — no cycles, no missing parents
+const graph = buildGraph([report, review.block]);
+const verification = validateGraph(
+  review.block,
+  { kind: "finite", blocks: [report] },
+  {
+    protocolVersion: "1",
+    validationMode: "closed-world",
+    graphRoot: review.block.blockHash,
+    externalParents: [],
+  },
+);
+console.log(verification.status);  // "valid"
 
 // Step 4: Trace attribution from the review back to the source
-const trace = traceAttribution(review.blockHash, graph);
+const trace = traceAttribution(review.block.blockHash, graph);
 console.log(trace.nodes.length);  // 2
 console.log(trace.leaves);        // [report.blockHash] — the original source
 
@@ -88,7 +98,7 @@ The workflow produces linked Blocks for a report and review. The attestation rem
 | Canonicalization | `canonicalizeProtocolJson`, `CANONICALIZATION_ALGORITHM` |
 | Block Operations | `createBlock`, `validateBlock`, `deriveBlockHash`, `deriveContentHash` |
 | Signed Blocks | `createSignedBlock`, `validateSignedBlock`, `Signer`, `Verifier` |
-| Graph Validation | `validateLineage`, `validateGraph`, `buildGraph`, `verifyGraph` |
+| Graph Validation | `validateGraph`, `GraphVerification`, `GraphValidationStatus`, `validateLineage`, `buildGraph`, `verifyGraph` |
 | Attribution Tracing | `traceAttribution`, `TraceNode`, `TraceEdge`, `AttributionTrace` |
 | Merkle Proofs | `buildMerkleTree`, `getMerkleProof`, `verifyMerkleProof` |
 | EIP-712 Signing | `Eip712Signer`, `Eip712Verifier` (requires `ethers` peer dependency) |
@@ -103,6 +113,14 @@ import { createBlock } from "@alx-protocol/sdk/block";
 import { buildMerkleTree } from "@alx-protocol/sdk/merkle";
 import { Eip712Signer } from "@alx-protocol/sdk/eip712";
 ```
+
+## Canonical Graph verification
+
+`validateGraph(seed, source, context)` verifies the reachable Block Graph within an explicit verification context. Its status is `valid`, `invalid`, `incomplete`, or `resource_limit_reached`; `checked: false` is reserved for callers that did not request Graph verification.
+
+The result applies only to the supplied context. A depth- or resource-bounded `valid` result does not claim that unexamined ancestry is valid. A missing required Block produces `incomplete`, while a known protocol violation takes precedence and produces `invalid`.
+
+The older adjacency-only `validateGraph(graph, context?)` overload remains temporarily available for compatibility and is deprecated. New integrations should use the canonical three-argument operation.
 
 ## Imported Parent Hashes
 
@@ -135,23 +153,28 @@ The result reports rejected values, normalized duplicates, and collection overfl
 
 ## Documentation
 
-- [Five-Minute Quickstart](https://github.com/xandrlabs/alx-protocol/blob/main/docs/integrators/quickstart.md)
-- [API Reference](https://github.com/xandrlabs/alx-protocol/blob/main/docs/integrators/api-reference.md)
-- [FAQ](https://github.com/xandrlabs/alx-protocol/blob/main/docs/integrators/faq.md)
-- [Troubleshooting](https://github.com/xandrlabs/alx-protocol/blob/main/docs/integrators/troubleshooting.md)
-- [ALX Protocol Specification](https://github.com/xandrlabs/alx-protocol/blob/main/protocol/spec.md)
-- [Full Documentation Index](https://github.com/xandrlabs/alx-protocol/blob/main/docs/README.md)
+- [Quick Start](https://alxprotocol.com/documentation/guides/quick-start)
+- [JavaScript Reference Surface](https://alxprotocol.com/documentation/specification/javascript-reference)
+- [Troubleshooting](https://alxprotocol.com/documentation/guides/troubleshooting)
+- [Specification](https://alxprotocol.com/documentation/specification/)
+- [Python and Rust Implementations](https://alxprotocol.com/documentation/reference/sdk)
+- [Documentation](https://alxprotocol.com/documentation/)
 
 ## Adapters
 
-This SDK is the protocol core. Optional [adapters](https://github.com/xandrlabs/alx-protocol/tree/main/adapters) extend it to external systems (IPFS, MCP, EAS) without changing Block identity, hashing, or validation semantics. Adapters import from `@alx-protocol/sdk` — the protocol flows outward, never inward.
+This SDK is the protocol core. Optional adapters extend it to external systems (IPFS, MCP, EAS) without changing Block identity, hashing, or validation semantics. Adapters import from `@alx-protocol/sdk` — the protocol flows outward, never inward.
 
 ## Protocol conformance
 
-This SDK passes all 92 core conformance vectors. External TypeScript, Python, and Rust adapter runs cover 84 portable cases; native suites cover the eight language-specific cases.
+The TypeScript self-test executes every required core suite discovered through
+the protocol's suite index. External TypeScript, Python,
+and Rust adapters exercise the portable JSON-interface cases; each maintained
+implementation also uses native tests for language values that the adapter
+interface cannot represent. A complete conformance claim requires every
+applicable required suite, not a fixed historical vector count.
 
 ```bash
-npx @alx-protocol/cli test-vectors run
+npx @alx-protocol/cli conformance run
 ```
 
 ## License
@@ -160,5 +183,5 @@ MIT
 
 ## Related Documents
 
-- [Protocol specification](../protocol/spec.md)
-- [Canonical test vectors](../protocol/test-vectors/README.md)
+- [Protocol specification](https://alxprotocol.com/documentation/specification/)
+- [Conformance vectors](https://alxprotocol.com/documentation/conformance/vectors)

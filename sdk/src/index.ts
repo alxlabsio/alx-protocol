@@ -4,7 +4,7 @@
  * Deterministic infrastructure for verifiable content,
  * interoperable context, and traceable attribution.
  *
- * One primitive: Block = { blockHash, contentHash, parentHashes, content }
+ * One primitive: Block = { blockHash, contentHash, parentHashes, content, protocolVersion }
  * Four operations: canonicalize, hash, validate, trace
  *
  * The protocol does not interpret content. It hashes, links,
@@ -52,6 +52,10 @@ export type {
 export {
   deriveBlockHash,
   deriveContentHash,
+  deriveAttestationDigest,
+  CONTENT_HASH_DOMAIN,
+  BLOCK_HASH_DOMAIN,
+  ATTESTATION_HASH_DOMAIN,
   createBlock,
   lock,
   createSignedBlock,
@@ -73,6 +77,7 @@ export type {
 export {
   validateLineage,
   validateGraph,
+  validateGraphStructure,
   buildGraph,
   verifyGraph,
   addBlockToGraph,
@@ -80,6 +85,14 @@ export {
 } from "./block-lineage.js";
 
 export type { LineageResult, GraphResult, VerifyResult } from "./block-lineage.js";
+export type {
+  FiniteGraphBlockSource,
+  GraphBlockCandidate,
+  GraphLimitReached,
+  GraphValidationIssue,
+  GraphValidationStatus,
+  GraphVerification,
+} from "./graph-validation.js";
 
 // ── Layer 4: Trace ──────────────────────────────────────────────────────────
 // Given a root block and a graph, resolve the full lineage structure.
@@ -146,3 +159,5 @@ export {
 } from "./replay.js";
 
 export type { ReplayResult } from "./replay.js";
+
+export { parseStrictJson, parseStrictJsonBytes } from "./raw-json.js";

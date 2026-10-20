@@ -6,7 +6,7 @@ export interface BlockSummary {
   blockHash: string;
   contentHash: string;
   parentHashes: string[];
-  protocolVersion?: string;
+  protocolVersion: "1";
 }
 
 /** Non-normative application interface for local Block persistence. */
@@ -34,7 +34,7 @@ export function summarizeBlock(block: Block): BlockSummary {
     blockHash: block.blockHash,
     contentHash: block.contentHash,
     parentHashes: [...block.parentHashes],
-    ...(block.protocolVersion === undefined ? {} : { protocolVersion: block.protocolVersion }),
+    protocolVersion: block.protocolVersion,
   };
 }
 

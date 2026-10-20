@@ -22,7 +22,7 @@
  *   - Same root + same graph → same trace, always
  *   - Every reachable node is included
  *   - Unreachable nodes are excluded
- *   - Cycles are detected and reported, not traversed
+ *   - Cycles are rejected before Trace construction
  *   - pathCount is exact (not approximated)
  */
 
@@ -34,8 +34,9 @@ export interface TraceNode {
   hash: string;
   minDepth: number;
   maxDepth: number;
-  pathCount: number;
+  pathCount: string;
   parentCount: number;
+  /** Number of returned Trace edges whose `to` value is this node's hash. */
   childCount: number;
 }
 
@@ -45,7 +46,7 @@ export interface TraceEdge {
   to: string;
 }
 
-/** Complete attribution trace from a root block through a graph. */
+/** Complete computed attribution result. It is not a Block or paginated query envelope. */
 export interface AttributionTrace {
   root: string;
   validationMode: "closed-world" | "open-world";
@@ -56,8 +57,6 @@ export interface AttributionTrace {
   missingParents: string[];
   externalParents: string[];
   maxDepth: number;
-  cycle: boolean;
-  precisionLoss: boolean;
 }
 
 export interface TraceVerification {
@@ -74,44 +73,75 @@ export interface TraceContext {
  * Resolve the full lineage trace from a root block through a graph.
  */
 export function traceAttribution(rootHash: string, graph: Map<string, string[]>, context?: TraceContext): AttributionTrace {
-  const root = normalize(rootHash);
-  if (!root || !HASH_PATTERN.test(root)) throw protocolError(ErrorCode.ROOT_HASH_REQUIRED, "rootHash must be a valid 0x-prefixed 64-char hex hash");
+  if (typeof rootHash !== "string" || rootHash.trim() === "") {
+    throw protocolError(ErrorCode.ROOT_HASH_REQUIRED, "rootHash is required");
+  }
+  const root = normalizeChecked(rootHash);
   if (!(graph instanceof Map)) throw protocolError(ErrorCode.INVALID_GRAPH, "graph must be a Map<string, string[]>");
 
   const mode = context?.validationMode ?? "closed-world";
-  const declaredExternal = new Set((context?.externalParents ?? []).map((p) => normalize(p.hash)));
+  if (mode !== "closed-world" && mode !== "open-world") throw protocolError(ErrorCode.INVALID_GRAPH, "validationMode must be closed-world or open-world");
+  const preparedGraph = prepareGraph(graph);
+  if (!preparedGraph.has(root)) {
+    throw protocolError(ErrorCode.GRAPH_ROOT_NOT_FOUND, "rootHash is not present in the supplied Graph");
+  }
+  const declaredExternal = new Set((context?.externalParents ?? []).map((p) => normalizeChecked(p.hash)));
 
-  const cycleDetected = detectCycleFromRoot(root, graph);
+  const cycleDetected = detectCycleFromRoot(root, preparedGraph);
+  if (cycleDetected) throw protocolError(ErrorCode.GRAPH_CYCLE, "cannot construct an AttributionTrace from a cyclic Graph");
   const { discovered, edgeList, childCounts, parentCounts, missingParents, externalParents } =
-    bfsDiscover(root, graph, mode, declaredExternal);
-  const { minDepths, maxDepths, pathCounts, precisionLoss } =
-    propagateDepthsAndPaths(root, discovered, edgeList, graph);
+    bfsDiscover(root, preparedGraph, mode, declaredExternal);
+  const { minDepths, maxDepths, pathCounts } =
+    propagateDepthsAndPaths(root, discovered, edgeList, preparedGraph);
 
   return buildTraceOutput({
-    root, mode, cycleDetected, discovered, edgeList, childCounts, parentCounts,
-    missingParents, externalParents, minDepths, maxDepths, pathCounts, precisionLoss,
+    root, mode, discovered, edgeList, childCounts, parentCounts,
+    missingParents, externalParents, minDepths, maxDepths, pathCounts,
   });
+}
+
+function prepareGraph(graph: Map<string, string[]>): Map<string, string[]> {
+  const prepared = new Map<string, string[]>();
+  for (const [rawHash, rawParents] of graph) {
+    const hash = normalizeChecked(rawHash);
+    if (prepared.has(hash)) throw protocolError(ErrorCode.DUPLICATE_BLOCK, `duplicate graph key after normalization: ${hash}`);
+    if (!Array.isArray(rawParents)) throw protocolError(ErrorCode.INVALID_GRAPH, `parents for ${hash} must be an array`);
+    const parents = rawParents.map(normalizeChecked);
+    if (new Set(parents).size !== parents.length) throw protocolError(ErrorCode.DUPLICATE_PARENT, `duplicate parent for ${hash}`);
+    prepared.set(hash, parents);
+  }
+  return prepared;
+}
+
+function normalizeChecked(hash: string): string {
+  const normalized = normalize(hash);
+  if (!HASH_PATTERN.test(normalized)) throw protocolError(ErrorCode.INVALID_HASH, "invalid graph hash");
+  return normalized;
 }
 
 // ── Private phases ──
 
 /** Phase 0: DFS cycle pre-check. Returns true if any cycle is reachable from root. O(V+E). */
 function detectCycleFromRoot(root: string, graph: Map<string, string[]>): boolean {
-  const visiting = new Set<string>();
-  const visited = new Set<string>();
-  let found = false;
-
-  function visit(node: string): void {
-    if (found || visited.has(node)) return;
-    if (visiting.has(node)) { found = true; return; }
-    visiting.add(node);
-    for (const p of graph.get(node) ?? []) visit(normalize(p));
-    visiting.delete(node);
-    visited.add(node);
+  const state = new Map<string, 0 | 1 | 2>();
+  const stack: Array<{ node: string; next: number }> = [{ node: root, next: 0 }];
+  state.set(root, 1);
+  while (stack.length) {
+    const frame = stack[stack.length - 1];
+    const parents = graph.get(frame.node) ?? [];
+    if (frame.next >= parents.length) {
+      state.set(frame.node, 2);
+      stack.pop();
+      continue;
+    }
+    const parent = parents[frame.next++];
+    if (state.get(parent) === 1) return true;
+    if (state.get(parent) !== 2) {
+      state.set(parent, 1);
+      stack.push({ node: parent, next: 0 });
+    }
   }
-
-  visit(root);
-  return found;
+  return false;
 }
 
 interface BfsResult {
@@ -172,8 +202,7 @@ function bfsDiscover(
 interface PropagationResult {
   minDepths: Map<string, number>;
   maxDepths: Map<string, number>;
-  pathCounts: Map<string, number>;
-  precisionLoss: boolean;
+  pathCounts: Map<string, bigint>;
 }
 
 /** Phase 2: Kahn's topological sort to propagate min/max depths and exact path counts. O(V+E). */
@@ -185,7 +214,7 @@ function propagateDepthsAndPaths(
 ): PropagationResult {
   const minDepths = new Map<string, number>([[root, 0]]);
   const maxDepths = new Map<string, number>([[root, 0]]);
-  const pathCounts = new Map<string, number>([[root, 1]]);
+  const pathCounts = new Map<string, bigint>([[root, 1n]]);
 
   const inDegree = new Map<string, number>();
   for (const hash of discovered) inDegree.set(hash, 0);
@@ -194,36 +223,31 @@ function propagateDepthsAndPaths(
   const queue: string[] = [];
   for (const [hash, deg] of inDegree) { if (deg === 0) queue.push(hash); }
   let head = 0;
-  let precisionLoss = false;
-
   while (head < queue.length) {
     const hash = queue[head++];
     const depth = minDepths.get(hash) ?? 0;
     const maxD = maxDepths.get(hash) ?? 0;
-    const myPaths = pathCounts.get(hash) ?? 0;
+    const myPaths = pathCounts.get(hash) ?? 0n;
 
     for (const parent of graph.get(hash) ?? []) {
       const p = normalize(parent);
       if (!discovered.has(p)) continue;
       minDepths.set(p, Math.min(minDepths.get(p) ?? Infinity, depth + 1));
       maxDepths.set(p, Math.max(maxDepths.get(p) ?? 0, maxD + 1));
-      const accumulated = (pathCounts.get(p) ?? 0) + myPaths;
-      if (accumulated > Number.MAX_SAFE_INTEGER) precisionLoss = true;
-      pathCounts.set(p, accumulated);
+      pathCounts.set(p, (pathCounts.get(p) ?? 0n) + myPaths);
       const remaining = (inDegree.get(p) ?? 1) - 1;
       inDegree.set(p, remaining);
       if (remaining === 0) queue.push(p);
     }
   }
 
-  return { minDepths, maxDepths, pathCounts, precisionLoss };
+  return { minDepths, maxDepths, pathCounts };
 }
 
 /** Assemble the final AttributionTrace from computed phase data. */
 function buildTraceOutput(data: {
   root: string;
   mode: string;
-  cycleDetected: boolean;
   discovered: Set<string>;
   edgeList: TraceEdge[];
   childCounts: Map<string, number>;
@@ -232,11 +256,10 @@ function buildTraceOutput(data: {
   externalParents: Set<string>;
   minDepths: Map<string, number>;
   maxDepths: Map<string, number>;
-  pathCounts: Map<string, number>;
-  precisionLoss: boolean;
+  pathCounts: Map<string, bigint>;
 }): AttributionTrace {
-  const { root, mode, cycleDetected, discovered, edgeList, childCounts, parentCounts,
-          missingParents, externalParents, minDepths, maxDepths, pathCounts, precisionLoss } = data;
+  const { root, mode, discovered, edgeList, childCounts, parentCounts,
+          missingParents, externalParents, minDepths, maxDepths, pathCounts } = data;
 
   const nodes: TraceNode[] = [];
   const leaves: string[] = [];
@@ -251,7 +274,7 @@ function buildTraceOutput(data: {
       hash,
       minDepth:    minD,
       maxDepth:    maxD,
-      pathCount:   pathCounts.get(hash) ?? 0,
+      pathCount:   (pathCounts.get(hash) ?? 0n).toString(),
       parentCount: pCount,
       childCount:  childCounts.get(hash) ?? 0,
     });
@@ -267,36 +290,51 @@ function buildTraceOutput(data: {
   return {
     root,
     validationMode: mode as "closed-world" | "open-world",
-    complete: missingParents.size === 0 && externalParents.size === 0 && !cycleDetected,
+    complete: missingParents.size === 0 && externalParents.size === 0,
     nodes,
     edges: edgeList,
     leaves,
     missingParents: [...missingParents].sort(),
     externalParents: [...externalParents].sort(),
     maxDepth: globalMaxDepth,
-    cycle: cycleDetected,
-    precisionLoss,
   };
 }
 
 export function verifyTrace(trace: AttributionTrace, graph: Map<string, string[]>, context?: TraceContext): TraceVerification {
   const expected = traceAttribution(trace.root, graph, context);
   const issues: string[] = [];
+  const topLevelFields = ["root", "validationMode", "complete", "nodes", "edges", "leaves", "missingParents", "externalParents", "maxDepth"];
+  const nodeFields = ["hash", "minDepth", "maxDepth", "pathCount", "parentCount", "childCount"];
+  const edgeFields = ["from", "to"];
+  if (hasUnexpectedFields(trace as unknown as Record<string, unknown>, topLevelFields)
+      || trace.nodes.some((node) => hasUnexpectedFields(node as unknown as Record<string, unknown>, nodeFields))
+      || trace.edges.some((edge) => hasUnexpectedFields(edge as unknown as Record<string, unknown>, edgeFields))) {
+    issues.push("unexpected_fields");
+  }
   const nodeHashes = trace.nodes.map((node) => node.hash);
   if (new Set(nodeHashes).size !== nodeHashes.length) issues.push("duplicate_nodes");
   const edgeKeys = trace.edges.map((edge) => `${edge.from}\0${edge.to}`);
   if (new Set(edgeKeys).size !== edgeKeys.length) issues.push("duplicate_edges");
   if (new Set(trace.leaves).size !== trace.leaves.length) issues.push("duplicate_leaves");
-  if (JSON.stringify(trace.nodes) !== JSON.stringify(expected.nodes)) issues.push("nodes_mismatch");
-  if (JSON.stringify(trace.edges) !== JSON.stringify(expected.edges)) issues.push("edges_mismatch");
+  if (JSON.stringify(trace.nodes.map((node) => project(node, nodeFields))) !== JSON.stringify(expected.nodes.map((node) => project(node, nodeFields)))) issues.push("nodes_mismatch");
+  if (JSON.stringify(trace.edges.map((edge) => project(edge, edgeFields))) !== JSON.stringify(expected.edges.map((edge) => project(edge, edgeFields)))) issues.push("edges_mismatch");
   if (JSON.stringify(trace.leaves) !== JSON.stringify(expected.leaves)) issues.push("leaves_mismatch");
   if (trace.validationMode !== expected.validationMode) issues.push("validation_mode_mismatch");
   if (trace.complete !== expected.complete) issues.push("complete_mismatch");
   if (JSON.stringify(trace.missingParents) !== JSON.stringify(expected.missingParents)) issues.push("missing_parents_mismatch");
   if (JSON.stringify(trace.externalParents) !== JSON.stringify(expected.externalParents)) issues.push("external_parents_mismatch");
   if (trace.maxDepth !== expected.maxDepth) issues.push("max_depth_mismatch");
-  if (trace.cycle !== expected.cycle) issues.push("cycle_mismatch");
   return { ok: issues.length === 0, issues };
+}
+
+function hasUnexpectedFields(value: Record<string, unknown>, allowed: string[]): boolean {
+  const allowedSet = new Set(allowed);
+  return Object.keys(value).some((key) => !allowedSet.has(key));
+}
+
+function project(value: object, fields: string[]): unknown[] {
+  const record = value as Record<string, unknown>;
+  return fields.map((field) => record[field]);
 }
 
 const normalize = normalizeHashLenient;

@@ -18,6 +18,7 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createInterface } from "node:readline";
+import { decodeStrictJsonBytes } from "../conformance/lib/strict-json.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = resolve(__dirname, "dist");
@@ -36,6 +37,15 @@ async function handle(op) {
   switch (op.operation) {
     case "canonicalize":
       return { output: canonicalizeProtocolJson(op.input) };
+
+    case "decodeRawJson": {
+      try {
+        const value = decodeStrictJsonBytes(Buffer.from(op.input.rawHex, "hex"));
+        return { output: { ok: true, value } };
+      } catch {
+        return { output: { ok: false, errorCode: "ALX_SCHEMA_INVALID" } };
+      }
+    }
 
     case "canonicalizeGeneratedDepth": {
       let value = op.input.leaf;
@@ -103,8 +113,7 @@ async function handle(op) {
     }
 
     case "validateGraph": {
-      const graph = new Map(Object.entries(op.input.graph));
-      return { output: validateGraph(graph, op.input.context) };
+      return { output: validateGraph(op.input.seed, op.input.source, op.input.context) };
     }
 
     case "verifyTrace": {
