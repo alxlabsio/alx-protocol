@@ -16,7 +16,7 @@ Production readiness concerns for systems that create, store, retrieve, and vali
 
 - Protocol specification (see [`protocol/spec.md`](../../protocol/spec.md))
 - SDK implementation details (see [`api-reference.md`](./api-reference.md))
-- Settlement policy or economic design (see [`settlement.md`](./settlement.md))
+- Settlement policy or economic design (see [`application-settlement-boundaries.md`](./application-settlement-boundaries.md))
 - Smart contract development or auditing
 
 ---
@@ -32,7 +32,7 @@ Production readiness concerns for systems that create, store, retrieve, and vali
 ### Protocol conformance test suite
 
 - [ ] Run the full conformance test suite against the integration (`npm test` or equivalent).
-- [ ] Confirm all test vectors from `protocol/test-vectors/` pass.
+- [ ] Confirm all test vectors from `test-vectors/` pass.
 - [ ] Verify that invalid Blocks are correctly rejected (negative test cases).
 
 ### Round-Trip Hash Test
@@ -73,7 +73,7 @@ Production readiness concerns for systems that create, store, retrieve, and vali
 
 - [ ] Enforce a maximum `content` size limit appropriate to the application.
 - [ ] Enforce a maximum Graph depth limit to prevent excessive traversal.
-- [ ] Validate that `parentHashes` references resolve to known Blocks before accepting a new Block.
+- [ ] Define whether ingestion requires closed-world parent availability, permits declared open-world boundaries, or buffers unresolved parents. Missing Block data is not by itself a definite protocol violation.
 - [ ] Reject Blocks with malformed or missing required fields.
 
 ### Hash Verification On Ingest
@@ -100,7 +100,7 @@ Production readiness concerns for systems that create, store, retrieve, and vali
 
 ALX inspects no content. PII, regulated data, and policy violations inside a Block are invisible to the protocol. Content inspection must complete before calling `createBlock`.
 
-> Treat `createBlock` as the point of no return. Content cannot be modified after locking without invalidating the Block.
+> Treat a created Block as an immutable value in storage. Changing its content or parents creates a different identity; create a new Block instead of mutating the stored value.
 
 - [ ] Apply DLP scanning to content before calling `createBlock`.
 - [ ] Enforce data classification policies: do not lock content that exceeds the permitted sensitivity level for the target storage or transit path.
@@ -122,7 +122,7 @@ ALX inspects no content. PII, regulated data, and policy violations inside a Blo
 ### Graph Integrity Checks
 
 - [ ] Schedule periodic `validateGraph` runs against stored Block collections.
-- [ ] Alert on any orphaned references (parentHashes pointing to missing Blocks).
+- [ ] Track required parent references that are unavailable within the application's declared verification scope.
 - [ ] Track Graph size (total Block count, maximum depth) over time.
 
 ### Storage Growth Tracking

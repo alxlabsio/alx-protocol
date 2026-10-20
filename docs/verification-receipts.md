@@ -27,9 +27,7 @@ A receipt remains outside Block identity.
 
 The core Block identity remains:
 
-```text
-blockHash = hash(content + parentHashes)
-```
+The exact domain-separated derivation is defined in [`IDENTITY.md`](../IDENTITY.md) and the canonical specification. A receipt is never an input to that derivation.
 
 A receipt may reference a Block, a trace, a validation mode, and the verification result. A receipt leaves unchanged:
 

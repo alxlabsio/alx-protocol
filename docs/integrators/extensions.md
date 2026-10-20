@@ -91,12 +91,12 @@ ALX content can remain opaque.
 
 Applications may use the published [Content Envelope schema](../../protocol/schemas/content-envelope.schema.json) for typed, indexed, schema-bound, or conformance-bound content. Its [extension manifest](../../protocol/extensions/content-profile/extension.json) classifies the envelope as a provisional optional content profile.
 
-Opaque JSON-serializable `Block.content` remains valid with or without the profile. The profile preserves Block identity and core conformance.
+Any valid ALX value in `Block.content` remains valid with or without the profile. The profile preserves Block identity and core conformance.
 
 ## Related Documents
 
-- [`adapters.md`](./adapters.md)
-- [`settlement.md`](./settlement.md)
+- [`block-storage-adapters.md`](./block-storage-adapters.md)
+- [`application-settlement-boundaries.md`](./application-settlement-boundaries.md)
 - [`../verification-receipts.md`](../verification-receipts.md)
 - [`../../protocol/extensions/`](../../protocol/extensions/)
 - [`../../protocol/spec.md`](../../protocol/spec.md)

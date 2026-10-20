@@ -55,7 +55,9 @@ Environment variables:
 
 | Variable | Purpose |
 |---|---|
-| `ALX_ANCHOR_ADDRESS` | Override the configured contract address |
+| `ALX_ANCHOR_ADDRESS` | CLI-only override for the selected contract address |
+| `ALX_ANCHOR_ADDRESS_BASE_SEPOLIA` | Base Sepolia address override declared by the integration config |
+| `ALX_ANCHOR_ADDRESS_BASE_MAINNET` | Base mainnet address override declared by the integration config |
 | `ALX_BASE_SEPOLIA_RPC_URL` | Base Sepolia RPC endpoint |
 | `ALX_BASE_RPC_URL` | Base mainnet RPC endpoint |
 | `ALX_DEPLOY_KEY` | Transaction-signing private key; never commit it |

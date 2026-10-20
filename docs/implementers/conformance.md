@@ -39,6 +39,12 @@ Run an external implementation:
 node conformance/bin/run.js --impl "./my-implementation"
 ```
 
+Repository maintainers run all three maintained implementations and the pairwise differential gate with:
+
+```bash
+pnpm run verify:cross-language
+```
+
 ## Core Suite Inventory
 
 | Suite | Comparison mode | Purpose |
@@ -52,6 +58,7 @@ node conformance/bin/run.js --impl "./my-implementation"
 | `attribution-trace` | semantic | Trace structure and metrics |
 | `lineage-negative` | semantic | Invalid graph behavior |
 | `lineage-boundaries` | semantic | Closed-world and open-world boundaries |
+| `graph-validation-outcomes` | exact-output | Graph outcome, precedence, scope, and resource-boundary envelopes |
 | `semantic-validity` | semantic | Required validation outcomes |
 | `semantic-integrity` | semantic | Tamper and mismatch detection |
 
@@ -90,6 +97,12 @@ Semantic suites assert outcomes such as:
 
 Semantic conformance requires no byte-identical diagnostic fields, warning strings, or convenience outputs.
 
+## Differential verification
+
+The differential gate is an additional repository-maintainer check, not a replacement for canonical expected results. TypeScript, Python, and Rust are compared pairwise for portable canonicalization, complete Blocks, Graph verification, and Trace construction. No implementation is treated as the reference oracle and no majority vote can override canonical sources.
+
+Repeated execution, reversed or deterministically shuffled finite Block-source order, and reversed Graph insertion order must preserve normative output. Canonical error identifiers must agree; implementation-specific message text need not. The JSON evidence report records suite digests, adapter outputs or errors, expected-result mismatches, pairwise mismatches, and determinism mismatches.
+
 ## Optional extension conformance
 
 Merkle and signing are optional extensions.
@@ -122,6 +135,6 @@ An implementation fails conformance when the implementation:
 ## Related Documents
 
 - [`../../protocol/suites.json`](../../protocol/suites.json)
-- [`../../protocol/test-vectors/`](../../protocol/test-vectors/)
+- [`../../test-vectors/`](../../test-vectors/)
 - [`../../conformance/README.md`](../../conformance/README.md)
 - [`../../reference-implementations/PARITY.md`](../../reference-implementations/PARITY.md)

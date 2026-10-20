@@ -8,7 +8,7 @@ This architecture decision records how content opacity allows ALX Protocol v1 Bl
 
 ## Context
 
-ALX Protocol supports verifiable digital artifacts across AI, software, research, compliance, education, creative media, and product workflows. These artifacts can contain many forms of JSON-serializable content, including research summaries, source code, structured analysis, generated responses, metadata objects, numeric values, and domain-specific records.
+ALX Protocol supports Block content across AI, software, research, compliance, education, creative media, and product workflows. Content can use any ALX value, including strings, objects, arrays, numbers, booleans, and null.
 
 A shared protocol identity layer needs stable rules for hashing and lineage while allowing applications to define domain-specific meaning, validation, display, and workflow behavior.
 
@@ -16,7 +16,7 @@ A shared protocol identity layer needs stable rules for hashing and lineage whil
 
 ALX Protocol treats `content` as **opaque**.
 
-The protocol canonicalizes and hashes JSON-serializable content as part of Block identity. Application layers own content interpretation, domain validation, display behavior, semantic meaning, and workflow-specific constraints.
+The protocol canonicalizes and hashes ALX values as part of Block identity. Application layers own content interpretation, domain validation, display behavior, semantic meaning, and workflow-specific constraints.
 
 ## Rationale
 
@@ -24,7 +24,7 @@ The protocol canonicalizes and hashes JSON-serializable content as part of Block
 
 2. **Clear protocol boundary.** ALX provides deterministic identity, lineage, and verification structure. Applications provide content schemas, semantic validation, user-facing interpretation, and domain-specific rules.
 
-3. **Forward-compatible product design.** New artifact types use the same ALX v1 Block structure when content is JSON-serializable. Product teams can introduce new content conventions while preserving the protocol identity model.
+3. **Forward-compatible product design.** New application content types use the same ALX v1 Block structure when content remains an ALX value. Product teams can introduce new content conventions while preserving the protocol identity model.
 
 4. **Stable implementation behavior.** Implementations can canonicalize and hash content consistently with a shared protocol algorithm. Domain-specific parsers, validators, and schema registries remain in application or extension layers.
 
@@ -32,7 +32,7 @@ The protocol canonicalizes and hashes JSON-serializable content as part of Block
 
 ## Design Options Reviewed
 
-- **Opaque JSON-serializable content:** Supports broad artifact compatibility, stable Block identity, simple implementation requirements, and product-level extensibility. ALX v1 selects this model for core Block content.
+- **Opaque ALX-value content:** Supports broad application compatibility, stable Block identity, simple implementation requirements, and product-level extensibility. ALX v1 selects this model for core Block content.
 
 - **Protocol-required content schemas:** Provides stronger domain structure for specific applications. ALX v1 keeps schemas at the application and extension layer so the core protocol can support many artifact categories through one identity model.
 
@@ -48,7 +48,7 @@ The protocol canonicalizes and hashes JSON-serializable content as part of Block
 
 - Content schema conventions can live in integrator guides, extension documents, product schemas, or application-level standards while core Block validity remains stable.
 
-- Canonical test vectors should include diverse JSON-serializable content forms, including strings, objects, arrays, numbers, booleans, and null values, to demonstrate content opacity.
+- Canonical test vectors should include diverse ALX values, including strings, objects, arrays, numbers, booleans, and null, to demonstrate content opacity.
 
 - Product teams can build specialized workflows on ALX Blocks while preserving the same core identity and lineage model.
 
@@ -57,6 +57,7 @@ The protocol canonicalizes and hashes JSON-serializable content as part of Block
 ## Related Documents
 
 - [`../../protocol/spec.md`](../../protocol/spec.md)
-- [`../deep-dives/canonical-envelope.md`](../deep-dives/canonical-envelope.md)
+- [`../../CANONICALIZATION.md`](../../CANONICALIZATION.md)
+- [`../../IDENTITY.md`](../../IDENTITY.md)
 - [`../integrators/extensions.md`](../integrators/extensions.md)
 - [`../integrators/ai-conventions.md`](../integrators/ai-conventions.md)

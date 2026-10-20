@@ -1,330 +1,118 @@
-# ALX For Agent Developers
+# Agent Application Integration
 
-Agent integration patterns for ALX Blocks. Protocol behavior remains defined by [`../../protocol/spec.md`](../../protocol/spec.md).
+**Document type:** Guide
 
----
+This guide shows how an application can create ALX Blocks around agent inputs and outputs. Agent frameworks, models, prompts, tool calls, and workflow metadata remain application concerns. Canonical behavior is defined in [`../../protocol/spec.md`](../../protocol/spec.md).
 
-## Block Model For Agents
+## Boundary
 
-A Block gives an agent output deterministic identity and declared parent lineage. `validateBlock()` recomputes identity from protocol data. Graph traversal exposes declared dependencies. Application content records agent roles and workflow context.
+An agent should provide content and known parent Block identities to a conforming SDK. It should not invent `contentHash`, `blockHash`, Graph results, or Trace values.
 
-A Block is:
+Application fields such as `type`, `agent`, `model`, `prompt`, `output`, and `timestamp` are conventions inside `content`; they are not required Block fields.
 
-```
-Block = { blockHash, contentHash, parentHashes, content }
-```
+## Create Blocks at durable workflow boundaries
 
-The protocol hashes, links, validates, and traces Blocks without inspecting `content`. Application layers interpret `content`.
-
----
-
-## Agent To Block: Producing Artifacts
-
-An agent wraps output in a Block by calling `createBlock(content, parentHashes)`. The content is an arbitrary JSON-serializable value. The `parentHashes` array links the output to upstream inputs.
-
-```javascript
+```ts
 import { createBlock } from "@alx-protocol/sdk";
 
-// Agent produces a research finding
-const finding = createBlock({
-  type: "ai.response",
-  model: "gpt-4",
-  agent: "research-agent-v2",
-  prompt: "Analyze Q4 market trends",
-  response: "AI infrastructure spending grew 47% YoY...",
-  timestamp: Date.now(),
-}, []);
+const source = createBlock(
+  { type: "research.source", text: "Reviewed source material" },
+  [],
+);
 
-// finding.blockHash is the permanent, verifiable identity of the output
-console.log(finding.blockHash);    // "0x..." (deterministic keccak-256)
-console.log(finding.contentHash);  // "0x..." (hash of content alone)
-console.log(finding.parentHashes); // [] (no dependencies)
+const analysis = createBlock(
+  { type: "agent.analysis", model: "application-selected", text: "Analysis output" },
+  [source.blockHash],
+);
+
+const report = createBlock(
+  { type: "agent.report", text: "Final report" },
+  [analysis.blockHash, source.blockHash],
+);
 ```
 
-The returned Block is a plain object. Store the Block in a database, object store, content-addressed storage system, or local file. The hash guarantees that any party can verify the Block later, independent of storage location or transport path.
+`parentHashes` declares direct structural parents. It does not prove that an agent read, understood, or was causally influenced by the referenced content. Applications define when a workflow relationship should be declared.
 
----
+## Validate individual Blocks
 
-## Multi-Agent Chains
-
-When agents build on each other's work, pass upstream `blockHash` values as `parentHashes`. The pattern creates a directed acyclic graph (Graph) that records which agent contributed what and which outputs depend on which inputs.
-
-```javascript
-import { createBlock } from "@alx-protocol/sdk";
-
-// Agent 1: Research
-const research = createBlock({
-  type: "ai.response",
-  agent: "research-agent-v2",
-  model: "gpt-4",
-  prompt: "Analyze Q4 market trends",
-  response: "AI infrastructure spending grew 47% YoY...",
-  timestamp: Date.now(),
-}, []);
-
-// Agent 2: Analysis (builds on research)
-const analysis = createBlock({
-  type: "ai.analysis",
-  agent: "analyst-agent-v1",
-  model: "claude-sonnet-4-20250514",
-  input: "Summarize implications of the research",
-  output: "The 47% growth rate suggests...",
-  timestamp: Date.now(),
-}, [research.blockHash]);
-
-// Agent 3: Decision (builds on both research and analysis)
-const decision = createBlock({
-  type: "ai.decision",
-  agent: "planner-agent-v1",
-  model: "gpt-4",
-  input: "Recommend allocation based on research and analysis",
-  output: "Increase AI infrastructure allocation by 20%...",
-  timestamp: Date.now(),
-}, [research.blockHash, analysis.blockHash]);
-```
-
-The resulting Graph:
-
-```
-research (depth 0, no parents)
-    |
-    +---> analysis (depth 1, parent: research)
-    |         |
-    +---------+---> decision (depth 2, parents: research, analysis)
-```
-
-The SDK normalizes, sorts, and deduplicates `parentHashes` automatically. Pass order does not affect the resulting `blockHash` — the protocol enforces canonical ordering.
-
----
-
-## Consuming Blocks
-
-An agent that receives a Block can verify integrity and trace lineage without trusting the sender.
-
-### Validate A Single Block
-
-```javascript
+```ts
 import { validateBlock } from "@alx-protocol/sdk";
 
-// Recompute the hash from content + parents and compare
-const result = validateBlock(block);
-
-if (!result.ok) {
-  // result.expected = what the hash should be
-  // result.actual   = what the block claims
-  throw new Error(`Block integrity compromised: expected ${result.expected}, got ${result.actual}`);
+for (const block of [source, analysis, report]) {
+  const result = validateBlock(block);
+  if (!result.ok) throw new Error(`Invalid Block: ${block.blockHash}`);
 }
 ```
 
-`validateBlock` recomputes `keccak256(canonicalize({ content, parentHashes }))` and compares the result to the Block's `blockHash`. Content, parent, or hash changes cause validation failure.
+Block validation proves only the applicable structural and identity properties. It does not establish content truth, model identity, authorship, safety, or authorization.
 
-### Validate A Graph Of Blocks
+## Verify the available Graph
 
-```javascript
-import { buildGraph, validateGraph } from "@alx-protocol/sdk";
+```ts
+import { validateGraph } from "@alx-protocol/sdk";
 
-// Build a graph from an array of blocks
-const blocks = [research, analysis, decision];
+const blocks = [source, analysis, report];
+const result = validateGraph(
+  report,
+  { kind: "finite", blocks },
+  {
+    protocolVersion: "1",
+    validationMode: "closed-world",
+    graphRoot: report.blockHash,
+  },
+);
+
+if (result.status !== "valid") {
+  console.error(result.status, result.issues, result.missingParents);
+}
+```
+
+Use `incomplete` to distinguish unavailable required Blocks from definite violations. Use resource limits for untrusted or large sources; a resource-limited result is not a complete validation claim.
+
+Open-world mode is appropriate only when external parents are explicitly declared in the verification context. It is not permission to ignore arbitrary missing parents.
+
+## Construct a Trace
+
+```ts
+import { buildGraph, traceAttribution } from "@alx-protocol/sdk";
+
 const graph = buildGraph(blocks);
-
-// Check structural integrity: no cycles, no self-references,
-// no missing parents, no duplicates
-const graphResult = validateGraph(graph);
-
-if (!graphResult.ok) {
-  console.error("Graph issues:", graphResult.issues);
-}
-
-console.log(`Blocks: ${graphResult.blocks}`);
-console.log(`Edges: ${graphResult.edges}`);
-console.log(`Roots: ${graphResult.roots}`);
+const trace = traceAttribution(report.blockHash, graph);
 ```
 
-### Trace Attribution
+Trace nodes, edges, depths, and `pathCount` describe structure. They are not contribution, authorship, ownership, quality, or settlement weights.
 
-```javascript
-import { traceAttribution, buildGraph } from "@alx-protocol/sdk";
+## Framework integration pattern
 
-const blocks = [research, analysis, decision];
-const graph = buildGraph(blocks);
+For LangChain, CrewAI, AutoGen, an MCP host, or a custom runtime, integrate at the application lifecycle boundary:
 
-// Trace the full lineage from the decision block
-const trace = traceAttribution(decision.blockHash, graph);
+1. select the exact input/output content the application intends to preserve;
+2. resolve the direct parent Blocks already known to the application;
+3. call `createBlock` after the durable step completes;
+4. validate before persistence or exchange;
+5. store the complete Block and application metadata separately;
+6. re-run Graph verification when missing parents arrive or the verification context changes.
 
-// trace.nodes: every contributing block with depth and path counts
-for (const node of trace.nodes) {
-  console.log(`${node.hash} depth=${node.minDepth} paths=${node.pathCount}`);
-}
-// Output:
-//   decision  depth=0 paths=1
-//   research  depth=1 paths=2  (reachable via decision->research AND decision->analysis->research)
-//   analysis  depth=1 paths=1
+Framework callback APIs and package versions change independently of ALX. Keep framework-specific adapter code with the application rather than copying version-sensitive snippets into protocol documentation.
 
-// trace.edges: every dependency link
-// trace.leaves: blocks with no parents (the original sources)
-// trace.maxDepth: longest chain length
-// trace.cycle: whether a cycle was detected
-```
+## Derived child and Explorer views
 
-`pathCount` reports how many distinct derivation paths reach a given Block from the root. In the example above, `research` has `pathCount=2` because the decision depends on `research` both directly and through analysis. `pathCount` is a structural Graph property rather than a policy decision.
+A Block stores parents only. Children and descendants are derived by scanning or indexing Blocks that declare a hash in `parentHashes`. An application index should report its source scope, revision, pagination, and truncation state.
 
----
+An indexed neighborhood is not an Attribution Trace and must not reuse Trace `complete` to describe index coverage.
 
-## Content Conventions For Agents
+## Data and security
 
-The protocol excludes inspection or enforcement of content structure. The following field conventions make agent-produced Blocks interoperable across systems:
+- Apply privacy, consent, DLP, malware, and policy checks before Block creation or persistence.
+- Keep prompts, credentials, provider tokens, private tool results, and user data out of public Blocks unless explicitly authorized.
+- Treat model and agent identifiers in `content` as application claims.
+- Apply authorization and replay policy outside core Block verification.
+- Do not execute retrieved content merely because its Block validates.
 
-| Field | Purpose | Example values |
-|---|---|---|
-| `type` | Artifact kind | `"ai.prompt"`, `"ai.response"`, `"ai.tool-call"`, `"ai.decision"`, `"ai.embedding"` |
-| `agent` | Agent identifier (name + version) | `"research-agent-v2"`, `"code-gen-v1.3"` |
-| `model` | Model used, if applicable | `"gpt-4"`, `"claude-sonnet-4-20250514"`, `"llama-3-70b"` |
-| `timestamp` | When the output was produced | `1714600000000` (Unix ms) |
+## Related documents
 
-The field list serves as a recommendation rather than a requirement. The protocol hashes whatever appears in `content`. Consistent field names let different agent systems interpret Blocks without out-of-band coordination.
-
-Additional type values for common agent operations:
-
-- `"ai.prompt"` — the input to an agent
-- `"ai.response"` — the agent's output
-- `"ai.tool-call"` — an agent invoking an external tool (API call, database query, code execution)
-- `"ai.decision"` — an agent choosing between alternatives
-- `"ai.embedding"` — a vector representation of content
-
----
-
-## Agent Interoperability
-
-Blocks exclude shared infrastructure between agents. The verification algorithm is pure math:
-
-1. Canonicalize `{ content, parentHashes }` using deterministic JSON serialization.
-2. Hash the result with keccak-256.
-3. Compare.
-
-The pattern implies:
-
-- Agent A (running OpenAI GPT-4) creates a Block.
-- Agent B (running Anthropic Claude) receives the Block, calls `validateBlock`, and confirms integrity.
-- Agent B creates a new Block with Agent A's `blockHash` as a parent.
-- Agent C (a local script with no API keys) can verify the entire chain.
-
-Verification requires no shared database, coordination service, or trust assumptions. Any conformant implementation in any language produces identical hashes for identical inputs.
-
----
-
-## Example: Multi-Vendor Agent Pipeline
-
-A complete pipeline with three different agent systems producing a verified chain:
-
-```javascript
-import {
-  createBlock,
-  validateBlock,
-  buildGraph,
-  validateGraph,
-  traceAttribution,
-} from "@alx-protocol/sdk";
-
-// ── Step 1: Research agent (OpenAI GPT-4) ──────────────────────────
-
-const researchBlock = createBlock({
-  type: "ai.response",
-  agent: "research-agent-v2",
-  model: "gpt-4",
-  prompt: "Summarize recent advances in battery technology",
-  response: "Solid-state batteries have achieved 400 Wh/kg energy density...",
-  timestamp: 1714600000000,
-}, []);
-
-// ── Step 2: Code generator (Anthropic Claude) ──────────────────────
-
-// Verify the research block before building on it
-const researchValid = validateBlock(researchBlock);
-if (!researchValid.ok) throw new Error("Research block is invalid");
-
-const codeBlock = createBlock({
-  type: "ai.response",
-  agent: "codegen-agent-v1",
-  model: "claude-sonnet-4-20250514",
-  prompt: "Write a simulation for solid-state battery degradation",
-  response: "function simulateDegradation(cycles, tempC) { ... }",
-  timestamp: 1714600060000,
-}, [researchBlock.blockHash]);
-
-// ── Step 3: Test runner (local agent, no LLM) ─────────────────────
-
-const codeValid = validateBlock(codeBlock);
-if (!codeValid.ok) throw new Error("Code block is invalid");
-
-const testBlock = createBlock({
-  type: "ai.tool-call",
-  agent: "test-runner-v3",
-  tool: "vitest",
-  input: "Run degradation simulation test suite",
-  output: { passed: 14, failed: 0, duration: "2.3s" },
-  timestamp: 1714600120000,
-}, [codeBlock.blockHash]);
-
-// ── Validate the full graph ────────────────────────────────────────
-
-const allBlocks = [researchBlock, codeBlock, testBlock];
-const graph = buildGraph(allBlocks);
-
-const graphResult = validateGraph(graph);
-console.log("Graph valid:", graphResult.ok);
-console.log("Total blocks:", graphResult.blocks);   // 3
-console.log("Total edges:", graphResult.edges);      // 2
-console.log("Root blocks:", graphResult.roots);      // [researchBlock.blockHash]
-
-// ── Trace attribution from the final output ────────────────────────
-
-const trace = traceAttribution(testBlock.blockHash, graph);
-
-console.log("\nAttribution trace from test results:");
-for (const node of trace.nodes) {
-  // Find the original block to get the agent name
-  const original = allBlocks.find(b => b.blockHash === node.hash);
-  const agent = original?.content?.agent ?? "unknown";
-  console.log(
-    `  ${agent}: depth=${node.minDepth}, paths=${node.pathCount}`
-  );
-}
-// Output:
-//   test-runner-v3:    depth=0, paths=1
-//   codegen-agent-v1:  depth=1, paths=1
-//   research-agent-v2: depth=2, paths=1
-
-console.log(`\nLeaf blocks (original sources): ${trace.leaves}`);
-console.log(`Max chain depth: ${trace.maxDepth}`);
-console.log(`Cycle detected: ${trace.cycle}`);
-```
-
-The trace shows that the test results (depth 0) depend on generated code (depth 1), which depends on research (depth 2). Each Block in the chain came from a different agent running a different model. The entire pipeline is verifiable by anyone with the Blocks — no access to the original agents or APIs required.
-
----
-
-## Key Points
-
-- `createBlock(content, parentHashes)` wraps any agent output in a verifiable container.
-- `validateBlock(block)` confirms a Block is unchanged. Pure hash comparison, no network calls.
-- `buildGraph(blocks)` and `traceAttribution(rootHash, graph)` resolve the full lineage structure.
-- `parentHashes` are the only mechanism for expressing dependencies. The protocol handles normalization and ordering.
-- Content is opaque. Use consistent field names (`type`, `agent`, `model`, `timestamp`) for interoperability. The protocol excludes enforcement of field names.
-- Same content + same parents = same `blockHash`, always. The identity is deterministic across all implementations and languages.
-
----
-
-## Current Tooling Surface
-
-Use the canonical `alx block` and `alx graph` routes for Block creation, verification, and Trace inspection.
-
-Agent systems should provide content and parent Block references to a conformant SDK or service. The SDK computes hashes, validates Blocks, and emits traces or receipts.
-
-Avoid asking the model to invent `contentHash` or `blockHash` values.
-
-## Related Documents
-
-- [`adapters.md`](./adapters.md) — current integration surfaces
-- [`agent-frameworks.md`](./agent-frameworks.md) — LangChain, CrewAI, AutoGen
-- [`attributed-outputs.md`](./attributed-outputs.md) — application-facing lineage and receipt patterns
-- [`api-reference.md`](./api-reference.md) — TypeScript SDK reference
+- [`provider-client-adapters.md`](./provider-client-adapters.md) — optional maintained middleware surface
+- [`ai-conventions.md`](./ai-conventions.md) — application-level content conventions
+- [`attributed-outputs.md`](./attributed-outputs.md) — output and receipt workflow
+- [`storage.md`](./storage.md) — persistence and retrieval boundaries
+- [`api-reference.md`](./api-reference.md) — TypeScript SDK surface

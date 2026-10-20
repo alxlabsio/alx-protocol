@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc" shape-rendering="geometricPrecision">
-  <title id="title">Isolated ALX A mark: isometric</title>
-  <desc id="desc">The symmetric top-face A isolated from the ALX cube, using 30-degree face axes, a centered diamond counter, and zero-radius corners.</desc>
-  <metadata>{&quot;system&quot;:&quot;ALX geometric mark&quot;,&quot;component&quot;:&quot;a&quot;,&quot;axis&quot;:&quot;isometric&quot;,&quot;angle&quot;:30,&quot;viewBox&quot;:1024,&quot;unit&quot;:8,&quot;edge&quot;:352,&quot;gap&quot;:32,&quot;counter&quot;:96}</metadata>
-  <g fill="#ffffff">
-    <path data-roles="a" d="M512 311.999 L892 531.392 L579.175 712.001 L512 626.677 L444.825 712.001 L132 531.392 Z M398 553.331 L512 619.149 L626 553.331 L512 487.513 Z" fill="#ffffff" fill-rule="nonzero"/>
-  </g>
-</svg>

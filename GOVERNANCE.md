@@ -1,229 +1,474 @@
 # Governance
 
-**Status:** Repository governance policy
-**Audience:** Contributors, maintainers, and protocol reviewers
-**Authority:** Governs stewardship and repository decision processes; canonical protocol sources govern protocol behavior
-**Last reviewed:** 2026-08-01
-
-This document describes ALX Protocol stewardship, decision tiers, and conformance as governance. RFC process details live in [`docs/governance/governance.md`](./docs/governance/governance.md). This document does not define protocol behavior.
+This document defines ALX Protocol governance. This document does not define protocol behavior.
 
 ---
 
 ## Purpose
 
-This document explains who stewards ALX Protocol, how protocol-critical changes are classified and reviewed, and how conformance test vectors act as governance for core Block validity.
+This document defines:
 
-## Scope
+* protocol stewardship;
+* protocol authority;
+* change classification;
+* protocol-critical review requirements;
+* conformance governance;
+* architectural constraints;
+* stewardship transition conditions;
+* community participation.
 
-This document covers:
-
-- Stewardship model and separation from Xandr Labs commercial product work
-- Decision tiers (protocol-critical, additive, application-layer)
-- Change classification for pull requests
-- conformance as governance (core vectors and suites)
-- Stewardship transition milestones
-- Architectural constraints enforced by the specification
-
-## Non-Goals
-
-This document does not cover:
-
-- Operational RFC steps and maintainer role tables — see [`docs/governance/governance.md`](./docs/governance/governance.md)
-- Day-to-day contribution mechanics — see [`CONTRIBUTING.md`](./CONTRIBUTING.md)
-- Normative protocol rules — see [`protocol/spec.md`](./protocol/spec.md)
-- Vulnerability reporting — see [`SECURITY.md`](./SECURITY.md)
+RFC procedures are defined in [`docs/governance/protocol-change-process.md`](./docs/governance/protocol-change-process.md).
 
 ---
 
-## Stewardship Model
+## Protocol Stewardship
 
-ALX Protocol is maintained by ALX Foundation, a nonprofit organization. The steward role covers:
+ALX Foundation is the steward of ALX Protocol.
 
-- The normative specification and schemas (`protocol/spec.md`, `protocol/schemas/`)
-- Canonical conformance test vectors and materials (`protocol/test-vectors/`, `conformance/`)
-- Protocol governance and documentation
-- Designation of non-normative reference implementations
+ALX Foundation maintains:
 
-The specification, test vectors, reference implementations, and associated tooling are
-MIT-licensed. Anyone can fork, reimplement, or extend ALX Protocol without permission
-or coordination with ALX Foundation or Xandr Labs.
+* normative protocol sources;
+* canonical conformance materials;
+* protocol governance;
+* protocol releases;
+* reference implementation designations.
 
-Xandr Labs is the founding contributor to ALX Protocol and develops implementations,
-tooling, applications, services, and supporting infrastructure for the ALX ecosystem.
-Commercial products, applications, ecosystem services, and economic mechanisms—including
-those developed by Xandr Labs—do not determine or alter ALX Protocol conformance.
+ALX Labs is the founding contributor.
+
+ALX Labs develops and maintains:
+
+* implementations;
+* tooling;
+* applications;
+* services;
+* supporting infrastructure.
+
+ALX Labs products, applications, services, and economic mechanisms do not determine ALX Protocol conformance.
+
+The protocol specification, canonical conformance materials, reference implementations, and associated tooling are MIT-licensed.
+
+Independent implementations and extensions do not require permission from ALX Foundation or ALX Labs.
 
 ---
 
-## Decision-Making Process
+## Protocol Authority
 
-Changes to ALX fall into three tiers with different review requirements. Operational RFC steps are in [`docs/governance/governance.md`](./docs/governance/governance.md).
+Normative protocol behavior is governed collectively by:
 
-### Protocol-critical changes (core)
+* [`protocol/spec.md`](./protocol/spec.md);
+* [`protocol/schemas/`](./protocol/schemas/);
+* [`test-vectors/`](./test-vectors/);
+* identifiers defined in [`protocol/error-codes.json`](./protocol/error-codes.json).
 
-Changes to core hashing, canonicalization, schemas, Block identity, or attribution
-computation are protocol-critical. Protocol-critical changes require:
+[`protocol/suites.json`](./protocol/suites.json) identifies required conformance suites.
 
-1. **Public proposal** — GitHub Issue with the `rfc` label, or a PR with detailed rationale
-2. **Impact assessment** — explicit declaration of what breaks and what doesn't
-3. **Updated test vectors** — new or modified vectors in `protocol/test-vectors/`
-4. **Cross-implementation verification** — all three reference implementations
-   (TypeScript, Rust, Python) must pass the updated vectors before merge
-5. **Review period** — minimum 7-day comment window for community feedback
-6. **Version bump** — protocol version increment on merge when outputs change
+`protocol/spec.md` defines protocol requirements.
 
-Optional extensions (Content Envelope profile, Merkle, and signing) follow the same RFC discipline with extension manifests and extension-specific verification. Extension changes do not redefine core Block validity.
+`protocol/schemas/` defines machine-readable protocol structures and constraints.
 
-### Additive changes
+`test-vectors/` defines canonical conformance inputs and expected outputs for covered behavior.
 
-New adapters, new signing algorithms, new storage backends, and new CLI commands
-introduce capabilities without altering existing behavior. Additive changes follow standard
-PR review:
+`protocol/error-codes.json` defines canonical protocol error identifiers.
 
-- Spec update if the addition touches protocol surface
-- New test vectors for any new guarantees
-- No version bump required when existing core vector outputs are unchanged
+Implementations, documentation, examples, tooling, and extensions MUST conform to these sources.
 
-### Application-layer changes
+A conflict among normative sources requires protocol governance review.
 
-Documentation, CLI UX, and CI configuration are at maintainer
-discretion. Standard PR process applies; no RFC or review period required.
+Dependent protocol changes MUST NOT proceed until the conflict is resolved.
 
 ---
 
 ## Change Classification
 
-Every PR must declare its impact category:
+Every protocol change MUST declare one classification.
 
-| Classification | Scope | Examples |
-|---|---|---|
-| **Breaking** | Changes protocol-visible behavior | Hash algorithm change, canonicalization rule change, schema field rename, core test vector output change |
-| **Additive** | New capability, no effect on existing behavior | New signing algorithm, new storage adapter, new CLI command, new extension suite |
-| **Refactor** | No protocol-visible effect | Internal code restructuring, dependency updates, documentation fixes |
+| Classification | Definition                                                                                                 |
+| -------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Breaking**   | Changes existing protocol-visible behavior or guarantees                                                   |
+| **Additive**   | Introduces behavior while preserving existing protocol-visible behavior and guarantees                     |
+| **Refactor**   | Changes implementation, tooling, or documentation without changing protocol-visible behavior or guarantees |
 
-Breaking changes that alter existing core test vector outputs require a protocol
-version increment. Additive changes require new test vectors but no version bump when
-existing outputs are unchanged. Refactors require only that existing tests continue to pass.
+A change is **breaking** when it changes:
 
----
+* Block identity derivation;
+* canonicalization behavior;
+* required schema behavior;
+* an existing `contentHash` output;
+* an existing `blockHash` output;
+* `parentHashes` normalization;
+* Graph validity;
+* Trace computation;
+* an existing canonical core test-vector output;
+* an existing protocol guarantee.
 
-## Test Vectors as Governance
+An **additive** change MUST preserve existing protocol-visible behavior, guarantees, and canonical core test-vector outputs.
 
-The required core test vectors and conformance suites listed in [`protocol/suites.json`](./protocol/suites.json) serve as the primary governance mechanism for **core** ALX validity. The vectors cover:
+A **refactor** MUST preserve protocol-visible behavior, guarantees, and canonical core test-vector outputs.
 
-- Canonical JSON serialization (float normalization, Unicode handling, key ordering)
-- Keccak-256 Block identity derivation (`blockHash`, `contentHash`)
-- `parentHashes` normalization and parent limits
-- Attribution Trace computation (`pathCount`, reachability)
-- Lineage and Graph validation (negative and boundary cases)
-- Semantic integrity checks on Block structure
-
-Optional extensions remain outside core conformance. Merkle and signing have extension conformance suites; the Content Envelope profile is schema-only.
-
-**Any implementation that passes all required core test vectors is conformant.** There is no
-certification process, no registry of approved implementations, and no authority
-that grants or revokes conformance status. The vectors are deterministic and
-self-verifying.
-
-**Any change that causes existing core test vectors to produce different outputs is
-breaking by definition.** Cross-implementation CI enforces this; it is not a committee judgment call.
-
-The test vectors are ALX Protocol's authoritative definition — independent of
-any particular implementation or maintainer's interpretation.
+Version requirements are defined in [`docs/governance/versioning.md`](./docs/governance/versioning.md).
 
 ---
 
-## Stewardship Transition Plan
+## Protocol-Critical Changes
 
-Stewardship transition is tied to concrete adoption milestones, not timelines.
-The goal is straightforward: as independent usage grows, control transfers to
-the implementer community.
+A change is protocol-critical when it modifies:
 
-### Current state: single steward
+* canonicalization;
+* hash derivation;
+* Block identity;
+* required Block structure;
+* `parentHashes` normalization;
+* Graph validity;
+* lineage behavior;
+* Trace computation;
+* canonical core test vectors;
+* another core protocol guarantee.
 
-ALX Foundation maintains the specification, schemas, canonical test vectors, conformance
-materials, and protocol governance. Xandr Labs develops reference implementations and
-participates as the founding contributor. Decision authority follows the process described above.
+A protocol-critical change requires:
 
-### At 3+ independent implementations
+1. a public proposal;
+2. an impact assessment;
+3. identification of affected invariants;
+4. identification of affected normative sources;
+5. updates to affected normative sources;
+6. updated or additional canonical test vectors;
+7. cross-implementation conformance;
+8. a minimum seven-day public review period;
+9. the applicable protocol version change.
 
-When three or more conformant implementations exist independently of ALX Foundation and Xandr Labs:
+The public proposal MUST identify the requested behavior and affected protocol surface.
 
-- Establish an **advisory board** with representation from independent
-  implementers
-- Advisory board gains review authority over protocol-critical changes
-- ALX Foundation retains merge authority but commits to not merging over
-  advisory board objections
+Cross-implementation verification MUST include the TypeScript, Rust, and Python implementations.
 
-### At 5+ independent implementations or standards body interest
+A protocol-critical change MUST NOT merge before the required review period and verification are complete.
 
-When five or more independent implementations exist, or a recognized standards
-body (W3C, IETF, or equivalent) expresses formal interest:
+---
 
-- ALX Foundation may transfer or delegate standards stewardship to a recognized standards
-  body or community-governed successor
-- ALX Foundation and Xandr Labs participate through the receiving body's established process,
-  with no unilateral veto power
-- Governance transitions to the receiving body's established process
+## Canonical Test-Vector Changes
 
-### Regardless of stewardship
+A change to an existing canonical core test-vector output is a breaking change.
 
-The stewardship transition commitments survive any transition:
+A correction to an existing canonical vector MUST identify the normative requirement that requires the correction.
 
-- The specification and test vectors remain MIT-licensed
-- No steward, successor foundation, or standards body may impose licensing restrictions
-  on ALX Protocol
-- Xandr Labs retains no special governance authority by virtue of its founding-contributor status
+A vector correction requires:
+
+* identification of the affected normative source;
+* documented reason for the correction;
+* updated conformance material;
+* cross-implementation verification;
+* public review;
+* the version change required by repository policy.
+
+Implementation-specific output MUST NOT replace canonical expected output without protocol governance review.
+
+---
+
+## Additive Changes
+
+An additive change introduces behavior while preserving existing core protocol behavior and guarantees.
+
+Additive changes include:
+
+* new protocol-defined optional capabilities;
+* new signing algorithms;
+* new storage adapters;
+* new CLI capabilities;
+* new extension conformance cases.
+
+An additive protocol-visible change MUST:
+
+* preserve existing canonical core test-vector outputs;
+* update applicable normative sources;
+* include tests for introduced behavior;
+* include conformance cases for introduced protocol requirements or guarantees.
+
+Optional extensions MUST NOT redefine core Block validity.
+
+---
+
+## Application-Layer Changes
+
+An application-layer change does not modify core protocol behavior or guarantees.
+
+Application-layer changes include:
+
+* explanatory documentation;
+* CLI presentation;
+* storage integrations;
+* application adapters;
+* CI configuration;
+* repository tooling.
+
+Application-layer changes follow the standard repository review process.
+
+A change that modifies a protocol-critical dependency, invariant, or conformance requirement MUST follow the protocol-critical change process.
+
+---
+
+## Conformance
+
+An implementation is conforming when it:
+
+* satisfies all applicable normative protocol requirements;
+* passes all required core conformance suites;
+* produces required outputs for canonical test vectors;
+* rejects invalid inputs where required by the protocol.
+
+Core conformance includes the requirements identified by [`protocol/suites.json`](./protocol/suites.json).
+
+Core conformance covers applicable:
+
+* canonicalization;
+* Block identity derivation;
+* `parentHashes` normalization;
+* Block validation;
+* Graph validation;
+* lineage behavior;
+* Trace computation;
+* negative cases;
+* boundary cases.
+
+Optional extensions are not part of core Block validity.
+
+Each protocol-defined extension defines its applicable specification, manifest, and conformance requirements.
+
+Conformance does not require registration, certification, or approval by ALX Foundation, ALX Labs, or an implementation provider.
+
+---
+
+## Conformance Governance
+
+Canonical test vectors define conformance inputs and expected outputs for the behavior they cover.
+
+Canonical test vectors MUST conform to the applicable normative protocol requirements.
+
+Implementations MUST produce the canonical output defined for each applicable vector.
+
+Implementation-specific behavior does not modify protocol requirements.
+
+An implementation disagreement with a canonical vector requires review of:
+
+1. the applicable requirement in `protocol/spec.md`;
+2. the applicable schema;
+3. the canonical test vector;
+4. the implementation behavior.
+
+When the normative sources and canonical vector specify the same behavior, the implementation MUST conform to that behavior.
+
+When normative sources conflict, maintainers MUST resolve the conflict through protocol governance before changing dependent protocol behavior.
+
+---
+
+## Reference Implementations
+
+ALX Protocol maintains reference implementations in TypeScript, Rust, and Python.
+
+Reference implementations provide:
+
+* implementation examples;
+* interoperability evidence;
+* cross-language conformance evidence.
+
+Reference implementation behavior does not define protocol behavior.
+
+A disagreement among reference implementations MUST be resolved against the normative protocol sources and canonical conformance materials.
+
+No reference implementation has independent authority to modify protocol requirements.
+
+---
+
+## Optional Extensions
+
+Optional extensions operate outside core Block validity unless a protocol revision explicitly changes that boundary.
+
+Protocol-defined extensions MUST:
+
+* identify their scope;
+* identify applicable normative sources;
+* preserve core Block validity;
+* define conformance requirements when interoperable behavior is specified.
+
+Extension changes MUST NOT modify core Block identity, canonicalization, Graph validity, or other core guarantees unless processed as a breaking protocol change.
 
 ---
 
 ## Architectural Constraints
 
-The architectural constraints are structural properties enforced by
-the specification and test vectors, not policy decisions. Changing any constraint would require a
-breaking protocol revision.
+The following constraints define core ALX Protocol.
 
-1. **No token mechanics.** ALX Protocol does not define, reference, or require
-   any token, coin, or economic incentive. ALX Protocol defines no fee, stake, or reward
-   at the protocol layer.
+A change to an architectural constraint is a breaking protocol change.
 
-2. **No hosted service dependency.** ALX Protocol does not require any hosted
-   service, API endpoint, or centralized infrastructure to function. Any conformant
-   implementation can operate fully offline.
+### No Token Mechanics
 
-3. **No blockchain requirement.** On-chain anchoring is optional. ALX Protocol
-   operates identically whether Blocks are anchored to Base, another chain,
-   or no chain at all.
+Core ALX Protocol does not define or require:
 
-4. **No content inspection.** ALX Protocol verifies structure, identity, and
-   lineage. ALX Protocol does not interpret, evaluate, or filter content. A conformant
-   implementation cannot distinguish a research paper from a grocery list.
+* a token;
+* a coin;
+* a fee;
+* a stake;
+* a reward;
+* an economic incentive.
 
-The architectural constraints exist because ALX Protocol is a verification layer, not an application
-platform. Removing any constraint would compromise ALX Protocol utility as neutral
-infrastructure.
+Economic mechanisms MAY reference ALX Blocks outside the core protocol.
+
+Economic mechanisms MUST NOT affect core Block validity.
+
+### No Hosted Service Dependency
+
+Core Block creation and verification MUST NOT require:
+
+* a hosted service;
+* a vendor API;
+* a registry;
+* centralized infrastructure.
+
+A conforming implementation MUST support core Block creation and verification through local computation over required protocol data.
+
+### No Blockchain Requirement
+
+Core ALX Protocol does not require a blockchain.
+
+Anchoring MAY operate as an external mechanism or optional extension.
+
+Anchoring MUST NOT affect core Block validity.
+
+### No Content Interpretation
+
+Core ALX Protocol treats Block `content` as opaque application data constrained to the ALX value model.
+
+Core protocol verification does not determine:
+
+* semantic meaning;
+* factual accuracy;
+* authorship;
+* originality;
+* content quality;
+* ownership;
+* legal status;
+* policy compliance;
+* economic value;
+* reward eligibility.
+
+Applications and external systems determine these properties.
+
+---
+
+## Stewardship Transition
+
+Stewardship transition is triggered by the conditions defined in this section.
+
+### Current State
+
+ALX Foundation is the protocol steward.
+
+ALX Labs is the founding contributor and an implementation maintainer.
+
+ALX Foundation holds merge authority for canonical protocol materials under the governance process defined by this repository.
+
+### Three Independent Implementations
+
+This transition condition is met when at least three conforming implementations are maintained independently of ALX Foundation and ALX Labs.
+
+When this condition is met:
+
+* ALX Foundation MUST establish an advisory board;
+* the advisory board MUST include independent implementer representation;
+* the advisory board receives review authority over protocol-critical changes;
+* ALX Foundation retains repository merge authority;
+* ALX Foundation MUST NOT merge a protocol-critical change over a formal advisory board objection.
+
+### Five Independent Implementations or Standards Process
+
+This transition condition is met when:
+
+* at least five conforming implementations are maintained independently of ALX Foundation and ALX Labs; or
+* a recognized standards body initiates a formal ALX Protocol standardization process.
+
+When this condition is met, ALX Foundation MAY transfer or delegate protocol stewardship to a recognized standards body or community-governed successor.
+
+Following a transfer:
+
+* governance follows the receiving body's documented process;
+* ALX Foundation participates through that process;
+* ALX Labs participates through that process;
+* founding-contributor status grants no independent governance authority.
+
+### Transition Requirements
+
+A stewardship transition MUST preserve:
+
+* public access to the protocol specification;
+* public access to canonical conformance materials;
+* existing open-source licensing commitments;
+* independent implementation rights.
+
+Founding-contributor status does not grant permanent protocol authority.
+
+---
+
+## Governance Records
+
+Protocol-critical governance decisions MUST have a public repository record.
+
+The record MUST identify:
+
+* the proposed change;
+* change classification;
+* affected normative sources;
+* affected invariants;
+* review outcome;
+* conformance status;
+* version impact.
+
+Protocol releases MUST be recorded through the repository release process.
+
+Revision history is maintained in [`CHANGELOG.md`](./CHANGELOG.md).
 
 ---
 
 ## Community Participation
 
-- **Issues and PRs**: [github.com/xandrlabs/alx-protocol](https://github.com/xandrlabs/alx-protocol)
-- **Discussions**: GitHub Discussions on the same repository
-- **Security disclosures**: `security@xandrlabs.ai` (see [SECURITY.md](./SECURITY.md))
-- **Contributing**: see [CONTRIBUTING.md](./CONTRIBUTING.md) for scope, PR requirements, and design principles
+Protocol development occurs through the public repository.
 
-Anyone can implement ALX Protocol in any language. Protocol conformance — passing the required core test
-vectors — is the only requirement. No registration, no approval, no
-coordination with ALX Foundation or Xandr Labs.
+Participants may:
+
+* submit issues;
+* submit pull requests;
+* participate in RFC review;
+* implement ALX Protocol independently;
+* develop optional extensions;
+* review protocol-critical proposals.
+
+Protocol conformance is determined by normative protocol requirements and required conformance suites.
+
+Implementation does not require registration or approval.
+
+---
+
+## Security
+
+Security vulnerabilities are governed by [`SECURITY.md`](./SECURITY.md).
+
+Security reports MUST use the disclosure process defined in that document.
+
+Security findings that require protocol-visible changes MUST follow the applicable protocol governance process.
+
+Operational security intake is administered by ALX Labs.
 
 ---
 
 ## Related Documents
 
-- [`CONTRIBUTING.md`](./CONTRIBUTING.md) — contribution scope and PR requirements
-- [`SECURITY.md`](./SECURITY.md) — vulnerability reporting
-- [`docs/governance/governance.md`](./docs/governance/governance.md) — RFC process and maintainer roles
-- [`docs/governance/stability.md`](./docs/governance/stability.md) — stability tiers and deprecation policy
-- [`docs/governance/versioning.md`](./docs/governance/versioning.md) — protocol and SDK versioning
-- [`protocol/spec.md`](./protocol/spec.md) — normative specification
-- [`protocol/suites.json`](./protocol/suites.json) — core and extension conformance suite manifest
+* [`protocol/spec.md`](./protocol/spec.md) — normative protocol specification
+* [`protocol/schemas/`](./protocol/schemas/) — normative schemas
+* [`test-vectors/`](./test-vectors/) — canonical test vectors
+* [`protocol/error-codes.json`](./protocol/error-codes.json) — canonical error identifiers
+* [`protocol/suites.json`](./protocol/suites.json) — conformance suite manifest
+* [`CONTRIBUTING.md`](./CONTRIBUTING.md) — contribution requirements
+* [`SECURITY.md`](./SECURITY.md) — vulnerability reporting
+* [`MAINTAINERS.md`](./MAINTAINERS.md) — maintainer responsibilities
+* [`PUBLICATION.md`](./PUBLICATION.md) — publication identity and lifecycle
+* [`docs/governance/protocol-change-process.md`](./docs/governance/protocol-change-process.md) — RFC process
+* [`docs/governance/stability.md`](./docs/governance/stability.md) — stability and deprecation policy
+* [`docs/governance/versioning.md`](./docs/governance/versioning.md) — protocol and SDK versioning
+* [`CHANGELOG.md`](./CHANGELOG.md) — revision history

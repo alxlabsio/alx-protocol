@@ -1,120 +1,63 @@
 # Stability Policy
 
-The document explains stability policy. Stability policy remains outside the protocol specification.
+**Document type:** Operational
 
----
+This page defines how stability labels are used across protocol, package, extension, and deployment surfaces. It does not change canonical protocol behavior.
 
-## Purpose
+## Separate stability dimensions
 
-Define what stability means for ALX Protocol, what guarantees consumers can rely on, and how breaking changes are handled.
+| Surface | Version/lifecycle source | Meaning |
+|---|---|---|
+| Protocol | [`../../protocol/VERSION`](../../protocol/VERSION), tagged releases | Canonical behavior and data compatibility |
+| Package/API | Package manifest and changelog | Source/binary API compatibility for that implementation |
+| Extension | `extension.json` lifecycle and version | Compatibility for an optional extension claim |
+| Contract | Source commit, network, and deployed address | Identity of one external deployment |
+| Application schema | Application-owned migration record | Product data and query compatibility |
 
-## Scope
+Never infer one dimension from another. SDK `1.x` does not by itself prove a tagged ALX protocol v1 release, and an extension lifecycle does not change core status.
 
-Covers protocol stability tiers, backwards compatibility, deprecation process, and SDK versioning policy.
+## Protocol compatibility
 
----
+A v1-compatible change preserves all existing canonical v1 behavior, including:
 
-## Protocol Stability Tiers
+- canonical bytes for every accepted value;
+- `contentHash` and `blockHash` outputs;
+- existing valid/invalid classifications and Graph outcome meanings;
+- canonical structure and error identifiers; and
+- applicable required expected results.
 
-Every protocol operation falls into one of three tiers:
+A change to those properties is breaking unless repository governance determines that unreleased canonical sources contain an internal inconsistency that must be repaired together.
 
-| Tier | Guarantee | Change policy |
-|------|-----------|---------------|
-| **Stable** | Will not change without a major protocol version bump | Breaking changes require a new protocol version, RFC, and migration path |
-| **Provisional** | May change with notice in a minor release | Changes are announced at least one minor version before taking effect |
-| **Experimental** | No stability guarantees | May be added, changed, or removed at any time |
+## Current repository status
 
-## Current Classification (Protocol v1)
+The maintained packages are versioned for the `1.0.0` release target, while [`../../PUBLICATION.md`](../../PUBLICATION.md) records whether a tagged public protocol release exists. Do not describe v1 as publicly released, independently audited, or permanently frozen until the corresponding publication and security-review records support those claims.
 
-| Operation | Layer | Tier |
-|-----------|-------|------|
-| `canonicalizeProtocolJson` | 1 | Stable |
-| `deriveBlockHash` | 2 | Stable |
-| `deriveContentHash` | 2 | Stable |
-| `createBlock` | 2 | Stable |
-| `validateBlock` | 2 | Stable |
-| `normalizeHash` | 2 | Stable |
-| `normalizeHashes` | 2 | Stable |
-| `validateLineage` | 3 | Stable |
-| `validateGraph` | 3 | Stable |
-| `buildGraph` | 3 | Stable |
-| `verifyGraph` | 3 | Stable |
-| `traceAttribution` | 4 | Stable |
-| `buildMerkleTree` | Merkle extension | Stable extension |
-| `getMerkleProof` | Merkle extension | Stable extension |
-| `verifyMerkleProof` | Merkle extension | Stable extension |
-| `signBlock` | Signing | Provisional |
-| `verifyBlockSignature` | Signing | Provisional |
-| `verifySignedProtocolPayload` | Signing | Provisional |
-| `validateReplayWindow` | Replay | Provisional |
+Core operation membership is discovered from [`../../protocol/suites.json`](../../protocol/suites.json), not from a manually maintained stability table.
 
-Layers 1-4 are **Stable core**. Merkle operations are a **Stable optional extension**: stable for implementations that choose to include Merkle support, and outside the core ALX conformance requirement. Signing and replay operations are **Provisional** — API surface may evolve as EIP-712 best practices mature.
+## Extension lifecycle
 
-Optional extensions are independently versioned and MUST declare a compatibility surface. Extension lifecycle states and compatibility expectations are defined in [`./evolution-and-graph-completeness.md`](./evolution-and-graph-completeness.md).
+Extension lifecycle values and compatibility fields are defined by [`../../protocol/schemas/extension-manifest.schema.json`](../../protocol/schemas/extension-manifest.schema.json). An extension may be provisional, stable, deprecated, or otherwise classified by the allowed schema without becoming part of core conformance.
 
----
+## Package API deprecation
 
-## Backwards Compatibility Guarantee
+Package maintainers should:
 
-### Backwards Compatibility Definition
+1. identify the deprecated symbol and supported replacement;
+2. document protocol-visible versus API-only impact;
+3. provide a reasonable prerelease or release transition appropriate to published compatibility commitments;
+4. add migration tests or examples; and
+5. remove the symbol only in a package release that permits that API break.
 
-A Stable operation is backwards compatible if:
+Do not promise an absolute grace period that has not been adopted by governance. A compatibility helper may remain exported even though new documentation uses the canonical API.
 
-1. **Existing valid inputs produce identical outputs.** A Block created with SDK v1.0 validates identically with SDK v1.x.
-2. **Existing test vectors continue to pass.** No conformant implementation breaks.
-3. **Existing data remains valid.** Blocks stored in v1.0 require no re-hashing or migration.
+## Stability claims
 
-### Breaking Change Triggers
+Words such as stable, final, immutable, permanent, guaranteed, and audited require a named surface and supporting lifecycle record. Prefer precise claims such as “the same v1 hash inputs produce the same canonical output” or “extension lifecycle is `provisional` in its manifest.”
 
-A breaking change is any modification that causes:
+## Related documents
 
-- A different `blockHash` for the same content and parents
-- A different canonical form for the same input
-- A test vector to produce a different expected output
-- An existing valid Block to fail validation
-
-Breaking changes require a new major protocol version (e.g., v1 to v2).
-
-### Non-Breaking Change Criteria
-
-- Adding new operations with no effect on existing ones
-- Adding optional parameters with backward-compatible defaults
-- Performance improvements that preserve output
-- Additional error messages for previously undefined behavior
-
----
-
-## Deprecation Process
-
-1. **Announce** - the operation is marked as deprecated in the changelog and JSDoc
-2. **Grace period** - at least one minor SDK release where the deprecated operation still works
-3. **Remove** - the operation is removed in the next major SDK release
-
-Deprecated operations are never removed without a documented replacement.
-
----
-
-## SDK Versioning
-
-SDKs follow [semantic versioning](https://semver.org/):
-
-- **Major** (1.0 to 2.0): breaking API changes or protocol version bump
-- **Minor** (1.0 to 1.1): new features, no breaking changes
-- **Patch** (1.0.0 to 1.0.1): bug fixes, no API changes
-
-SDK versions are independent of the protocol version. Multiple SDK versions may implement the same protocol version.
-
-| Protocol version | SDK version range | Relationship |
-|-----------------|-------------------|--------------|
-| 1 | 1.x.x | SDK 1.x implements protocol v1 |
-| 2 (future) | 2.x.x | SDK 2.x would implement protocol v2 |
-
----
-
-## Related Documents
-
-- [`./versioning.md`](./versioning.md) - version policy details
-- [`./governance.md`](./governance.md) - RFC process for proposing changes
-- [`./evolution-and-graph-completeness.md`](./evolution-and-graph-completeness.md) - accepted evolution and extension lifecycle model
-- [`./migration.md`](./migration.md) - upgrade procedures
-- [`../integrators/api-reference.md`](../integrators/api-reference.md) - current API surface
+- [`versioning.md`](./versioning.md) — version and breaking-change policy
+- [`migration.md`](./migration.md) — upgrade guidance
+- [`evolution-and-graph-completeness.md`](./evolution-and-graph-completeness.md) — frozen v1 boundaries
+- [`../../PUBLICATION.md`](../../PUBLICATION.md) — public release status
+- [`security-review-status.md`](./security-review-status.md) — independent-review status

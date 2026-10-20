@@ -1,65 +1,63 @@
-# ALX Protocol Versioning Policy
+# ALX Versioning Policy
 
-The document explains versioning policy. Versioning policy remains outside the protocol specification.
+**Document type:** Operational
 
----
+This policy separates protocol, package, extension, contract, and application versions. It does not define protocol behavior.
 
-This document defines the versioning policy for the ALX Protocol, its test vectors, and conformant implementations.
+## Protocol version
 
-## Protocol Version
+The current protocol version is declared by [`../../protocol/VERSION`](../../protocol/VERSION). Every v1 Block includes `protocolVersion: "1"`; the version field is excluded from the v1 `contentHash` and `blockHash` preimages.
 
-The canonical protocol version is an integer stored in `protocol/VERSION`.
+A protocol version change is required when a released canonical change would alter existing behavior, including:
 
-The protocol version MUST be incremented when the specification changes in a way that produces different outputs for the same inputs. Examples of changes that require a version bump:
+- canonical bytes for an accepted value;
+- identity hash inputs, domains, algorithm, or output;
+- Block structural validity;
+- parent normalization or Graph outcome meanings;
+- Trace construction or exact result shape;
+- canonical error identifiers for existing failures; or
+- an existing required vector's expected result.
 
-- Adding a new required operation
-- Changing canonicalization rules
-- Changing hash algorithms or normalization behavior
-- Altering lineage validation or attribution tracing logic
+Adding a required operation or field can also be breaking even when existing outputs are unchanged because conforming implementations would no longer satisfy the complete claim.
 
-The protocol version MUST NOT be incremented for changes that do not affect output behavior. Adding new test vectors, clarifying prose in the spec, or adding optional informational fields are not version bumps.
+Editorial clarification, new explanatory documentation, implementation optimization, and additional non-conflicting coverage do not by themselves require a protocol version change.
 
-## Test Vector Version
+## Canonical artifact versioning
 
-Test vectors are tied to the protocol version. Each vector file MUST include the targeted protocol version.
+Schemas, vectors, the suite manifest, and error registries are part of the versioned protocol release. Changes must remain mutually aligned.
 
-New vectors MAY be added within a protocol version (additive changes). However, changing the expected output of an existing vector constitutes a behavioral change and MUST be accompanied by a protocol version bump.
+New vectors within v1 may clarify or cover already-defined behavior. They must not silently introduce a new requirement or change an existing expected result. Test-vector format changes follow [`../../test-vectors/FORMAT.md`](../../test-vectors/FORMAT.md) and its changelog.
 
-## SDK And Implementation Versions
+## Package versions
 
-SDKs and other implementations use independent semver versioning. An SDK at v2.3.1 might implement protocol v1. No required relationship exists between an SDK's semver version and the protocol version the SDK targets.
+SDKs, CLI tools, adapters, runners, and reference implementations use their own package or crate versions. A package version does not select protocol behavior unless the implementation explicitly declares the protocol version it supports.
 
-Each SDK MUST expose an `ALX_PROTOCOL_VERSION` constant (or language-appropriate equivalent) indicating the protocol version the SDK conforms to.
+Package-only API changes follow the package's compatibility policy and changelog. A package may add helpers without changing protocol version when those helpers preserve canonical behavior and are not added to the core conformance claim.
 
-## Compatibility Guarantees
+## Extension versions
 
-Implementations targeting the same protocol version MUST produce byte-identical outputs for the same inputs across all protocol-level operations (canonicalization, hashing, normalization, lineage validation, attribution tracing).
+Each optional extension declares `extensionVersion`, lifecycle, compatible protocol versions, deprecation, and supersession metadata in its manifest. Extension changes do not change core protocol version unless they alter core requirements—which an optional extension is not permitted to do.
 
-SDKs MAY add convenience methods, helper utilities, or ergonomic wrappers without bumping the protocol version, provided the additions leave protocol-level behavior unchanged.
+## Contract and deployment versions
 
-SDKs MUST NOT change protocol-level behavior without a corresponding protocol version bump.
+A contract source version and a deployed network/address identify external integration artifacts. They are not ALX protocol versions. Record source commit, compiler, constructor/configuration, network, address, and review status for each deployment.
 
-## Mixed-Version Graphs
+## Application versions
 
-Blocks created under different protocol versions MAY appear in the same structural Graph because parent references are opaque hashes. Full cryptographic verification of such a Graph requires version-aware verification context that identifies which protocol rules apply to each Block or Graph segment.
+Applications independently version content profiles, database schemas, indexes, API envelopes, and Explorer behavior. Those migrations preserve the complete canonical Block and must not reinterpret application metadata as protocol fields.
 
-Protocol v1 Blocks are versionless. A verifier MUST NOT infer mixed-version compatibility from the Block alone once multiple protocol versions exist.
+## Future versions
 
-See [`./evolution-and-graph-completeness.md`](./evolution-and-graph-completeness.md) for the accepted architecture that future normative work must follow.
+V1 does not define cross-version Graph semantics. A future protocol version must specify whether and how Blocks from different versions can be examined together. Verifiers reject unsupported `protocolVersion` values rather than guessing.
 
-## Breaking Change Policy
+## Release process
 
-Any change that alters the output of the following operations for the same input is a breaking change:
+A version declaration or changelog entry does not by itself create a public release. [`../../PUBLICATION.md`](../../PUBLICATION.md) defines how tagged releases establish the public record.
 
-- Canonicalization
-- Hashing
-- Normalization
-- Lineage validation
-- Attribution tracing
+## Related documents
 
-Breaking changes MUST increment the protocol version. There are no exceptions to this rule.
-
-## Related Documents
-
-- [`./migration.md`](./migration.md) - upgrade procedures
-- [`./evolution-and-graph-completeness.md`](./evolution-and-graph-completeness.md) - accepted long-lived evolution model
+- [`../../VERSIONING.md`](../../VERSIONING.md) — concise public versioning entry point
+- [`stability.md`](./stability.md) — stability dimensions and lifecycle terms
+- [`migration.md`](./migration.md) — upgrade guidance
+- [`evolution-and-graph-completeness.md`](./evolution-and-graph-completeness.md) — frozen v1 boundaries
+- [`protocol-change-process.md`](./protocol-change-process.md) — change process

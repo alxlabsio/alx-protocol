@@ -10,7 +10,7 @@ Diagnose and resolve common errors when using the ALX Protocol SDK. Entries orga
 
 ## Scope
 
-Covers SDK errors, CLI errors, and common integration mistakes. For protocol-level error codes and recovery semantics, see [`../implementers/errors.md`](../implementers/errors.md).
+Covers SDK errors, CLI errors, and common integration mistakes. For protocol-level error codes and recovery semantics, see [`../implementers/protocol-errors-and-diagnostics.md`](../implementers/protocol-errors-and-diagnostics.md).
 
 ---
 
@@ -126,11 +126,11 @@ See [Cross-implementation hash mismatch](#cross-implementation-hash-mismatch) be
 
 ### Cycle Detected
 
-**Symptom:** `validateGraph()` returns issues with `cycle: true`, or `traceAttribution()` returns `cycle: true`.
+**Symptom:** `validateGraph()` returns issues with `cycle: true`, or `traceAttribution()` fails with `ALX_GRAPH_CYCLE`.
 
 **Cause:** Two or more Blocks form a circular reference chain (A references B, B references A).
 
-**Resolution:** Cycles violate the directed acyclic Graph requirement. Inspect the `issues` array in `GraphResult` and remove the offending reference.
+**Resolution:** Cycles violate the directed acyclic Graph requirement. Inspect the `issues` array in `GraphResult` and remove the offending reference. AttributionTrace construction produces no result for a cyclic Graph.
 
 ### Missing Parents
 
@@ -193,7 +193,7 @@ The most frequent cross-implementation error. ALX uses **Keccak-256** (the origi
 
 JavaScript's `JSON.stringify(0.1 + 0.2)` produces `"0.30000000000000004"`. Other languages may produce different representations. The spec requires IEEE 754 shortest representation matching JavaScript behavior.
 
-**Resolution:** Run the canonicalization test vectors (`protocol/test-vectors/canonicalization.json`) and verify byte-identical output.
+**Resolution:** Run the canonicalization test vectors (`test-vectors/canonicalization/canonicalization.json`) and verify byte-identical output.
 
 ### Key Sorting Edge Cases
 
@@ -211,7 +211,7 @@ The function sorts object keys lexicographically by UTF-16 code unit (JavaScript
 
 ### File Not Found
 
-The file path passed to `alx block verify`, `alx block inspect`, or `alx graph trace` is absent from the filesystem.
+The file path passed to `alx block show`, `alx block verify`, a Graph reference, or `alx graph --file` is absent from the filesystem.
 
 **Resolution:** Verify the path. The CLI resolves relative paths from the current working directory.
 
@@ -231,7 +231,7 @@ Provide a file path, `--file` flag, or stdin input.
 
 ## Related Documents
 
-- [`../implementers/errors.md`](../implementers/errors.md) — normative error catalog
+- [`../implementers/protocol-errors-and-diagnostics.md`](../implementers/protocol-errors-and-diagnostics.md) — normative error catalog
 - [`./api-reference.md`](./api-reference.md) — SDK API reference
 - [`./faq.md`](./faq.md) — frequently asked questions
 - [`../../protocol/spec.md`](../../protocol/spec.md) — normative specification

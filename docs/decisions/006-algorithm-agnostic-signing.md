@@ -24,7 +24,7 @@ ALX Protocol Block identity remains derived from canonical content and parent re
 
 Define algorithm-agnostic `Signer` and `Verifier` interfaces.
 
-Provide EIP-712 and Ed25519 as built-in implementations. Allow additional signing algorithms through the same interface.
+Provide portable Ed25519 and P-256 extension suites. The TypeScript SDK may also provide application-oriented EIP-712 support through the same general signer/verifier boundary. Additional algorithms require an explicit encoding and verification profile.
 
 The result is a shared attestation model that allows product teams to use signing systems matched to ecosystem, infrastructure, compliance requirements, and user experience.
 
@@ -53,7 +53,7 @@ The result is a shared attestation model that allows product teams to use signin
 
 - **Algorithm-agnostic signing interfaces:** Supports portable attestations, stable Block identity, optional crypto dependencies, and future signing backends. ALX selects this model for the attestation interface.
 
-- **EIP-712-only signing:** Provides strong alignment with Ethereum wallet workflows. ALX includes EIP-712 as a built-in implementation and keeps the signing boundary open to additional ecosystems.
+- **EIP-712-only signing:** Provides strong alignment with Ethereum wallet workflows but is not portable across the maintained implementations. ALX keeps EIP-712 as a TypeScript application backend while portable extension suites use Ed25519 and P-256.
 
 - **Ed25519-only signing:** Provides a lightweight signing model for developer, agent, and non-EVM workflows. ALX includes Ed25519 support and preserves compatibility with EVM signing workflows.
 
@@ -73,7 +73,7 @@ The result is a shared attestation model that allows product teams to use signin
 
 - Signing dependencies can remain optional peer dependencies with lazy loading.
 
-- The `data` parameter is the raw 32-byte Block hash decoded from hex.
+- The `data` parameter is the raw 32-byte digest of the domain-separated canonical attestation payload.
 
 - conformance and regression tests should verify that signing algorithms remain outside Block identity and that each verifier validates the expected raw Block hash bytes.
 
@@ -82,5 +82,5 @@ The result is a shared attestation model that allows product teams to use signin
 - [`004-attestation-orthogonality.md`](./004-attestation-orthogonality.md)
 - [`../../protocol/extensions/signing/`](../../protocol/extensions/signing/)
 - [`../../protocol/spec.md`](../../protocol/spec.md)
-- [`../deep-dives/core-contract.md`](../deep-dives/core-contract.md)
+- [`../../protocol/extensions/signing/README.md`](../../protocol/extensions/signing/README.md)
 - [`../integrators/extensions.md`](../integrators/extensions.md)

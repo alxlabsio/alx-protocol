@@ -1,156 +1,88 @@
 # AI Content Conventions
 
-The document describes optional content conventions for AI workflows. AI content conventions remain outside the protocol specification.
+This document offers application-level content patterns for AI workflows. ALX core treats `content` as an ALX value and does not assign meaning to these fields.
 
----
+## Status And Limits
 
-## Purpose
+The names below are examples, not registered protocol types. They do not establish truth, authorship, grounding, model identity, reproducibility, legal responsibility, or content quality. Applications must define and enforce those claims independently.
 
-Standard content patterns for AI agents operating within the ALX Protocol ecosystem. These conventions make agent pipelines interoperable and auditable without changing the protocol - content remains opaque.
+## Model Description Block
 
-## Scope
+An application may create a Block whose content records the model configuration used in a workflow:
 
-Model cards, hallucination grounding markers, and agent manifests. These are recommendations rather than requirements.
-
----
-
-## Model Card Blocks
-
-A **model card** is a Block that declares which model produced an agent's output, along with training provenance and known limitations. The model card becomes part of the lineage graph — every output Block references the model card as a parent, making full model provenance traceable.
-
-```json
-{
-  "type": "agent.model-card",
-  "modelId": "research-agent-v2",
-  "baseModel": "llama-3.1-70b",
-  "finetuning": "domain-specific financial data (2024-Q1 through 2025-Q3)",
-  "trainingCutoff": "2025-09-01",
-  "knownLimitations": [
-    "may not reflect post-cutoff market events",
-    "limited coverage of emerging markets",
-    "hallucination rate ~3% on out-of-domain queries"
-  ],
-  "evaluationMetrics": {
-    "accuracy": 0.92,
-    "f1": 0.89,
-    "hallucinationRate": 0.03
-  },
-  "provider": "acme-ai",
-  "version": "2.1.0"
-}
-```
-
-### Model Card Integration Steps
-
-```js
-// 1. Create the model card once (root Block - no parents)
-const modelCard = createBlock({
-  type: "agent.model-card",
-  modelId: "research-agent-v2",
-  baseModel: "llama-3.1-70b",
-  knownLimitations: ["may not reflect post-cutoff events"],
-  trainingCutoff: "2025-09-01",
+```ts
+const modelDescription = createBlock({
+  type: "agent.model-description",
+  modelId: "research-model-2026-08",
+  trainingCutoff: "2026-06-01",
+  declaredLimitations: ["may not reflect events after the cutoff"],
 });
+```
 
-// 2. Every output Block references the model card as a parent
+An output can declare that Block as a direct parent when the output was actually derived using that configuration:
+
+```ts
 const output = createBlock(
-  { type: "research-brief", findings: [...] },
-  [modelCard.blockHash, ...otherParents],
+  { type: "research-brief", findings },
+  [modelDescription.blockHash, ...sourceBlockHashes],
 );
-
-// 3. Auditors can trace any output back to its model card
-const trace = traceAttribution(output.blockHash, graph);
-// The model card appears as a leaf node - the provenance root
 ```
 
-### Model Card Rationale
+The relationship proves only that the parent identity was declared inside the output Block's hash envelope. It does not prove that the named model ran or that the declarations are accurate.
 
-- **Audit trails:** Regulators can verify which model version produced a specific output
-- **Reproducibility:** Researchers can identify whether a result was produced before or after a training cutoff
-- **Liability:** Known limitations declared in the model card carry a creation-time timestamp, establishing when disclosure occurred
-- **Version tracking:** When a model is updated, create a new model card Block - the old one's hash is permanent
+## Source-Reference Convention
 
----
+Applications may distinguish generated outputs that declare source parents from outputs that do not:
 
-## Hallucination Grounding
-
-The lineage graph structurally distinguishes **grounded** outputs (derived from verified sources) from **ungrounded** outputs (generated without source references).
-
-### Grounded Block
-
-A Block with `parentHashes` referencing verified data sources:
-
-```js
-// Source data (verified, signed by data provider)
-const marketData = await createSignedBlock(
-  { type: "data.source", source: "bloomberg-terminal", data: {...} },
-  [],
-  dataProviderSigner,
-);
-
-// Grounded output - references the verified source
+```ts
 const analysis = createBlock(
-  { type: "ai.response", text: "Based on Q4 data, GPU demand is up 40%", grounded: true },
-  [marketData.blockHash],  // ← provenance link to verified source
+  {
+    type: "ai.response",
+    text: "Application-generated analysis",
+    sourcePolicy: "declared-parents",
+  },
+  [sourceBlock.blockHash],
 );
 ```
 
-### Ungrounded Block
+Do not label an output “verified” or “grounded” from Graph structure alone. A parent relationship does not establish source truth, relevance, authorization, or faithful use. An application can combine Graph verification with its own source registry, attestation policy, content review, and model-run evidence.
 
-A Block with empty `parentHashes` or no verified source references:
+## Optional Attestations
 
-```js
-// Ungrounded - no parent sources, purely generated
-const speculation = createBlock(
-  { type: "ai.response", text: "I think the market will grow", grounded: false },
-  [],  // ← no source references
+Portable attestations use the optional signing extension's `SignedBlock` wrapper; they are not fields on a core Block:
+
+```ts
+const signedSource = await createSignedBlock(
+  { type: "data.source", sourceId: "application-source-17", value: 42 },
+  [],
+  signer,
 );
+
+const sourceBlock = signedSource.block;
 ```
 
-### Structural Detection
+Validating an attestation proves that the corresponding key signed the defined payload. Authorization, key ownership, source trust, freshness, and replay policy remain application responsibilities.
 
-An auditor can detect grounding status from the graph alone:
+## Example Content Names
 
-```js
-const trace = traceAttribution(output.blockHash, graph);
+| Example `type` | Possible application use |
+|---|---|
+| `agent.manifest` | Declared agent configuration and capabilities |
+| `agent.model-description` | Declared model version and limitations |
+| `ai.prompt` | Recorded model input |
+| `ai.response` | Recorded model output |
+| `ai.tool-call` | Recorded tool invocation |
+| `data.source` | Application-defined source material |
+| `research-brief` | Synthesized research output |
+| `decision-memo` | Recommendation or decision record |
+| `approval-record` | Application approval claim |
+| `execution-report` | Reported checks and results |
 
-// If all leaves are signed data sources -> fully grounded
-// If any leaf is an unsigned, parentless generation -> potentially ungrounded
-const leaves = trace.leaves;
-for (const leafHash of leaves) {
-  const leaf = blocks.find(b => b.blockHash === leafHash);
-  if (!leaf.attestations?.length && leaf.parentHashes.length === 0) {
-    console.log("Ungrounded source detected:", leafHash);
-  }
-}
-```
-
-The protocol makes grounding **structurally visible** rather than enforcing grounding policy. Applications decide what to do with that information.
-
----
-
-## Content Type Reference
-
-| Type | Description | When to use |
-|------|-------------|-------------|
-| `agent.manifest` | Agent identity and capabilities | Agent's first Block |
-| `agent.model-card` | Model provenance, limitations, metrics | Once per model version |
-| `ai.prompt` | Input to an AI model | Before generation |
-| `ai.response` | Output from an AI model | After generation |
-| `ai.tool-call` | Tool/function invocation | During agent execution |
-| `data.source` | Verified external data | Grounding source |
-| `research-brief` | Research findings | Research agent output |
-| `investment-analysis` | Synthesized analysis | Analysis agent output |
-| `decision-memo` | Recommendation or decision | Decision agent output |
-| `compliance-review` | Review with findings | Compliance agent output |
-| `approval-record` | Sign-off with conditions | Approval agent output |
-| `security-plan` | Security review scope | Planning agent output |
-| `execution-report` | Completed checks | Execution agent output |
-
----
+These values have no core ALX semantics. If interoperability is required, publish a versioned content profile under the optional extension rules.
 
 ## Related Documents
 
-- [`./extensions.md`](./extensions.md) - content schema conventions and adapter patterns
-- [`./agent-frameworks.md`](./agent-frameworks.md) - framework-specific integration
-- [`./attributed-outputs.md`](./attributed-outputs.md) - application-facing lineage patterns
+- [`./extensions.md`](./extensions.md) — extension and content-profile boundaries
+- [`./agent-integration.md`](./agent-integration.md) — framework-neutral integration
+- [`./attributed-outputs.md`](./attributed-outputs.md) — lineage-facing application patterns
+- [`../../protocol/extensions/signing/README.md`](../../protocol/extensions/signing/README.md) — portable signing extension

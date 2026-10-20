@@ -22,7 +22,7 @@ These claims support trust, accountability, review, marketplace, compliance, and
 
 ALX Protocol treats attestation as **separate from Block identity**.
 
-A Block’s `blockHash` is derived from canonical `content` and `parentHashes`. The optional `attestation` field can carry authorship, review, approval, or verification claims around the Block. The attestation field remains outside the hash envelope.
+A Block’s `blockHash` is derived from canonical `content` and `parentHashes`. The optional signing extension wraps a complete core Block with `attestation` or `attestations`; those fields are not core Block fields and remain outside the hash envelope.
 
 Signing adds trust context around a Block and preserves the Block’s deterministic identity.
 
@@ -46,26 +46,26 @@ Signing adds trust context around a Block and preserves the Block’s determinis
 
 - **Signature-bound Block identity:** Includes signature material in the hash input. This design gives each signer or signing algorithm a distinct identity output for the same content and parent references. ALX v1 selects stable Block identity so signatures can evolve around the underlying artifact identity.
 
-- **Always-signed Blocks:** Requires every Block to carry an authorship claim. ALX v1 supports local validation, testing, unsigned drafts, machine-generated artifacts, and content-only integrity workflows through optional attestations.
+- **Always-signed Blocks:** Requires every Block exchange to carry an authorship claim. ALX v1 supports local validation, testing, unsigned drafts, machine-generated artifacts, and hash-integrity workflows without the optional signing wrapper.
 
-- **External-only attestation store:** Stores attestations in a separate registry or database. ALX v1 supports embedded optional attestations for common workflows and supports external attestation registries for product, compliance, or marketplace systems.
+- **External-only attestation store:** Stores attestations in a separate registry or database. ALX v1 defines an optional `SignedBlock` wrapper and also permits external attestation registries at the application layer.
 
 ## Consequences
 
-- Signed and unsigned representations of the same canonical content and parent references resolve to the same `blockHash`.
+- A core Block and a valid signing-extension wrapper around it expose the same underlying `blockHash`.
 
-- Removing an attestation removes authorship or verification context and preserves content integrity verification through the Block hash.
+- Removing the wrapper removes the attestation claim and preserves verification of the enclosed core Block.
 
 - Applications that require signed artifacts should enforce signature requirements at the product, workflow, policy, or integration layer.
 
-- Multi-attestation support can be added through extension surfaces, external registries, package manifests, or product-specific trust layers.
+- The signing extension supports multiple attestations; applications may also use external registries or product-specific trust layers.
 
-- conformance tests should verify that `attestation` remains outside the hash envelope and that Block identity remains stable across signing states.
+- Signing-extension conformance verifies that attestations remain outside the hash envelope and that the enclosed Block identity is unchanged.
 
 ## Related Documents
 
 - [`../../protocol/spec.md`](../../protocol/spec.md)
 - [`../../protocol/extensions/signing/`](../../protocol/extensions/signing/)
 - [`006-algorithm-agnostic-signing.md`](./006-algorithm-agnostic-signing.md)
-- [`../deep-dives/core-contract.md`](../deep-dives/core-contract.md)
+- [`../../protocol/extensions/signing/README.md`](../../protocol/extensions/signing/README.md)
 - [`../integrators/extensions.md`](../integrators/extensions.md)

@@ -1,122 +1,71 @@
 # Trust Model
 
-ALX Protocol trust boundaries. Protocol behavior remains defined by [`../protocol/spec.md`](../protocol/spec.md).
+**Document type:** Reference
 
----
+This page explains what an ALX verification result can and cannot support. Canonical behavior is defined by [`../protocol/spec.md`](../protocol/spec.md); the fuller threat model is [`governance/protocol-security-model.md`](./governance/protocol-security-model.md).
 
-## Purpose
+## Verification scope
 
-Trust boundaries of ALX Protocol: what ALX Protocol verifies, what ALX Protocol excludes from verification, and what assumptions underlie protocol guarantees.
-
----
-
-## ALX Verification Scope
-
-| Property | How |
-
+| Claim | What can be checked locally |
 |---|---|
+| Block identity | Recompute `contentHash` and `blockHash` from the complete Block |
+| Declared relationships | Inspect normalized `parentHashes` and reachable available Blocks |
+| Graph status | Execute the requested verification context and report the canonical outcome |
+| Trace structure | Reproduce nodes, edges, depths, leaves, and exact `pathCount` values |
+| Optional signature | Verify the selected extension/profile signature over its exact payload |
+| Optional Merkle proof | Verify inclusion under the extension's root and pair-hashing rules |
 
-| Block Identity Verification | Recompute blockHash from content + parentHashes |
+The claim is always bounded by the supplied data and Verification Context. Local verification does not imply global observation or complete availability.
 
-| Content Integrity Check | Hash matches canonical serialization of content |
+## Excluded claims
 
-| Derivation Graph Consistency | Graph is acyclic, no self-references, no duplicate parents |
+ALX verification does not establish:
 
-| Attribution Structure Computation | pathCounts computed deterministically from graph traversal |
+- truth, quality, safety, or originality of `content`;
+- authorship, legal identity, ownership, authorization, or policy compliance;
+- availability, durability, publication, ordering, or consensus;
+- completeness of an application index, crawler, database, or Explorer;
+- economic value, contribution weight, settlement entitlement, or fairness; or
+- timestamp accuracy merely because a signer supplied a timestamp.
 
-| Cross-Implementation Output Parity | Same input -> same output across TypeScript, Python, Rust |
+Applications may make those claims only through their own evidence and trust policy.
 
-| Merkle Inclusion Verification | Optional extension proof verification against anchored root hash |
+## Availability and Graph outcomes
 
-| Signature Validity Verification | Optional extension signature verification |
+References do not guarantee availability. An unavailable syntactically valid required parent produces `incomplete` unless a higher-precedence violation or resource outcome applies. It is not invalid merely because it is missing.
 
-## Verification Exclusions
+Open-world mode excludes only parents explicitly declared as external in the context. A bounded-depth `valid` result covers only the required checks within that depth.
 
-| Claim | Exclusion reason |
+## Cryptographic assumptions
 
-|---|---|
+- V1 identity depends on the collision and preimage resistance of Keccak-256.
+- Correctness depends on deterministic, unambiguous canonicalization across implementations.
+- Similar hash encodings do not make content, Block, attestation, and Merkle domains interchangeable.
+- A valid signature demonstrates control of the corresponding private key for the exact signed payload. External systems bind keys to people, organizations, roles, and permissions.
+- External anchoring can provide commitment evidence under the selected network assumptions. It does not validate the submitted Block or prove authorship.
 
-| Truth of content | Content is opaque — semantic correctness remains outside protocol verification scope |
+## Application responsibilities
 
-| Quality of AI reasoning | A structurally valid block can contain incorrect conclusions |
+Before Block creation, storage, publication, or execution, applications are responsible for:
 
-| Real-world identity | Block creators carry an address; verified identity requires external attestation |
+- privacy, consent, DLP, malware, and regulated-data controls;
+- content and schema policy;
+- authorization and identity binding;
+- key management, revocation, freshness, and replay state;
+- storage access control, retention, replication, and deletion policy;
+- source discovery and index coverage; and
+- safe handling of untrusted content.
 
-| Availability of referenced blocks | `parentHashes` are references, independent of availability guarantees |
+A matching hash is evidence of identity consistency, not permission to trust or execute the content.
 
-| Completeness of external lineage | Under **open-world** validation, external `parentHashes` may be declared but remain locally unresolved; Trace marks boundaries explicitly |
+## Derived application relationships
 
-| Storage durability | Protocol is storage-independent — persistence is the storage layer's responsibility |
+Children, descendants, neighborhoods, indexed relationships, and observation metadata are derived by applications from available Blocks. They are not Block fields. Applications should report source scope, index revision, pagination, and truncation separately from protocol Trace completeness.
 
-| Economic fairness | pathCounts describe structure; applications decide economic meaning |
+## Related documents
 
-## Trust Assumptions
-
-1. **Keccak-256 is collision-resistant** — block identity depends on collision resistance. If collision attacks become practical, the protocol's identity guarantee weakens.
-
-2. **Canonical serialization is unambiguous** — two implementations given the same JSON-compatible value MUST produce the same canonical string. The spec defines rules for every type.
-
-3. **Parent hashes are honest references** — the protocol verifies format and structure; parent eligibility remains an application concern.
-
-4. **Signing proves key control** — an EIP-712 signature proves the signer controlled a private key. Signer identity requires linkage to an external identity system.
-
-5. **On-chain anchoring proves existence** — **ALXAnchor** on Base records a `blockHash` at chain time (optional). Merkle proofs remain an off-chain SDK extension and may be consumed by application-owned adapters. On-chain anchoring excludes proof that underlying Blocks are correct.
-
-## Threat Model Summary
-
-| Threat | Mitigation | Residual risk |
-
-|---|---|---|
-
-| Content tampering | Hash verification (recompute blockHash) | None — any change is detectable |
-
-| Fake attribution | Lineage is structural, not declared | Attacker can create blocks with misleading content, but graph structure is verifiable |
-
-| Replay of signed requests | Nonce + expiry + domain scoping | Replay possible if verifier omits nonce checks |
-
-| Front-running platform registration | First-registrar-wins documented | Squatting on platform IDs is possible |
-
-| Oversized artifacts | Canonicalization depth limit (128) | Deep nesting rejected; content size is application-level |
-
-| Cycle injection | O(V+E) cycle detection | Cycles detected and reported |
-
-| Hash collision | Keccak-256 (256-bit) | Computationally infeasible with current technology |
-
-## Content Governance
-
-ALX excludes reading, scanning, or filtering `content`. The protocol cannot determine whether a Block contains personal identifiable information, regulated data, or content that violates a data governance policy.
-
-Content inspection and policy enforcement must occur before calling `createBlock`. Once locked, the `blockHash` binds to the exact content bytes. A locked Block cannot be modified without changing identity and producing a new `blockHash`.
-
-Responsibilities at the application layer, before Block creation:
-
-- PII and sensitive data detection (DLP)
-
-- Data residency and sovereignty checks
-
-- Regulatory field restrictions (GDPR, HIPAA, SOC 2 data classification, and equivalents)
-
-- Content classification and labeling
-
-- Consent and purpose-limitation verification
-
-ALX verifies that locked content matches its locked hash. The application layer determines whether the content is appropriate to lock.
-
-ALX excludes DLP functionality. The protocol provides no content filtering, PII detection, or regulatory classification.
-
-## Verification Boundary Summary
-
-> ALX verifies that an artifact is well-formed, authentically hashed, structurally consistent, and deterministically attributable. Truth, fairness, and usefulness of claims inside the artifact remain outside protocol verification scope.
-
-The scope fits verification infrastructure. Truth verification requires domain-specific oracles, human judgment, or AI evaluation — all of which remain outside the protocol layer.
-
-## Related Documents
-
-- [`whitepaper.md`](./whitepaper.md#part-vii--ecosystem-coordination) — optional ecosystem services and open-world validation (Part VII)
-
-- [`integrators/attributed-outputs.md`](./integrators/attributed-outputs.md) — open-world validation mode for external `parentHashes`
-
-- [`SECURITY.md`](../SECURITY.md) - repository security policy
-
-- [`protocol/spec.md`](../protocol/spec.md) Section 7 (Boundaries) and Section 8 (Non-Goals)
-
+- [`governance/protocol-security-model.md`](./governance/protocol-security-model.md) — protocol threat model
+- [`threat-model.md`](./threat-model.md) — stable security entry point
+- [`../SECURITY.md`](../SECURITY.md) — vulnerability reporting and repository policy
+- [`integrators/deployment-checklist.md`](./integrators/deployment-checklist.md) — operational controls
+- [`verification-receipts.md`](./verification-receipts.md) — point-in-time verification records

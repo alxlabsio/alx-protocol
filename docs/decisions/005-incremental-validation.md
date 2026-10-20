@@ -65,6 +65,6 @@ The incremental validation result MUST be equivalent to the result produced by `
 ## Related Documents
 
 - [`../../protocol/spec.md`](../../protocol/spec.md)
-- [`../deep-dives/lineage.md`](../deep-dives/lineage.md)
+- [`../../GRAPH.md`](../../GRAPH.md)
 - [`../implementers/conformance.md`](../implementers/conformance.md)
 - [`../integrators/agent-integration.md`](../integrators/agent-integration.md)

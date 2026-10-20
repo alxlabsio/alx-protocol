@@ -8,11 +8,7 @@ ALX Protocol defines Blocks as protocol objects. Storage is explicitly outside t
 
 ## Core Principle
 
-**A Block is valid if and only if its hash matches its content and parents. Storage location is irrelevant to validity.**
-
-```
-Valid Block = blockHash == keccak256(canonicalize({ content, parentHashes }))
-```
+**Storage location does not affect Block validity.** A valid Block satisfies the canonical shape and version rules, parent normalization requirements, and both identity checks defined by the specification.
 
 This holds whether the Block lives in a content-addressed storage system, a database, a filesystem, an object store, Git, chain-indexed storage, or memory. The protocol MUST NOT require any specific storage backend.
 
@@ -23,7 +19,7 @@ This holds whether the Block lives in a content-addressed storage system, a data
 | Concern | Protocol role |
 |---|---|
 | Block identity | Derived from content + parents via keccak-256 |
-| Block integrity | Verifiable by recomputing the hash |
+| Block integrity | Verifiable by recomputing `contentHash` and `blockHash` and applying structural rules |
 | Block lineage | Encoded in `parentHashes` - references, not locations |
 | Block attribution | Computed from the graph structure |
 
@@ -45,7 +41,7 @@ This holds whether the Block lives in a content-addressed storage system, a data
 
 - A block referencing `0xabc...` as a parent leaves the storage location of `0xabc...` to the application layer
 - The parent might be in a content-addressed storage system, a Postgres database, an object store, or remain unpersisted
-- The protocol validates the *reference* (hash format, no cycles, no self-reference) and leaves *resolution* to the application layer
+- Block validation checks parent identity format, duplicates, and self-reference where applicable; Graph verification checks reachable cycles and parent availability within its context
 - Resolution is an application-level concern
 
 ---
@@ -56,7 +52,7 @@ This holds whether the Block lives in a content-addressed storage system, a data
 Blocks map naturally to content-addressed storage because both use content-addressing. A block's `blockHash` can serve as a lookup key, though the hash algorithms differ (keccak-256 versus content-derived identifier v1). Applications typically maintain a mapping between `blockHash` and a content-derived storage identifier. For guaranteed long-term persistence, pin Blocks to pinning storage providers. ALX validates identically in any storage system.
 
 ### Databases
-Blocks are JSON objects. Store Blocks in any database with `blockHash` as the primary key. The four Block fields are the only schema requirement.
+Blocks are JSON objects. Store Blocks in any database with `blockHash` as the primary key. Preserve `blockHash`, `contentHash`, `parentHashes`, `content`, and `protocolVersion` when reconstructing a Block.
 
 ### Filesystems
 One file per Block, named by hash: `0xabc123...def.block.json`.
@@ -91,7 +87,7 @@ console.log(validateBlock(retrieved)); // { ok: true, ... }
 
 ```javascript
 import { writeFileSync, readFileSync } from "node:fs";
-import { createBlock, validateBlock } from "@alx-protocol/sdk";
+import { createBlock, parseStrictJson, validateBlock } from "@alx-protocol/sdk";
 
 const block = createBlock({ type: "test", value: 42 }, []);
 
@@ -100,7 +96,7 @@ writeFileSync(`${block.blockHash}.json`, JSON.stringify(block));
 
 // Retrieve and validate
 const raw = readFileSync(`${block.blockHash}.json`, "utf-8");
-const retrieved = JSON.parse(raw);
+const retrieved = parseStrictJson(raw);
 console.log(validateBlock(retrieved)); // { ok: true, ... }
 ```
 
@@ -113,9 +109,9 @@ const block = createBlock({ type: "test", value: 42 }, []);
 
 // Store
 await db.query(
-  `INSERT INTO blocks (block_hash, content_hash, parent_hashes, content)
-   VALUES ($1, $2, $3, $4)`,
-  [block.blockHash, block.contentHash, JSON.stringify(block.parentHashes), JSON.stringify(block.content)]
+  `INSERT INTO blocks (block_hash, content_hash, parent_hashes, content, protocol_version)
+   VALUES ($1, $2, $3, $4, $5)`,
+  [block.blockHash, block.contentHash, JSON.stringify(block.parentHashes), JSON.stringify(block.content), block.protocolVersion]
 );
 
 // Retrieve and validate
@@ -125,6 +121,7 @@ const retrieved = {
   contentHash: row.content_hash,
   parentHashes: JSON.parse(row.parent_hashes),
   content: JSON.parse(row.content),
+  protocolVersion: row.protocol_version,
 };
 console.log(validateBlock(retrieved)); // { ok: true, ... }
 ```
@@ -132,7 +129,7 @@ console.log(validateBlock(retrieved)); // { ok: true, ... }
 ### Content-Addressed Storage
 
 ```javascript
-import { createBlock, validateBlock } from "@alx-protocol/sdk";
+import { createBlock, parseStrictJson, validateBlock } from "@alx-protocol/sdk";
 
 const block = createBlock({ type: "test", value: 42 }, []);
 
@@ -143,7 +140,7 @@ const cid = await storageClient.add(JSON.stringify(block));
 
 // Retrieve and validate
 const raw = await storageClient.cat(cid);
-const retrieved = JSON.parse(raw);
+const retrieved = parseStrictJson(raw);
 console.log(validateBlock(retrieved)); // { ok: true, ... }
 ```
 
@@ -296,7 +293,7 @@ POST /blocks               → { blocks, missing }
 GET  /block/{blockHash}/cid → { blockHash, cid, gatewayUrl }
 ```
 
-The advisory, non-normative API is available through `alx retrieval start` on port 8081, separate from the verification API on port 8080. The reference service supports controlled team networks. Production multi-party discovery belongs to the planned XNDR.network layer.
+The advisory, non-normative API is available through `alx retrieval start` on port 8081, separate from the verification API on port 8080. The reference service supports controlled team networks. Production multi-party discovery belongs to separately specified application infrastructure.
 
 ### Team resolution (shared retrieval server)
 
@@ -317,7 +314,7 @@ alx block resolve 0xabc123... --endpoint http://alice:8081
 
 The retrieval server validates Blocks on write (`validateBlock`), and clients re-verify `blockHash` after fetch. The pattern suits controlled team networks such as localhost, VPN, and staging environments.
 
-Reference-only publish envelope (informative): the reference server also accepts `{ "block": { ... }, "cid": "bafy..." }` on `POST /block` so IPFS CIDs can be indexed for `GET /block/{blockHash}/cid`. The OpenAPI spec documents this as `PublishBlockRequest` in [`protocol/retrieval-api.yaml`](../../protocol/retrieval-api.yaml) (also published at `https://xandrlabs.github.io/alx-protocol/protocol/1/retrieval-api.yaml`).
+Reference-only publish envelope (informative): the reference server also accepts `{ "block": { ... }, "cid": "bafy..." }` on `POST /block` so IPFS CIDs can be indexed for `GET /block/{blockHash}/cid`. The OpenAPI spec documents this as `PublishBlockRequest` in [`protocol/retrieval-api.yaml`](../../protocol/retrieval-api.yaml) (also published at `https://alxprotocol.com/protocol/1/retrieval-api.yaml`).
 
 ### Resolution Layers
 
@@ -326,13 +323,13 @@ Default integration uses no blockchain:
 1. A Local Block Store persists application-owned Blocks.
 2. IPFS or another storage provider makes bytes available.
 3. `alx retrieval start` exposes a controlled team endpoint.
-4. The planned XNDR.network layer handles public discovery when implemented.
+4. Separately specified application infrastructure handles public discovery when implemented.
 
 | Layer | Default? | Role |
 |---|---|---|
 | Local Block Store | Yes | Application persistence |
 | Retrieval API | Optional | Controlled team fetch and publish |
-| XNDR.network discovery | Planned | Cross-party discovery |
+| Application discovery service | External | Cross-party discovery |
 | ALXAnchor | No | Rare public existence-time evidence for one hash or transaction batch |
 
 Block validation never depends on storage, discovery, or chain availability. See [`on-chain-base.md`](on-chain-base.md).
@@ -350,4 +347,4 @@ TLS and high availability are deployment concerns (reverse proxy, load balancer)
 ## Related Documents
 
 - [Protocol specification](../../protocol/spec.md)
-- [Integration adapters](./adapters.md)
+- [Block storage adapters](./block-storage-adapters.md)

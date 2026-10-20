@@ -1,126 +1,168 @@
-# Architecture
+# Protocol Architecture
 
-ALX Protocol layered architecture. Protocol behavior remains defined by [`../protocol/spec.md`](../protocol/spec.md).
+This document describes the ALX Protocol architecture. Normative behavior is defined by [`protocol/spec.md`](../protocol/spec.md), [`protocol/schemas/`](../protocol/schemas/), [`test-vectors/`](../test-vectors/), and the applicable error registry.
 
----
+## Authority Model
 
-## Purpose
+| Source | Role |
+|---|---|
+| [`protocol/spec.md`](../protocol/spec.md) | Processing rules, protocol semantics, and invariants |
+| [`protocol/schemas/`](../protocol/schemas/) | Structural requirements |
+| [`test-vectors/`](../test-vectors/) | Required outputs, rejection cases, and boundaries |
+| [`protocol/error-codes.json`](../protocol/error-codes.json) | Exact core protocol error identifiers |
+| [`protocol/extensions/*/error-codes.json`](../protocol/extensions/) | Exact extension error identifiers |
+| [`protocol/suites.json`](../protocol/suites.json) | Operational conformance-suite discovery |
+| [`protocol/VERSION`](../protocol/VERSION) | Current protocol version declaration |
 
-Describes the layered architecture of ALX Protocol: rationale for layer ordering, how the layers compose, and how the repository maps to the architecture.
+The specification, schemas, and vectors collectively define canonical behavior. Error registries define exact identifiers. Suite and extension manifests support discovery and do not define Block validity.
 
----
+## Core Processing Architecture
 
-ALX Protocol is structured in four deterministic layers. Each layer depends only on the layers below the current layer.
-
----
-
-## Layered Architecture Rationale
-
-AI agents need verification infrastructure that works across languages, systems, and organizations without shared state. The following requirements apply:
-
-- **Determinism** - identical inputs must produce identical outputs regardless of implementation language, so that verification remains independent of a specific runtime
-- **Layered composition** - each capability (canonicalization, hashing, validation, tracing) must be independently implementable and testable, so that partial implementations are still useful
-- **Content opacity** - the protocol excludes inspection and constraint of agent-produced payloads, so that any JSON-compatible output can become a verifiable Block
-- **Storage independence** - verification must work regardless of where artifacts are stored, so that the protocol avoids infrastructure lock-in
-
-The four-layer architecture below satisfies the requirements above.
-
----
-
-## Layer Diagram
+ALX Protocol uses four deterministic processing layers. Each layer consumes outputs or concepts defined by the layers below it.
 
 ```text
-Layer 4: Trace
-  traceAttribution(root, graph)
-  -> nodes, edges, depths, pathCounts, leaves
+Layer 4  Trace
+         traceAttribution(root, graph, context)
+         -> nodes, edges, depths, pathCount, leaves
 
-Layer 3: Validation
-  validateGraph, verifyGraph, buildGraph
-  -> Graph integrity and content authenticity
+Layer 3  Lineage and Graph verification
+         buildGraph, validateGraph, verifyGraph
+         -> resolved relationships, integrity results, missing or external parents
 
-Layer 2: Hash and Block
-  deriveBlockHash, deriveContentHash
-  createBlock, validateBlock
-  -> deterministic Block identity
+Layer 2  Block identity
+         deriveContentHash, deriveBlockHash, createBlock, validateBlock
+         -> contentHash, blockHash, normalized parentHashes
 
-Layer 1: Canonicalization
-  canonicalize(value)
-  -> deterministic UTF-8 bytes
+Layer 1  Canonicalization
+         canonicalize(value)
+         -> deterministic UTF-8 JSON bytes
 ```
 
-**Signing** (EIP-712) is orthogonal - Signing can be applied at any layer without affecting block identity.
+### Layer 1: Canonicalization
 
----
+Canonicalization converts an accepted JSON value into deterministic UTF-8 bytes. It defines object-key ordering, array preservation, number serialization, string handling, rejected values, and the recursion-depth boundary.
 
-## Repository Structure
+Canonical rules are defined in [`spec.md`, section 2](../protocol/spec.md#2-canonicalization). Executable cases are discovered through the canonicalization suites in [`suites.json`](../protocol/suites.json).
+
+### Layer 2: Block Identity
+
+A Block binds opaque `content` and normalized direct parent identities.
 
 ```text
-alx-protocol/
-  protocol/                    Canonical protocol files
-    spec.md                    Normative specification
-    schemas/                   JSON Schema definitions
-    fixtures/                  Valid and invalid examples
-    test-vectors/              conformance vectors
-    extensions/                Optional extension specs
-
-  reference-implementations/   TypeScript, Python, and Rust implementations
-  conformance/                 Cross-implementation suite runner and repo verification gates
-    bin/                         verify-* gates, differential-core-check
-  cli/                         Developer verification tooling
-    lib/                         Imperative shell adapters and retrieval helpers
-  docs/                        Explanatory documentation
+contentHash = keccak256(UTF8("ALX-CONTENT-V1\0") || canonicalize(content))
+blockHash   = keccak256(UTF8("ALX-BLOCK-V1\0") || canonicalize({ content, parentHashes }))
 ```
 
-The repository structure keeps protocol truth, implementation code, examples, and explanatory documentation separate.
+The core Block fields are:
 
----
+```json
+{
+  "blockHash": "0x...",
+  "contentHash": "0x...",
+  "parentHashes": [],
+  "content": {},
+  "protocolVersion": "1"
+}
+```
 
-## Design Principles
+`protocolVersion` is required for version 1 data and remains outside hash derivation. Identity rules are defined in [`spec.md`, section 1](../protocol/spec.md#1-primitive) and [`spec.md`, section 3](../protocol/spec.md#3-identity).
 
-1. **Determinism** - Same input produces same output, always, in any language
-2. **Content opacity** - The protocol excludes inspection of `content`
-3. **Storage independence** - Blocks are verified by hash, independent of storage location
-4. **Layered composition** - Each layer builds on the previous; no circular dependencies
-5. **Orthogonal signing** - Signatures attest to blocks without affecting block identity
+### Layer 3: Lineage and Graph Verification
 
-The principles above make ALX suitable as shared verification infrastructure: any agent system that implements the protocol produces artifacts that any other system can verify, without coordination.
+`parentHashes` declares direct parent Block identities. Parent order is removed by normalization before Block identity is derived.
 
----
+Graph verification evaluates Block integrity, parent resolution, duplicate identities, cycles, and verification context. It does not infer relationships from time, storage order, file paths, or application metadata.
 
-## Canonical Versus Reference Surfaces
+Lineage rules and verification modes are defined in [`spec.md`, section 4](../protocol/spec.md#4-lineage).
 
-| Component | Authority | Can differ across implementations- |
-|---|---|---|
-| `protocol/spec.md` | **Canonical** - the protocol | No |
-| `protocol/test-vectors/` | **Canonical** - required outputs | No |
-| `protocol/schemas/` | **Canonical** - structural constraints | No |
-| `reference-implementations/*` | **Reference** - one correct way | Implementation details may vary |
-| `cli/` | **Tooling** - convenience | Outside conformance requirements |
-| `protocol/extensions/` | **Extensions** - optional capabilities | Core conformance excludes extension requirements |
+### Layer 4: Trace
 
----
+Trace derives attribution structure from a root Block and a Graph. Its output includes reachable nodes, directed edges, minimum and maximum depths, leaf identities, and `pathCount`.
 
-## Protocol conformance boundary
+An AttributionTrace is a computed protocol result. It is not a Block, identity-bearing object, storage primitive, or paginated query response. Services use separate application envelopes for bounded traversal, pagination, index scope, and truncation.
 
-An implementation is **conformant** if the implementation produces byte-identical outputs for the canonical test vectors. Specifically:
+Trace does not interpret the meaning, quality, ownership, or value of Block content. Trace rules are defined in [`spec.md`, section 5](../protocol/spec.md#5-attribution).
 
-- Canonicalization: same input string -> same canonical output
-- Block identity: same content + same parents -> same blockHash and contentHash
-- Attribution: same root + same graph -> same trace (nodes, edges, depths, pathCounts)
+## Verification Modes
 
-Everything else (CLI, HTTP API, storage, signing) is outside the conformance boundary.
+| Mode | Parent availability |
+|---|---|
+| Closed-world | Every declared parent resolves to an available Block in the verification context |
+| Open-world | Unavailable parents are accepted only when the verification context explicitly declares them external |
 
----
+Closed-world verification is the protocol default. Open-world results prove that an external parent hash is bound into the child identity; they do not prove the external Block's existence, validity, or ancestry.
 
-## Optional Ecosystem Layers
+## Core Boundary
 
-Services above the protocol layer—hosted indexing, external parent references in open-world validation mode, and economic coordination through XNDR—are optional and remain outside Block validity and protocol conformance. See [Part VII — Ecosystem Coordination](./whitepaper.md#part-vii--ecosystem-coordination) in the whitepaper and the [Settlement pattern](./integrators/settlement.md) for application-level patterns.
+The deterministic core includes:
 
----
+- canonicalization;
+- parent normalization;
+- content and Block hash derivation;
+- Block validation;
+- Graph construction and validation;
+- closed-world and explicit open-world verification;
+- Trace computation.
+
+The following surfaces remain outside core Block identity:
+
+| Surface | Role |
+|---|---|
+| Content Envelope profile | Optional structure for application content |
+| Signing and attestations | Actor claims over an existing Block identity |
+| Merkle proofs | Inclusion proofs over `blockHash` values |
+| Local storage and retrieval | Persistence and availability |
+| IPFS and S3 adapters | External storage transport |
+| Verification receipts | Application records of verification runs |
+| Contracts and anchoring | Optional publication of existing hashes |
+| CLI and HTTP servers | Imperative interfaces over SDK behavior |
+
+Optional data does not enter `blockHash` derivation. Extension support is reported separately from core conformance.
+
+## Dependency Direction
+
+```text
+Trace
+  -> Lineage and Graph verification
+       -> Block identity
+            -> Canonicalization
+```
+
+Core dependencies flow toward lower layers. Time, network access, storage, credentials, and chain state enter through adapters or command shells.
+
+## Repository Map
+
+| Path | Responsibility |
+|---|---|
+| [`protocol/`](../protocol/) | Canonical sources, fixtures, suite discovery, extensions, and chain configuration |
+| [`sdk/`](../sdk/) | Primary TypeScript implementation |
+| [`reference-implementations/`](../reference-implementations/) | Python and Rust implementations |
+| [`conformance/`](../conformance/) | Cross-implementation runners and repository verification gates |
+| [`adapters/`](../adapters/) | Optional storage and external-system adapters |
+| [`cli/`](../cli/) | Block commands, local storage, retrieval, HTTP services, and command routing |
+| [`contracts/`](../contracts/) | Optional anchoring contracts |
+| [`docs/`](./) | Explanatory and integration documentation |
+
+The CLI, servers, adapters, contracts, documentation, and independently maintained application indexers consume canonical behavior. They do not define additional Block validity rules.
+
+## Conformance Boundary
+
+Core conformance is suite-specific. Implementations replay every required core suite listed in [`protocol/suites.json`](../protocol/suites.json).
+
+Comparison modes include:
+
+- exact canonical byte output;
+- semantic acceptance or rejection;
+- exact `contentHash` and `blockHash` values;
+- exact lineage and Trace structures;
+- boundary and invalid-input outcomes.
+
+Optional extension conformance is evaluated through the extension suites listed separately in `suites.json`.
 
 ## Related Documents
 
-- [`whitepaper.md`](./whitepaper.md) — Part VII optional ecosystem services
-- [`trust-model.md`](./trust-model.md) — verification boundaries complementary to the conformance boundary above
+- [`protocol/README.md`](../protocol/README.md) — canonical-source index
 - [`protocol/spec.md`](../protocol/spec.md) — normative protocol behavior
 - [`implementers/conformance.md`](./implementers/conformance.md) — conformance requirements
+- [`trust-model.md`](./trust-model.md) — verification guarantees and external responsibilities
+- [`../cli/README.md`](../cli/README.md) — available CLI commands

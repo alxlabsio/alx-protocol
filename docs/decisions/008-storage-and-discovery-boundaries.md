@@ -18,7 +18,7 @@ Public terminology follows the object’s actual role:
 
 A Manifest Block is a planned optional content profile, separate from protocol primitives. Implementation begins when an application needs to publish, sign, version, or exchange a list of Block hashes.
 
-Local database indexes remain application infrastructure outside the Block model. XNDR.network owns public discovery, including Block location, publisher discovery, storage endpoint resolution, service capability advertisement, and supported content-profile publication. XNDR.network remains planned infrastructure pending a separate implementation and specification.
+Local database indexes and public discovery services remain application infrastructure outside the Block model. Applications may provide Block location, publisher discovery, storage endpoint resolution, service capability advertisement, and supported content-profile publication under their own specifications.
 
 ## Local Block Store
 
@@ -55,5 +55,5 @@ The migration removes obsolete content profiles, command routes, helper APIs, po
 
 - [`../../protocol/spec.md`](../../protocol/spec.md)
 - [`../integrators/storage.md`](../integrators/storage.md)
-- [`../integrators/adapters.md`](../integrators/adapters.md)
+- [`../integrators/block-storage-adapters.md`](../integrators/block-storage-adapters.md)
 - [`../../adapters/README.md`](../../adapters/README.md)

@@ -92,9 +92,9 @@ The trace returns:
 
 ---
 
-## The Quality Signal
+## Structural Review Signals
 
-A high-quality attributed output satisfies two criteria.
+The following fields describe the recorded structure. They do not establish output quality, source influence, authorship, or contribution.
 
 ### Criterion 1 — Completeness
 
@@ -105,7 +105,7 @@ When a source cannot be included locally, declare the source as an external pare
 ```ts
 const context = {
   validationMode: "open-world",
-  externalParents: [{ blockHash: "0xabc...", reason: "proprietary dataset, not redistributable" }],
+  externalParents: [{ hash: "0xabc..." }],
 };
 ```
 
@@ -123,11 +123,11 @@ output → synthesis → sourceB   (path 1 to sourceB)
 
 | Block | pathCount | Interpretation |
 |---|---|---|
-| sourceA | 2 | Referenced by two independent derivation paths — deeply embedded |
-| sourceB | 1 | Referenced through synthesis only — contributes once |
+| sourceA | 2 | Reachable through two distinct declared paths |
+| sourceB | 1 | Reachable through one declared path |
 | synthesis | 1 | One path from output |
 
-A higher `pathCount` means a source is more deeply embedded in the output's derivation. When reviewing a flagged output, start with the highest `pathCount` source.
+A higher `pathCount` means only that more distinct Graph paths reach that Block from the Trace root. Applications decide whether path multiplicity is relevant to a review; it is not a protocol importance or influence score.
 
 **Reading pathCounts in the trace:**
 
@@ -160,7 +160,7 @@ if (!result.ok) {
 }
 ```
 
-`validateBlock` recomputes `keccak256(canonicalize({ content, parentHashes }))` and compares the result to the stored `blockHash`. The operation is local — no network, no external service.
+`validateBlock` recomputes the domain-separated v1 Block hash from canonical content and parents and compares it to the stored `blockHash`. The operation is local — no network, no external service.
 
 ---
 
@@ -228,7 +228,7 @@ for (const node of trace.nodes) {
 
 ## Related Documents
 
-- [`quickstart.md`](./quickstart.md) — zero-to-working integration
+- [`typescript-sdk-quick-start.md`](./typescript-sdk-quick-start.md) — zero-to-working integration
 - [`agent-integration.md`](./agent-integration.md) — attribution in agent workflows
 - [`verification-receipts.md`](../verification-receipts.md) — portable receipt format
 - [`../../protocol/spec.md`](../../protocol/spec.md) — normative specification

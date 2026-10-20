@@ -63,7 +63,7 @@ The stateless local verification model keeps ALX Protocol focused on portable ve
 ## Related Documents
 
 - [`../../protocol/spec.md`](../../protocol/spec.md)
-- [`../deep-dives/lineage.md`](../deep-dives/lineage.md)
-- [`../deep-dives/core-contract.md`](../deep-dives/core-contract.md)
+- [`../../GRAPH.md`](../../GRAPH.md)
+- [`../architecture.md`](../architecture.md)
 - [`../integrators/storage.md`](../integrators/storage.md)
 - [`../integrators/extensions.md`](../integrators/extensions.md)

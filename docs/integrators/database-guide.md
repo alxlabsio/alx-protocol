@@ -2,6 +2,8 @@
 
 The document recommends storage patterns for ALX Blocks. Storage patterns remain outside the protocol specification.
 
+Store Block identity and content identity in distinct typed columns. Do not use an untyped digest column unless a required discriminator identifies the hash domain.
+
 ---
 
 ## Purpose
@@ -18,7 +20,7 @@ Provide concrete schema designs, queries, and operational patterns for persistin
 ## Non-Goals
 
 - Defining protocol behavior. Storage is outside the protocol boundary. A Block is valid when its hash matches its content and parents, regardless of storage location.
-- Mandating a specific database engine. Any storage backend that preserves the four Block fields (`blockHash`, `contentHash`, `parentHashes`, `content`) is conformant.
+- Mandating a specific database engine. Any storage backend that preserves the five Block fields (`blockHash`, `contentHash`, `parentHashes`, `content`, `protocolVersion`) can represent a v1 Block.
 - Replication, backup, or high-availability architecture. These are infrastructure concerns.
 
 ---
@@ -27,7 +29,7 @@ Provide concrete schema designs, queries, and operational patterns for persistin
 
 ### Minimal Schema
 
-The minimal table mirrors the four Block fields directly:
+The minimal table mirrors the five Block fields directly:
 
 | Column | Type | Constraint | Maps to |
 |---|---|---|---|
@@ -35,8 +37,9 @@ The minimal table mirrors the four Block fields directly:
 | `content_hash` | TEXT | NOT NULL | `contentHash` |
 | `parent_hashes` | JSON array | NOT NULL | `parentHashes` |
 | `content` | JSON | NOT NULL | `content` |
+| `protocol_version` | TEXT | NOT NULL, value `1` | `protocolVersion` |
 
-This is the smallest correct schema. Applications MAY add columns (e.g., `created_at`, `source`, `version`) but MUST preserve these four.
+This is the smallest correct schema. Applications may add columns such as `created_at` and `source` but must preserve these five fields when reconstructing a Block.
 
 ### PostgreSQL
 
@@ -45,7 +48,8 @@ CREATE TABLE blocks (
     block_hash    TEXT PRIMARY KEY,
     content_hash  TEXT NOT NULL,
     parent_hashes JSONB NOT NULL DEFAULT '[]',
-    content       JSONB NOT NULL
+    content       JSONB NOT NULL,
+    protocol_version TEXT NOT NULL CHECK (protocol_version = '1')
 );
 ```
 
@@ -58,7 +62,8 @@ CREATE TABLE blocks (
     block_hash    TEXT PRIMARY KEY,
     content_hash  TEXT NOT NULL,
     parent_hashes TEXT NOT NULL DEFAULT '[]',
-    content       TEXT NOT NULL
+    content       TEXT NOT NULL,
+    protocol_version TEXT NOT NULL CHECK (protocol_version = '1')
 );
 ```
 
@@ -72,7 +77,8 @@ SQLite stores JSON as TEXT. Use `json_each()` for querying into `parent_hashes`.
   _id: "0xabc123...def",          // blockHash as document ID
   contentHash: "0x987654...321",
   parentHashes: ["0xaaa...", "0xbbb..."],
-  content: { type: "ai.response", text: "..." }
+  content: { type: "ai.response", text: "..." },
+  protocolVersion: "1"
 }
 ```
 
@@ -103,14 +109,21 @@ CREATE INDEX idx_blocks_parent_hashes ON blocks USING GIN (parent_hashes);
 
 The GIN index enables efficient containment queries on the JSONB array. Omitting the index forces a sequential scan when finding children of a Block.
 
-### Attester Index (For Signed Blocks)
+### Attester Index (Optional Signing Extension)
 
-If blocks carry attestations, index the attester to quickly retrieve all blocks authored by a specific agent or platform:
+Attestations are stored in a signing-extension wrapper or a separate application table, not in the five-field core Block row. A separate table can index attesters without changing the stored Block:
 
 ```sql
--- PostgreSQL: extract attester from attestation JSONB
-CREATE INDEX idx_blocks_attester ON blocks ((attestation->>'attester'))
-  WHERE attestation IS NOT NULL;
+CREATE TABLE block_attestations (
+    block_hash TEXT NOT NULL REFERENCES blocks(block_hash),
+    algorithm TEXT NOT NULL,
+    attester TEXT NOT NULL,
+    signature TEXT NOT NULL,
+    timestamp BIGINT NOT NULL
+);
+
+CREATE INDEX idx_block_attestations_attester
+    ON block_attestations (attester);
 ```
 
 ### MongoDB Indices
@@ -118,7 +131,8 @@ CREATE INDEX idx_blocks_attester ON blocks ((attestation->>'attester'))
 ```javascript
 db.blocks.createIndex({ contentHash: 1 });
 db.blocks.createIndex({ parentHashes: 1 });
-db.blocks.createIndex({ "attestation.attester": 1 }, { sparse: true });
+db.blockAttestations.createIndex({ blockHash: 1 });
+db.blockAttestations.createIndex({ attester: 1 });
 ```
 
 MongoDB automatically indexes `_id`. The `parentHashes` multikey index supports `$elemMatch` and `$in` queries for lineage traversal.
@@ -219,7 +233,7 @@ WHERE parent_hashes = '[]';
 
 ### Batch Insert With Conflict Handling
 
-Insert multiple Blocks, skipping any that already exist. Because `blockHash` is deterministic (same content + same parents = same hash), a conflict on `block_hash` means the identical Block already exists.
+Insert multiple validated Blocks while handling an existing identity explicitly. A `block_hash` conflict normally represents the same identity inputs, but the application must compare the complete stored and incoming Blocks before treating it as an idempotent retry.
 
 ```sql
 -- PostgreSQL
@@ -234,7 +248,7 @@ INSERT OR IGNORE INTO blocks (block_hash, content_hash, parent_hashes, content)
 VALUES ($1, $2, $3, $4);
 ```
 
-`ON CONFLICT DO NOTHING` is safe because two Blocks with the same `blockHash` are guaranteed to have the same content and parents. There is no risk of silently dropping a different Block.
+Do not use `ON CONFLICT DO NOTHING` until the incoming complete Block has been validated and compared with the stored value. ALX relies on collision-resistant hashing, but storage code should treat two nonidentical candidates claiming one `blockHash` as a conflict and security event rather than silently dropping one.
 
 ---
 
@@ -399,6 +413,6 @@ When creating Blocks at high throughput (e.g., an AI agent producing hundreds of
 ## Related Documents
 
 - [`./storage.md`](./storage.md) -- storage independence principle and adapter interface
-- [`./quickstart.md`](./quickstart.md) -- five-minute introduction to creating and tracing Blocks
+- [`./typescript-sdk-quick-start.md`](./typescript-sdk-quick-start.md) -- five-minute introduction to creating and tracing Blocks
 - [`./api-reference.md`](./api-reference.md) -- full SDK API reference including `buildGraph` and `traceAttribution`
 - [`deployment-checklist.md`](./deployment-checklist.md) -- operational checklist for production deployments

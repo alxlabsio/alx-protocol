@@ -14,7 +14,7 @@ Answers to questions integrators raise when adopting ALX Protocol.
 
 ### Block Primitive
 
-A Block is the single primitive in ALX Protocol. A Block binds artifact content and parent lineage into a deterministic blockHash: `{ blockHash, contentHash, parentHashes, content }`. The `blockHash` is deterministically derived from the content and parent references using keccak-256 hashing. The protocol hashes, links, and verifies Blocks without inspecting or interpreting `content`.
+A Block is the single primitive in ALX Protocol. A Block binds content and parent lineage into a deterministic blockHash: `{ blockHash, contentHash, parentHashes, content, protocolVersion }`. The `blockHash` is deterministically derived from the content and parent references using Keccak-256 hashing. The protocol hashes and verifies Blocks without inspecting or interpreting `content`.
 
 ### Hash Algorithm Selection
 
@@ -50,15 +50,15 @@ Content size limits remain outside the protocol scope. The canonicalization dept
 
 ### pathCount And Contribution Policy
 
-`pathCount` is structural, not a policy decision. `pathCount` reports how many distinct derivation paths exist. Whether `pathCount / totalPaths` serves as a contribution weight, a threshold applies, or a completely different formula governs settlement is the application's concern. See [`settlement.md`](./settlement.md) for patterns.
+`pathCount` is structural, not a policy decision. `pathCount` reports how many distinct derivation paths exist. Whether `pathCount / totalPaths` serves as a contribution weight, a threshold applies, or a completely different formula governs settlement is the application's concern. See [`application-settlement-boundaries.md`](./application-settlement-boundaries.md) for patterns.
 
 ### Graph Acyclicity
 
-Blocks form a directed acyclic Graph — cycles are structurally invalid. `validateGraph()` detects cycles and reports the offending nodes. `traceAttribution()` performs a cycle pre-check and sets `cycle: true` if a cycle is detected. A Block cannot be its own ancestor.
+Blocks form a directed acyclic Graph — cycles are structurally invalid. `validateGraph()` detects cycles and reports the offending nodes. `traceAttribution()` fails with `ALX_GRAPH_CYCLE` and produces no Trace when a cycle is detected. A Block cannot be its own ancestor.
 
 ### Missing Or Unavailable Parents
 
-The protocol validates structure rather than availability. `createBlock()` accepts any valid hash as a parent without checking whether that parent exists. `validateLineage()` flags missing parents only when a `knownHashes` set is provided. A partial Graph (with external parents) is valid; attribution cannot be traced through the missing nodes.
+`createBlock()` accepts syntactically valid parent hashes without retrieving those Blocks. Graph verification interprets availability through its explicit context: unavailable required data produces `incomplete` when no known violation or resource outcome takes precedence, while an open-world context may declare specific external parents outside the inspected scope. Neither result proves the unavailable Blocks exist or are valid.
 
 ---
 
@@ -74,7 +74,7 @@ External checkpoint integrations are optional. A checkpoint can provide an exter
 
 ### Relational Database Storage
 
-A Block is four fields: `blockHash`, `contentHash`, `parentHashes`, `content`. Map the fields to columns in any relational or document database. Use `blockHash` as the primary key. See [`database-guide.md`](./database-guide.md) for schema recommendations.
+A v1 Block has five fields: `blockHash`, `contentHash`, `parentHashes`, `content`, and `protocolVersion`. Map the fields to columns in any relational or document database and use `blockHash` as the protocol identity key. See [`database-guide.md`](./database-guide.md) for application schema recommendations.
 
 ### Content-Addressed Storage Identifiers
 
@@ -86,19 +86,19 @@ Two addressing schemes are complementary. A Block's `blockHash` is protocol-leve
 
 ### Signing Requirement
 
-Signing is orthogonal to Block identity. A Block's `blockHash` is always computed from content and parents — never from a signature. Signing adds an attestation: a signer produced or verified the Block. Use `createSignedBlock` when provable authorship is required. Use `createBlock` when only integrity is required.
+Signing is orthogonal to Block identity. A Block's `blockHash` is always computed from content and parents — never from a signature. The optional signing extension wraps a Block with an attestation. Use `createSignedBlock` when the application needs proof that a key signed the extension payload; key ownership and authorization still require application policy.
 
 ### blockHash And Signatures
 
-`blockHash` proves content integrity (mathematical). A signature proves actor attribution (cryptographic). The two are independent — a `blockHash` can be verified without any signature, and a signature references a `blockHash` but preserves the hash. A signed Block and an unsigned Block with the same content and parents have the same `blockHash`.
+Recomputing `blockHash` verifies integrity of the Block's identity inputs. A valid extension signature proves that the corresponding key signed the defined attestation payload. These checks are independent: the core Block can be verified without a signature, and the signing wrapper preserves its `blockHash`.
 
 ### Signing Algorithm Support
 
-The protocol defines algorithm-agnostic `Signer` and `Verifier` interfaces. The built-in `Eip712Signer` and `Eip712Verifier` use Ethereum-style signatures, but the interfaces accept Ed25519, RSA, cloud KMS, or any other scheme. See [`api-reference.md`](./api-reference.md) for the interface definitions.
+The TypeScript SDK exposes algorithm-agnostic `Signer` and `Verifier` interfaces and includes several backends. Portable signing-extension conformance currently covers Ed25519 and P-256. EIP-712 is a TypeScript application backend; other algorithms need an explicit application or extension profile before their encodings can interoperate. See [`api-reference.md`](./api-reference.md).
 
 ### Ethereum Wallet Requirement
 
-An Ethereum wallet is required only when an application chooses Ethereum-compatible signing or an external checkpoint integration. For Block creation, validation, Graph analysis, and attribution tracing, no wallet is needed. Custom Attestor implementations can use other key types.
+An Ethereum wallet is required only when an application chooses Ethereum-compatible signing or an external checkpoint integration. Core Block creation, validation, Graph verification, and Trace generation require no wallet.
 
 ---
 
@@ -106,7 +106,7 @@ An Ethereum wallet is required only when an application chooses Ethereum-compati
 
 ### Agent Framework Integration
 
-Wrap agent output as Blocks. The universal pattern: after an agent produces output, call `createBlock(output, parentBlockHashes)` to create a Block. Chain Blocks together by passing the previous Block's `blockHash` as a parent. See [`agent-frameworks.md`](./agent-frameworks.md) for framework-specific examples.
+Wrap selected agent inputs and outputs as Blocks at durable application boundaries. Pass the direct parent Blocks' `blockHash` values to `createBlock`, then verify the resulting Blocks and requested Graph context. See [`agent-integration.md`](./agent-integration.md).
 
 ### Cross-Implementation Interoperability
 
@@ -136,7 +136,7 @@ On-chain attestation services provide attestations with arbitrary schemas. ALX P
 
 ## Related Documents
 
-- [`./quickstart.md`](./quickstart.md) — five-minute getting-started tutorial
+- [`./typescript-sdk-quick-start.md`](./typescript-sdk-quick-start.md) — five-minute getting-started tutorial
 - [`./api-reference.md`](./api-reference.md) — SDK API reference
 - [`./troubleshooting.md`](./troubleshooting.md) — error diagnosis and resolutions
 - [`../../protocol/spec.md`](../../protocol/spec.md) — normative specification

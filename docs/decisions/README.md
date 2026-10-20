@@ -16,6 +16,9 @@ Architecture Decision Records help reviewers, implementers, and maintainers unde
 | [`006-algorithm-agnostic-signing.md`](./006-algorithm-agnostic-signing.md) | Attestation interface | Portable signing support across EVM, Ed25519, WebAuthn, KMS, and future signing systems |
 | [`007-threat-model-depth.md`](./007-threat-model-depth.md) | Security model | Explicit threat boundaries for applications and deployments |
 | [`008-storage-and-discovery-boundaries.md`](./008-storage-and-discovery-boundaries.md) | Storage and discovery | Local Block Store adapters without new protocol objects |
+| [`009-graph-validation-model.md`](./009-graph-validation-model.md) | Graph validation scope | Closed-world and explicitly scoped open-world verification contexts |
+| [`010-security-boundary-contract.md`](./010-security-boundary-contract.md) | Security boundaries | Fail-closed Graph, raw-input, operational-limit, and attestation behavior |
+| [`011-graph-validation-outcomes.md`](./011-graph-validation-outcomes.md) | Graph outcomes | Precise status, precedence, availability, and resource-limit semantics |
 
 ## Architecture Decision Record Usage
 
@@ -39,5 +42,5 @@ NNN-short-decision-name.md
 
 ## Related Documents
 
-- [Protocol governance](../governance/governance.md)
+- [Protocol change process](../governance/protocol-change-process.md)
 - [Protocol specification](../../protocol/spec.md)
