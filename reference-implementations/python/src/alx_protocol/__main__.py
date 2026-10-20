@@ -149,10 +149,14 @@ def cmd_trace(args):
         print(f"{CROSS}  {error}", file=sys.stderr)
         sys.exit(1)
 
-    # Resolve hash prefix
-    prefix = hash_prefix.lower().lstrip("0x")
-    matches = [h for h in graph if h.lstrip("0x").startswith(prefix)
-               or h.startswith(hash_prefix.lower())]
+    # Resolve hash prefix: strip only a literal leading "0x" (lstrip would also
+    # eat leading zero hex digits) and compare the remaining lowercase hex.
+    prefix = hash_prefix.lower().removeprefix("0x")
+    if not prefix:
+        print(f"{CROSS}  hash prefix must contain at least one hex digit: {hash_prefix}",
+              file=sys.stderr)
+        sys.exit(1)
+    matches = [h for h in graph if h.lower().removeprefix("0x").startswith(prefix)]
     if not matches:
         print(f"{CROSS}  no block matching prefix: {hash_prefix}", file=sys.stderr)
         sys.exit(1)
@@ -170,12 +174,12 @@ def cmd_trace(args):
         pc = node["pathCount"]
         depth = node["minDepth"]
         pc_str = f"pathCount={pc}" if int(pc) > 1 else ""
-        print(f"  depth {depth}  {h}...  {_bold(pc_str) if pc > 1 else ''}")
+        print(f"  depth {depth}  {h}...  {_bold(pc_str) if pc_str else ''}")
 
     print()
     has_multi = any(int(n["pathCount"]) > 1 for n in result["nodes"])
     if has_multi:
-        print(_dim("  pathCount = independent causal paths from root to that ancestor"))
+        print(_dim("  pathCount = number of distinct declared paths from the root to that ancestor"))
     print(f"  {TICK}  {_dim(f'alx-protocol Python v{__version__}')}")
 
 
