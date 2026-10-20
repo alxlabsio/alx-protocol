@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "mutate": [
+    "sdk/dist/canonicalization.js",
+    "sdk/dist/block.js",
+    "sdk/dist/block-lineage.js",
+    "sdk/dist/block-trace.js"
+  ],
+  "testRunner": "command",
+  "commandRunner": {
+    "command": "node --test tests/unit/sdk/canonicalization.test.js tests/unit/sdk/block.test.js tests/unit/sdk/block-lineage.test.js tests/unit/sdk/block-trace.test.js tests/security/parent-hash-sanitizer.test.js"
+  },
+  "coverageAnalysis": "off",
+  "concurrency": 2,
+  "reporters": ["clear-text", "progress"],
+  "thresholds": {
+    "high": 80,
+    "low": 65,
+    "break": 60
+  }
+}

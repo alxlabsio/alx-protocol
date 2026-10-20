@@ -3,12 +3,10 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { REPO_ROOT } from "../lib/repo-root.js";
-import { SCHEMA_HOST } from "../../scripts/build-protocol-site.js";
-
 const PROTOCOL_ROOT = resolve(REPO_ROOT, "protocol");
+const SCHEMA_HOST = "https://alxprotocol.com";
 const META_SCHEMA = "https://json-schema.org/draft/2020-12/schema";
-const ERROR_REGISTRY_SCHEMA = "[Placeholder]";
-const PUBLIC_SCHEMA_URL_PLACEHOLDER = "[Placeholder]";
+const ERROR_REGISTRY_SCHEMA = `${SCHEMA_HOST}/protocol/1/schemas/error-code-registry.schema.json`;
 const errors = [];
 
 function readJson(absPath) {
@@ -41,9 +39,9 @@ function expectedSchemaId(relPath) {
   if (extension) {
     return (
       SCHEMA_HOST +
-      "/extensions/" +
+      "/protocol/1/extensions/" +
       extension[1] +
-      "/1/schemas/" +
+      "/schemas/" +
       extension[2]
     );
   }
@@ -66,11 +64,8 @@ for (const schemaFile of schemaFiles) {
   if (schema.$schema !== META_SCHEMA) {
     errors.push(relPath + ": expected $schema " + META_SCHEMA);
   }
-  if (schema.$id !== undefined) {
-    errors.push(relPath + ": temporary public schema URL must remain unset");
-  }
-  if (!schema.$comment?.includes(PUBLIC_SCHEMA_URL_PLACEHOLDER)) {
-    errors.push(relPath + ": missing temporary [Placeholder] URL marker");
+  if (schema.$id !== expectedId) {
+    errors.push(relPath + ": expected $id " + expectedId);
   }
 }
 
@@ -104,6 +99,10 @@ for (const relPath of [
         ", got " +
         (registry.$schema ?? "(missing)"),
     );
+  }
+  const expectedId = `${SCHEMA_HOST}/${relPath.replace(/^protocol\//u, "protocol/1/")}`;
+  if (registry.$id !== expectedId) {
+    errors.push(relPath + ": expected $id " + expectedId);
   }
 }
 

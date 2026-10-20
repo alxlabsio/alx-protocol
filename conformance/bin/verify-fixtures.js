@@ -130,6 +130,11 @@ const CHECKS = [
     invalid: ["protocol/fixtures/verification-context/invalid"],
   },
   {
+    schema: "protocol/schemas/graph-verification.schema.json",
+    valid: ["protocol/fixtures/graph-verification/valid"],
+    invalid: ["protocol/fixtures/graph-verification/invalid"],
+  },
+  {
     schema: "protocol/schemas/content-envelope.schema.json",
     valid: ["protocol/fixtures/content-envelope/valid"],
     invalid: ["protocol/fixtures/content-envelope/invalid"],

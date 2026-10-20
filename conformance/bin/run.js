@@ -18,20 +18,26 @@
  * See conformance/README.md for the full interface contract.
  */
 
-import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { compareExactResult } from "../lib/exact-result.js";
+import { decodeStrictJsonBytes } from "../lib/strict-json.js";
 import { createExternalImpl, createRunner, green, red, bold, dim } from "../lib/impl.js";
+import { loadCoreManifest } from "../lib/manifest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SUITES_MANIFEST = JSON.parse(readFileSync(resolve(__dirname, "../../protocol/suites.json"), "utf-8"));
+const LOADED_MANIFEST = loadCoreManifest();
+const SUITES_MANIFEST = LOADED_MANIFEST.manifest;
+const SUITE_DOCUMENTS = new Map(
+  LOADED_MANIFEST.suites.map(({ descriptor, document }) => [descriptor.id, document]),
+);
 const LIB_DIR = resolve(__dirname, "../../sdk/dist");
 
 
 function loadVectors(suiteId) {
-  const suite = SUITES_MANIFEST.core.suites.find((entry) => entry.id === suiteId);
-  if (!suite) throw new Error(`Unknown core suite: ${suiteId}`);
-  return JSON.parse(readFileSync(resolve(__dirname, "../..", suite.path), "utf-8"));
+  const document = SUITE_DOCUMENTS.get(suiteId);
+  if (!document) throw new Error(`Unknown core suite: ${suiteId}`);
+  return document;
 }
 
 function suiteHeading(suiteId, title) {
@@ -51,6 +57,23 @@ function assertExpectedError(runner, vector, error) {
     runner.pass(vector.id, vector.description);
   } else {
     runner.fail(vector.id, vector.description, `errorCode: ${actual ?? "missing"} vs ${vector.expected.errorCode}`);
+  }
+}
+
+async function runExactGraphVector(impl, runner, vector) {
+  try {
+    const result = await impl.call("validateGraph", vector.input);
+    if (vector.expected.errorCode) {
+      runner.fail(vector.id, vector.description, `expected [${vector.expected.errorCode}] error`);
+      return;
+    }
+    const comparison = compareExactResult(result, vector.expected);
+    comparison.matches
+      ? runner.pass(vector.id, vector.description)
+      : runner.fail(vector.id, vector.description, comparison.detail);
+  } catch (error) {
+    if (vector.expected.errorCode) assertExpectedError(runner, vector, error);
+    else runner.fail(vector.id, vector.description, `expected exact Graph result, received error: ${error.message}`);
   }
 }
 
@@ -85,6 +108,14 @@ async function createSelfTestImpl() {
           for (let i = 0; i < input.generatedDepth; i++) value = { nested: value };
           return canonicalizeProtocolJson(value);
         }
+        case "decodeRawJson": {
+          try {
+            const value = decodeStrictJsonBytes(Buffer.from(input.rawHex, "hex"));
+            return { ok: true, value };
+          } catch {
+            return { ok: false, errorCode: "ALX_SCHEMA_INVALID" };
+          }
+        }
         case "deriveBlockHash": return deriveBlockHash(input.content, input.parentHashes ?? []);
         case "deriveContentHash": return deriveContentHash(input.content);
         case "createBlock": return createBlock(input.content, input.parentHashes ?? []);
@@ -101,8 +132,7 @@ async function createSelfTestImpl() {
           return traceAttribution(input.rootHash, graph, input.context);
         }
         case "validateGraph": {
-          const graph = new Map(Object.entries(input.graph));
-          return validateGraph(graph, input.context);
+          return validateGraph(input.seed, input.source, input.context);
         }
         case "validateIncrementalBlock": {
           const graph = new Map(Object.entries(input.existingGraph));
@@ -130,21 +160,42 @@ async function runCanonicalizationVectors(impl, isExternal, runner) {
   const data = loadVectors("canonicalization");
 
   for (const v of data.vectors) {
-    if (isExternal && (v.id === "C4" || v.id === "C10")) {
+    if (isExternal && v.id === "C4") {
       runner.skip(v.id, v.description + " requires an in-language test");
       continue;
     }
     try {
-      const input = v.id === "C4"
-        ? -0
-        : v.id === "C10"
-          ? { a: 1, b: undefined, c: 3 }
-          : v.input;
+      const input = v.id === "C4" ? -0 : v.input;
       const result = await impl.call("canonicalize", input);
       if (result === v.expected) runner.pass(v.id, v.description);
       else runner.fail(v.id, v.description, `expected: ${JSON.stringify(v.expected)}, got: ${JSON.stringify(result)}`);
     } catch (e) {
       runner.fail(v.id, v.description, `ERROR: ${e.message}`);
+    }
+  }
+}
+
+async function runExactOperationSuite(impl, runner, suite) {
+  suiteHeading(suite.id, suite.id);
+  const data = loadVectors(suite.id);
+  for (const vector of data.vectors) {
+    const expectsThrownError =
+      vector.expected?.errorCode !== undefined
+      && Object.keys(vector.expected).length === 1;
+    try {
+      const actual = await impl.call(suite.operation, vector.input);
+      if (expectsThrownError) {
+        runner.fail(vector.id, vector.description, `expected [${vector.expected.errorCode}] error`);
+        continue;
+      }
+      const comparison = compareExactResult(vector.expected, actual);
+      comparison.matches
+        ? runner.pass(vector.id, vector.description)
+        : runner.fail(vector.id, vector.description, comparison.detail);
+    } catch (error) {
+      expectsThrownError
+        ? assertExpectedError(runner, vector, error)
+        : runner.fail(vector.id, vector.description, `ERROR: ${error.message}`);
     }
   }
 }
@@ -260,16 +311,21 @@ async function runAttributionTraceVectors(impl, runner) {
 
   for (const v of data.vectors) {
     try {
-      const trace = await impl.call("traceAttribution", { rootHash: v.root, graph: v.graph, context: v.context });
+      const graph = graphForTraceVector(v);
+      const trace = await impl.call("traceAttribution", { rootHash: v.root, graph, context: v.context });
       const checks = [];
       const exp = v.expected;
+
+      if (exp.errorCode) {
+        runner.fail(v.id, v.description, `expected [${exp.errorCode}] error`);
+        continue;
+      }
 
       if (trace.root !== v.root) checks.push(`root: ${trace.root} vs ${v.root}`);
       if (exp.nodeCount !== undefined && trace.nodes.length !== exp.nodeCount) checks.push(`nodeCount: ${trace.nodes.length} vs ${exp.nodeCount}`);
       if (exp.edgeCount !== undefined && trace.edges.length !== exp.edgeCount) checks.push(`edgeCount: ${trace.edges.length} vs ${exp.edgeCount}`);
       if (exp.leafCount !== undefined && trace.leaves.length !== exp.leafCount) checks.push(`leafCount: ${trace.leaves.length} vs ${exp.leafCount}`);
       if (exp.maxDepth !== undefined && trace.maxDepth !== exp.maxDepth) checks.push(`maxDepth: ${trace.maxDepth} vs ${exp.maxDepth}`);
-      if (exp.cycle !== undefined && trace.cycle !== exp.cycle) checks.push(`cycle: ${trace.cycle} vs ${exp.cycle}`);
       if (exp.validationMode !== undefined && trace.validationMode !== exp.validationMode) checks.push(`validationMode: ${trace.validationMode} vs ${exp.validationMode}`);
       if (exp.complete !== undefined && trace.complete !== exp.complete) checks.push(`complete: ${trace.complete} vs ${exp.complete}`);
       if (exp.leaves) {
@@ -313,15 +369,29 @@ async function runAttributionTraceVectors(impl, runner) {
         checks.push(`externalParents: ${JSON.stringify(trace.externalParents ?? [])} vs ${JSON.stringify(exp.externalParents)}`);
       }
       // Determinism check
-      const trace2 = await impl.call("traceAttribution", { rootHash: v.root, graph: v.graph, context: v.context });
+      const trace2 = await impl.call("traceAttribution", { rootHash: v.root, graph, context: v.context });
       if (JSON.stringify(trace) !== JSON.stringify(trace2)) checks.push("non-deterministic");
 
       if (checks.length === 0) runner.pass(v.id, v.description);
       else runner.fail(v.id, v.description, checks.join("; "));
     } catch (e) {
-      runner.fail(v.id, v.description, `ERROR: ${e.message}`);
+      if (v.expected.errorCode) assertExpectedError(runner, v, e);
+      else runner.fail(v.id, v.description, `ERROR: ${e.message}`);
     }
   }
+}
+
+function graphForTraceVector(vector) {
+  if (vector.graph) return vector.graph;
+  const depth = vector.generatedFibonacciDepth;
+  const hash = (index) => `0x${index.toString(16).padStart(64, "0")}`;
+  return Object.fromEntries(Array.from({ length: depth }, (_, offset) => {
+    const index = offset + 1;
+    const parents = [];
+    if (index + 1 <= depth) parents.push(hash(index + 1));
+    if (index + 2 <= depth) parents.push(hash(index + 2));
+    return [hash(index), parents];
+  }));
 }
 
 async function runLineageBoundaryVectors(impl, runner) {
@@ -329,14 +399,26 @@ async function runLineageBoundaryVectors(impl, runner) {
   const data = loadVectors("lineage-boundaries");
 
   for (const v of data.vectors) {
+    if (v.operation === "validateGraph") {
+      await runExactGraphVector(impl, runner, v);
+      continue;
+    }
     try {
       const result = await impl.call(v.operation, v.input);
+      if (v.expected.errorCode) {
+        runner.fail(v.id, v.description, `expected [${v.expected.errorCode}] error`);
+        continue;
+      }
       const checks = [];
       const exp = v.expected;
-      if (result.ok !== exp.ok) checks.push(`ok: ${result.ok} vs ${exp.ok}`);
+      if (exp.ok !== undefined && result.ok !== exp.ok) checks.push(`ok: ${result.ok} vs ${exp.ok}`);
+      if (exp.checked !== undefined && result.checked !== exp.checked) checks.push(`checked: ${result.checked} vs ${exp.checked}`);
+      if (exp.status !== undefined && result.status !== exp.status) checks.push(`status: ${result.status} vs ${exp.status}`);
       if (exp.issueCount !== undefined && result.issues?.length !== exp.issueCount) checks.push(`issueCount: ${result.issues?.length ?? 0} vs ${exp.issueCount}`);
       if (exp.missing) {
-        const actualMissing = exp.issueCount !== undefined ? (result.issues?.[0]?.missing ?? []) : (result.missing ?? []);
+        const actualMissing = exp.issueCount !== undefined
+          ? (result.issues?.[0]?.missing ?? [])
+          : (result.missingParents ?? result.missing ?? []);
         if (JSON.stringify(actualMissing) !== JSON.stringify(exp.missing)) checks.push(`missing: ${JSON.stringify(actualMissing)} vs ${JSON.stringify(exp.missing)}`);
       }
       if (exp.external) {
@@ -346,11 +428,32 @@ async function runLineageBoundaryVectors(impl, runner) {
         if (JSON.stringify(actualExternal) !== JSON.stringify(exp.external)) checks.push(`external: ${JSON.stringify(actualExternal)} vs ${JSON.stringify(exp.external)}`);
       }
       if (exp.cycle !== undefined && result.cycle !== exp.cycle) checks.push(`cycle: ${result.cycle} vs ${exp.cycle}`);
+      if (exp.issueCodes) {
+        const actualCodes = (result.issues ?? []).map((issue) => issue.code).filter(Boolean);
+        if (JSON.stringify(actualCodes) !== JSON.stringify(exp.issueCodes)) checks.push(`issueCodes: ${JSON.stringify(actualCodes)} vs ${JSON.stringify(exp.issueCodes)}`);
+      }
       if (checks.length === 0) runner.pass(v.id, v.description);
       else runner.fail(v.id, v.description, checks.join("; "));
     } catch (e) {
-      runner.fail(v.id, v.description, `ERROR: ${e.message}`);
+      if (v.expected.errorCode) assertExpectedError(runner, v, e);
+      else runner.fail(v.id, v.description, `ERROR: ${e.message}`);
     }
+  }
+}
+
+async function runGraphValidationOutcomeVectors(impl, runner) {
+  suiteHeading("graph-validation-outcomes", "Graph Validation Outcomes");
+  const data = loadVectors("graph-validation-outcomes");
+
+  for (const v of data.vectors) {
+    if (v.operation === "not-requested") {
+      const comparison = compareExactResult(v.expected, { protocolVersion: "1", checked: false });
+      comparison.matches
+        ? runner.pass(v.id, v.description)
+        : runner.fail(v.id, v.description, comparison.detail);
+      continue;
+    }
+    await runExactGraphVector(impl, runner, v);
   }
 }
 
@@ -359,11 +462,21 @@ async function runSemanticValidityVectors(impl, runner) {
   const data = loadVectors("semantic-validity");
 
   for (const v of data.vectors) {
+    if (v.operation === "validateGraph") {
+      await runExactGraphVector(impl, runner, v);
+      continue;
+    }
     try {
       const result = await impl.call(v.operation, v.input);
       const checks = [];
       const exp = v.expected;
-      if (result.ok !== exp.ok) checks.push(`ok: ${result.ok} vs ${exp.ok}`);
+      if (exp.errorCode) {
+        runner.fail(v.id, v.description, `expected [${exp.errorCode}] error`);
+        continue;
+      }
+      if (exp.ok !== undefined && result.ok !== exp.ok) checks.push(`ok: ${result.ok} vs ${exp.ok}`);
+      if (exp.checked !== undefined && result.checked !== exp.checked) checks.push(`checked: ${result.checked} vs ${exp.checked}`);
+      if (exp.status !== undefined && result.status !== exp.status) checks.push(`status: ${result.status} vs ${exp.status}`);
       if (exp.issueCount !== undefined && result.issues?.length !== exp.issueCount) checks.push(`issueCount: ${result.issues?.length ?? 0} vs ${exp.issueCount}`);
       if (exp.missing) {
         const actualMissing = result.issues?.[0]?.missing ?? result.missing ?? [];
@@ -374,7 +487,8 @@ async function runSemanticValidityVectors(impl, runner) {
       if (checks.length === 0) runner.pass(v.id, v.description);
       else runner.fail(v.id, v.description, checks.join("; "));
     } catch (e) {
-      runner.fail(v.id, v.description, `ERROR: ${e.message}`);
+      if (v.expected.errorCode) assertExpectedError(runner, v, e);
+      else runner.fail(v.id, v.description, `ERROR: ${e.message}`);
     }
   }
 }
@@ -383,14 +497,32 @@ async function runSemanticIntegrityVectors(impl, runner) {
   suiteHeading("semantic-integrity", "Semantic Integrity");
   const data = loadVectors("semantic-integrity");
   for (const v of data.vectors) {
+    if (v.operation === "validateGraph") {
+      await runExactGraphVector(impl, runner, v);
+      continue;
+    }
     try {
       const result = await impl.call(v.operation, v.input);
+      if (v.expected.errorCode) {
+        runner.fail(v.id, v.description, `expected [${v.expected.errorCode}] error`);
+        continue;
+      }
       const checks = [];
-      if (result.ok !== v.expected.ok) checks.push(`ok: ${result.ok} vs ${v.expected.ok}`);
+      if (v.expected.ok !== undefined && result.ok !== v.expected.ok) checks.push(`ok: ${result.ok} vs ${v.expected.ok}`);
+      if (v.expected.checked !== undefined && result.checked !== v.expected.checked) checks.push(`checked: ${result.checked} vs ${v.expected.checked}`);
+      if (v.expected.status !== undefined && result.status !== v.expected.status) checks.push(`status: ${result.status} vs ${v.expected.status}`);
       if (v.expected.validationMode !== undefined && result.validationMode !== v.expected.validationMode) checks.push(`validationMode: ${result.validationMode} vs ${v.expected.validationMode}`);
       if (v.expected.complete !== undefined && result.complete !== v.expected.complete) checks.push(`complete: ${result.complete} vs ${v.expected.complete}`);
       if (v.expected.missingParents && JSON.stringify(result.missingParents ?? []) !== JSON.stringify(v.expected.missingParents)) checks.push(`missingParents: ${JSON.stringify(result.missingParents ?? [])} vs ${JSON.stringify(v.expected.missingParents)}`);
       if (v.expected.externalParents && JSON.stringify(result.externalParents ?? []) !== JSON.stringify(v.expected.externalParents)) checks.push(`externalParents: ${JSON.stringify(result.externalParents ?? [])} vs ${JSON.stringify(v.expected.externalParents)}`);
+      if (v.expected.issueBlockHashes) {
+        const actual = (result.issues ?? []).map((issue) => issue.blockHash);
+        if (JSON.stringify(actual) !== JSON.stringify(v.expected.issueBlockHashes)) checks.push(`issueBlockHashes: ${JSON.stringify(actual)} vs ${JSON.stringify(v.expected.issueBlockHashes)}`);
+      }
+      if (v.expected.issueCodes) {
+        const actual = (result.issues ?? []).map((issue) => issue.code).filter(Boolean);
+        if (JSON.stringify(actual) !== JSON.stringify(v.expected.issueCodes)) checks.push(`issueCodes: ${JSON.stringify(actual)} vs ${JSON.stringify(v.expected.issueCodes)}`);
+      }
       for (const issue of v.expected.issues ?? []) {
         if (!(result.issues ?? []).includes(issue)) checks.push(`missing issue ${issue}`);
       }
@@ -399,7 +531,8 @@ async function runSemanticIntegrityVectors(impl, runner) {
       }
       checks.length === 0 ? runner.pass(v.id, v.description) : runner.fail(v.id, v.description, checks.join("; "));
     } catch (e) {
-      runner.fail(v.id, v.description, `ERROR: ${e.message}`);
+      if (v.expected.errorCode) assertExpectedError(runner, v, e);
+      else runner.fail(v.id, v.description, `ERROR: ${e.message}`);
     }
   }
 }
@@ -421,6 +554,7 @@ async function runCanonicalizationNegativeVectors(impl, isExternal, runner) {
     runner.skip("CN7", "cyclic-reference rejection requires an in-language test");
     runner.skip("CN8", "BigInt rejection requires an applicable in-language test");
     runner.skip("CN9", "Symbol rejection requires an applicable in-language test");
+    runner.skip("CN11", "unpaired-surrogate rejection requires an in-language test");
   } else {
     const nonJsonNegatives = [
       { ...vectorById.get("CN1"), input: NaN },
@@ -453,6 +587,7 @@ async function runCanonicalizationNegativeVectors(impl, isExternal, runner) {
       { ...vectorById.get("CN7"), input: cyclic },
       { ...vectorById.get("CN8"), input: 1n },
       { ...vectorById.get("CN9"), input: Symbol("x") },
+      { ...vectorById.get("CN11"), input: "\ud800" },
     ];
     for (const v of nativeNegatives) {
       try { await impl.call("canonicalize", v.input); runner.fail(v.id, v.description, "expected error"); }
@@ -503,12 +638,17 @@ async function runLineageNegativeVectors(impl, runner) {
         if (result.selfRef !== v.expected.selfRef) checks.push(`selfRef: ${result.selfRef} vs ${v.expected.selfRef}`);
         checks.length === 0 ? runner.pass(v.id, v.description) : runner.fail(v.id, v.description, checks.join("; "));
       } else if (v.graph && v.expected.hasCycle) {
-        const trace = await impl.call("traceAttribution", {
-          rootHash: Object.keys(v.graph)[0],
-          graph: v.graph,
-        });
-        if (trace.cycle === true) runner.pass(v.id, v.description);
-        else runner.fail(v.id, v.description, "expected cycle=true");
+        try {
+          await impl.call("traceAttribution", {
+            rootHash: Object.keys(v.graph)[0],
+            graph: v.graph,
+          });
+          runner.fail(v.id, v.description, "expected [ALX_GRAPH_CYCLE] error");
+        } catch (error) {
+          String(error?.message ?? error).includes("ALX_GRAPH_CYCLE")
+            ? runner.pass(v.id, v.description)
+            : runner.fail(v.id, v.description, `wrong error: ${error?.message ?? error}`);
+        }
       } else if (v.expected.duplicates) {
         const result = await impl.call("validateLineage", v.input);
         if (JSON.stringify(result.duplicates) === JSON.stringify(v.expected.duplicates)) runner.pass(v.id, v.description);
@@ -588,9 +728,10 @@ const impl = await createImpl(mode, implCmd);
 const testRunner = createRunner();
 const isExternal = mode === "external";
 
-const suiteRunners = {
-  canonicalization: (i, r) => runCanonicalizationVectors(i, isExternal, r),
-  "canonicalization-negative": (i, r) => runCanonicalizationNegativeVectors(i, isExternal, r),
+const executionModels = {
+  "exact-operation": (i, r, suite) => runExactOperationSuite(i, r, suite),
+  "canonicalization-exact": (i, r) => runCanonicalizationVectors(i, isExternal, r),
+  "canonicalization-rejection": (i, r) => runCanonicalizationNegativeVectors(i, isExternal, r),
   "canonicalization-depth": (i, r) => runCanonicalizationDepthVectors(i, r),
   "block-identity": (i, r) => runBlockIdentityVectors(i, r),
   "parent-normalization": (i, r) => runParentNormalizationVectors(i, r),
@@ -598,34 +739,54 @@ const suiteRunners = {
   "attribution-trace": (i, r) => runAttributionTraceVectors(i, r),
   "lineage-negative": (i, r) => runLineageNegativeVectors(i, r),
   "lineage-boundaries": (i, r) => runLineageBoundaryVectors(i, r),
+  "graph-validation-outcomes": (i, r) => runGraphValidationOutcomeVectors(i, r),
   "semantic-validity": (i, r) => runSemanticValidityVectors(i, r),
   "semantic-integrity": (i, r) => runSemanticIntegrityVectors(i, r),
 };
 
-for (const suite of SUITES_MANIFEST.core.suites) {
-  const suiteRunner = suiteRunners[suite.id];
-  if (!suiteRunner) throw new Error(`No core conformance runner registered for suite ${suite.id}`);
-  const before = testRunner.getState();
-  await suiteRunner(impl, testRunner);
-  const after = testRunner.getState();
-  testRunner.pushSuite({
-    id: suite.id,
-    comparison: suite.comparison,
-    passed: after.passed - before.passed,
-    failed: after.failed - before.failed,
-    skipped: after.skipped - before.skipped,
-  });
+try {
+  for (const suite of SUITES_MANIFEST.core.suites.filter((candidate) => candidate.required)) {
+    const suiteRunner = executionModels[suite.executionModel];
+    if (!suiteRunner) {
+      throw new Error(
+        `Suite ${suite.id} declares unsupported executionModel ${suite.executionModel}`,
+      );
+    }
+    const before = testRunner.getState();
+    await suiteRunner(impl, testRunner, suite);
+    const after = testRunner.getState();
+    testRunner.pushSuite({
+      id: suite.id,
+      comparison: suite.comparison,
+      passed: after.passed - before.passed,
+      failed: after.failed - before.failed,
+      skipped: after.skipped - before.skipped,
+    });
+  }
+} finally {
+  await impl.close();
 }
 
-await impl.close();
-
 const { passed, failed, skipped, total, suiteResults } = testRunner.getState();
+const requiredSuiteIds = SUITES_MANIFEST.core.suites
+  .filter((suite) => suite.required)
+  .map((suite) => suite.id);
+const executedSuiteIds = suiteResults.map((suite) => suite.id);
+if (JSON.stringify(executedSuiteIds) !== JSON.stringify(requiredSuiteIds)) {
+  throw new Error(
+    `Required suite execution mismatch: ${JSON.stringify(executedSuiteIds)} vs ${JSON.stringify(requiredSuiteIds)}`,
+  );
+}
 
 console.log(`\n  ${"\u2500".repeat(44)}`);
 console.log(`  ${bold("Total:")} ${passed}/${total} passed` + (failed > 0 ? `, ${red(`${failed} failed`)}` : "") + (skipped > 0 ? `, ${skipped} native-only checks skipped` : ""));
-const exactSuiteCount = suiteResults.filter((s) => s.comparison === "exact").length;
-const semanticSuiteCount = suiteResults.filter((s) => s.comparison === "semantic").length;
-console.log(`  ${bold("Coverage:")} ${exactSuiteCount} exact-output suite(s), ${semanticSuiteCount} semantic suite(s)`);
+const comparisonCounts = SUITES_MANIFEST.core.suites
+  .filter((suite) => suite.required)
+  .flatMap((suite) => SUITE_DOCUMENTS.get(suite.id).vectors.map((vector) => vector.comparison ?? suite.comparison))
+  .reduce((counts, comparison) => ({ ...counts, [comparison]: (counts[comparison] ?? 0) + 1 }), {});
+console.log(
+  `  ${bold("Coverage:")} ${comparisonCounts.exact ?? 0} exact-output vector(s), ${comparisonCounts.semantic ?? 0} semantic vector(s)`,
+);
 console.log();
 
 if (failed === 0 && skipped === 0) {

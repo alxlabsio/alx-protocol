@@ -28,7 +28,7 @@ if (String(suites.protocolVersion) !== version) {
 for (const relPath of [
   "protocol/spec.md",
   "protocol/schemas",
-  "protocol/test-vectors",
+  "test-vectors",
   "protocol/error-codes.json",
   "protocol/suites.json",
 ]) {

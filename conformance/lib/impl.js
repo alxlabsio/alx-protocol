@@ -64,7 +64,9 @@ export function parseCommand(cmd) {
  *   stdin:  { "operation": "...", "input": ... }
  *   stdout: { "output": ... }  or  { "error": "..." }
  */
-export function createExternalImpl(cmd) {
+export function createExternalImpl(cmd, options = {}) {
+  const callTimeoutMs = options.callTimeoutMs ?? 0;
+  const maxOutputBytes = options.maxOutputBytes ?? 16 * 1024 * 1024;
   const parts = parseCommand(cmd);
   let executable = parts[0];
   if (
@@ -80,16 +82,35 @@ export function createExternalImpl(cmd) {
   const pending = [];
   let lineBuf = "";
   let stderrBuf = "";
+  let closed = false;
+  let resolveClosed;
+  const closedPromise = new Promise((resolve) => { resolveClosed = resolve; });
 
-  child.stderr.on("data", (d) => { stderrBuf += d.toString(); });
+  function rejectAll(error) {
+    while (pending.length > 0) {
+      const entry = pending.shift();
+      clearTimeout(entry.timer);
+      entry.reject(error);
+    }
+  }
+
+  child.stderr.on("data", (d) => {
+    if (Buffer.byteLength(stderrBuf) < maxOutputBytes) stderrBuf += d.toString();
+  });
 
   child.stdout.on("data", (data) => {
     lineBuf += data.toString();
+    if (Buffer.byteLength(lineBuf) > maxOutputBytes) {
+      rejectAll(new Error(`Implementation output exceeded ${maxOutputBytes} bytes without a complete response`));
+      child.kill();
+      return;
+    }
     const lines = lineBuf.split("\n");
     lineBuf = lines.pop();
     for (const line of lines) {
       if (!line.trim() || pending.length === 0) continue;
-      const { resolve, reject } = pending.shift();
+      const { resolve, reject, timer } = pending.shift();
+      clearTimeout(timer);
       try {
         const result = JSON.parse(line);
         if (result.error) reject(new Error(result.error));
@@ -101,25 +122,43 @@ export function createExternalImpl(cmd) {
   });
 
   child.on("error", (err) => {
-    while (pending.length > 0) pending.shift().reject(new Error(`Process error: ${err.message}`));
+    rejectAll(new Error(`Process error: ${err.message}`));
   });
 
   child.on("close", (code) => {
-    while (pending.length > 0) {
-      pending.shift().reject(new Error(`Process exited with code ${code}. stderr: ${stderrBuf.slice(0, 200)}`));
-    }
+    closed = true;
+    rejectAll(new Error(`Process exited with code ${code}. stderr: ${stderrBuf.slice(0, 200)}`));
+    resolveClosed(code);
   });
 
   return {
     call(operation, input) {
       return new Promise((resolve, reject) => {
-        pending.push({ resolve, reject });
-        child.stdin.write(JSON.stringify({ operation, input }) + "\n");
+        if (closed || child.stdin.destroyed) {
+          reject(new Error("Implementation process is not running"));
+          return;
+        }
+        const entry = { resolve, reject, timer: undefined };
+        if (callTimeoutMs > 0) {
+          entry.timer = setTimeout(() => {
+            rejectAll(new Error(`Implementation call timed out after ${callTimeoutMs}ms (${operation})`));
+            child.kill();
+          }, callTimeoutMs);
+        }
+        pending.push(entry);
+        child.stdin.write(JSON.stringify({ operation, input }) + "\n", (error) => {
+          if (error) {
+            const index = pending.indexOf(entry);
+            if (index !== -1) pending.splice(index, 1);
+            clearTimeout(entry.timer);
+            reject(new Error(`Unable to write to implementation process: ${error.message}`));
+          }
+        });
       });
     },
     async close() {
-      child.stdin.end();
-      return new Promise((resolve) => child.on("close", resolve));
+      if (!closed && !child.stdin.destroyed) child.stdin.end();
+      return closedPromise;
     },
   };
 }

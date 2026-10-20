@@ -7,6 +7,7 @@ const ignoredPaths = [
   "**/dist/**",
   "**/target/**",
   "**/coverage/**",
+  ".stryker-tmp/**",
   "contracts/artifacts/**",
   "contracts/cache/**",
   "_site/**",
