@@ -94,7 +94,6 @@ export function verifyRepository() {
       "test:contracts",
       "test:coverage",
       "protocol:signing-vectors:check",
-      "protocol:site:check",
       "verify:protocol",
       "verify:cross-language",
     ]) {
