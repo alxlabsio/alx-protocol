@@ -8,6 +8,7 @@ One primitive: Block = { blockHash, contentHash, parentHashes, content, protocol
 Four operations: canonicalize, hash, validate, trace
 """
 
+from alx_protocol._version import __version__
 from alx_protocol.block import (
     ATTESTATION_HASH_DOMAIN,
     BLOCK_HASH_DOMAIN,
@@ -50,8 +51,6 @@ from alx_protocol.verification_context import (
     VerificationContext,
 )
 from alx_protocol.verification_receipt import build_receipt, validate_receipt
-
-from alx_protocol._version import __version__
 
 __all__ = [
     "__version__",
