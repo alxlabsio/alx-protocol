@@ -22,6 +22,10 @@ This project follows [Semantic Versioning](https://semver.org/) for SDK releases
 ### Removed
 
 - The GitHub Pages workflow and `scripts/build-protocol-site.js`, with the `protocol:site:check` and `protocol:site:write` scripts.
+- `conformance/bin/differential-core-check.js`, an alias of `run-differential.js`. Run `pnpm run test:conformance:differential`.
+- `reference-implementations/python/verify_vectors.py`. Run `pytest tests/` in `reference-implementations/python`, which also covers the Graph validation vectors.
+- The `verifier.json` step catalogs of the Merkle and signing extensions. Each extension is defined by its README, manifest, schema, vectors and error registry.
+- `protocol/fixtures/valid/root-block.json`, a copy of `protocol/fixtures/valid/zero-parents-block.json`.
 
 ## [1.0.1] — 2026-09-12
 
