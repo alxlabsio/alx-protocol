@@ -24,6 +24,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run verify:fixtures
 
+  # `pnpm run ci` is the full repository gate (scripts/verify-repository.mjs). Besides the TypeScript work it lints the
+  # Python and Rust reference implementations and runs their conformance adapters, so this job needs all three toolchains.
   sdk-typescript:
     name: TypeScript reference implementation tests
     runs-on: ubuntu-latest
@@ -34,7 +36,19 @@ jobs:
         with:
           node-version: "20"
           cache: "pnpm"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Pinned to Rust 1.96.0, the toolchain the full gate was last verified with locally. `lint:rust` runs
+      # `cargo fmt --check` and clippy with -D warnings, so new lints or warnings in a later stable release would fail
+      # this job before any TypeScript test runs. Change it deliberately, together with the local toolchain.
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
       - run: pnpm install --frozen-lockfile
+      # ruff for lint:python; eth-hash, pycryptodome and cryptography for the Python conformance adapter.
+      - working-directory: reference-implementations/python
+        run: pip install -e ".[dev]"
       - run: pnpm run ci
 
   python:

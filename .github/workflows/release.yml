@@ -22,14 +22,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - uses: dtolnay/rust-toolchain@stable
+      # The same pinned toolchain as the sdk-typescript job in ci.yml: `pnpm run ci` runs `cargo fmt --check` and
+      # clippy with -D warnings.
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
       - run: pnpm install --frozen-lockfile
+      # Before `pnpm run ci`, which lints the Python implementation and runs its conformance adapter.
+      - working-directory: reference-implementations/python
+        run: pip install -e ".[dev]"
       - run: pnpm run ci
       - run: pnpm run test:contracts
       - working-directory: reference-implementations/python
-        run: |
-          pip install -e ".[dev]"
-          pytest tests/
+        run: pytest tests/
       - working-directory: reference-implementations/rust
         run: cargo test --all-targets
 
