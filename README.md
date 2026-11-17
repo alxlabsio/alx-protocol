@@ -6,21 +6,6 @@ A `Block` binds opaque, application-defined `content` and normalized `parentHash
 
 This repository contains the canonical protocol sources, language-neutral conformance materials, TypeScript SDK, Python and Rust implementations, CLI and server tooling, optional extensions and contracts, and public documentation.
 
-## Status
-
-* **Current protocol version:** `1` ([`protocol/VERSION`](protocol/VERSION))
-* **Published packages:** `@alx-protocol/sdk` 1.0.1 on npm, `alx-protocol` 1.0.1 on PyPI, and `alx-protocol` 1.0.1 on crates.io. The CLI 1.0.1 and the adapters package are not yet published, and the `v1.0.1` repository tag is pending.
-* **Documentation:** [alxprotocol.com/documentation](https://alxprotocol.com/documentation/)
-* **Review status:** The repository is open for public review. Independent protocol and contract review is pending. See [Security Review Status](docs/governance/security-review-status.md).
-
-Protocol authority and implementation maturity are separate:
-
-* **Canonical:** [`protocol/spec.md`](protocol/spec.md), [`protocol/schemas/`](protocol/schemas/), [`test-vectors/`](test-vectors/), and [`protocol/error-codes.json`](protocol/error-codes.json)
-* **Reference:** Maintained implementations and conformance runners provide interoperability evidence but do not define protocol behavior.
-* **Guide:** Root topic maps and files under [`docs/`](docs/) explain the canonical sources without adding requirements.
-
-If an implementation or explanatory document conflicts with a canonical source, **the canonical source governs**.
-
 ## What is ALX?
 
 `Block` is the sole ALX Protocol primitive.
